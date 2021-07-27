@@ -36,6 +36,7 @@ constants:
     
     replay_buffer_size: 2000000
     no_terminal: false
+    eval_no_terminal: false
     wrap_absorbing: false
 
     num_initial_train_steps: 1000

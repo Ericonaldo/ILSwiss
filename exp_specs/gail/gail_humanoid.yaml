@@ -1,6 +1,6 @@
 meta_data:
   script_path: run_scripts/adv_irl_exp_script.py
-  exp_name: gail_hopper_hype_search
+  exp_name: gail_humanoid_hype_search
   description: Train an adversarial IRL model
   num_workers: 4 # 64
   using_gpus: true
@@ -44,6 +44,7 @@ constants:
     
     replay_buffer_size: 20000
     no_terminal: true
+    eval_no_terminal: false
     wrap_absorbing: false
 
     num_update_loops_per_train_call: 100

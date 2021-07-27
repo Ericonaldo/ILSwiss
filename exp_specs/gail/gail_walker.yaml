@@ -45,6 +45,7 @@ constants:
     
     replay_buffer_size: 20000
     no_terminal: true
+    eval_no_terminal: false
     wrap_absorbing: false
 
     num_update_loops_per_train_call: 100

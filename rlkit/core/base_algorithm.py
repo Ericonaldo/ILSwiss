@@ -28,7 +28,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
             exploration_policy: ExplorationPolicy,
             training_env=None,
             eval_policy=None,
-            eval_sampler=None,
+            eval_sampler=None,      ##
 
             num_epochs=100,
             num_steps_per_epoch=10000,
@@ -50,6 +50,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
             best_key='AverageReturn', # higher is better
             
             no_terminal=False,
+            eval_no_terminal=False,
             wrap_absorbing=False,
 
             render=False,
@@ -89,7 +90,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
                 eval_policy,
                 num_steps_per_eval,
                 max_path_length,
-                no_terminal=no_terminal,
+                no_terminal=eval_no_terminal,
                 render=render,
                 render_kwargs=render_kwargs
             )
@@ -188,7 +189,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
                         #print('reward: ', np.sum(total_rew))
                     total_rew = 0
                     if self.wrap_absorbing:
-                        raise NotImplementedError()
+                        # raise NotImplementedError()
                         '''
                         If we wrap absorbing states, two additional
                         transitions must be added: (s_T, s_abs) and
@@ -519,9 +520,16 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         average_returns = eval_util.get_average_returns(test_paths)
         statistics['AverageReturn'] = average_returns
         for key, value in statistics.items():
-            logger.record_tabular(key, value)
+            logger.record_tabular(key, np.mean(value))
         
         best_statistic = statistics[self.best_key]
+        data_to_save = {
+            'epoch': epoch,
+            'statistics': statistics
+        }
+        data_to_save.update(self.get_epoch_snapshot(epoch))
+        logger.save_extra_data(data_to_save, 'epoch{}.pkl'.format(epoch))
+        print('\n\nSAVED MODEL AT EPOCH {}\n\n'.format(epoch))
         if best_statistic > self.best_statistic_so_far:
             self.best_statistic_so_far = best_statistic
             if self.save_best and epoch >= self.save_best_starting_from_epoch:
