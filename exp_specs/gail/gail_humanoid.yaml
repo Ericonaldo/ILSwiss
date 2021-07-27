@@ -1,15 +1,15 @@
 meta_data:
   script_path: run_scripts/adv_irl_exp_script.py
-  exp_name: gail_humanoid_hype_search
+  exp_name: gail2_humanoid_hype_search
   description: Train an adversarial IRL model
   num_workers: 4 # 64
   using_gpus: true
 # -----------------------------------------------------------------------------
 variables:
   adv_irl_params:
-    grad_pen_weight: [4.0, 8.0] # [0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]
+    grad_pen_weight: [4.0] # [0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]
   sac_params:
-    reward_scale: [1.0, 2.0] # [0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]
+    reward_scale: [2.0] # [0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]
   seed: [0]
 
 # -----------------------------------------------------------------------------
@@ -60,6 +60,7 @@ constants:
     policy_optim_batch_size_from_expert: 0
 
     save_best: true
+    save_epoch: false
     freq_saving: 20
     save_replay_buffer: false
     save_environment: false

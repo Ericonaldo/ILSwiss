@@ -61,6 +61,7 @@ constants:
     policy_optim_batch_size_from_expert: 0
 
     save_best: true
+    save_epoch: false
     freq_saving: 20
     save_replay_buffer: false
     save_environment: false

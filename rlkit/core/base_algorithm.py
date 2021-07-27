@@ -46,6 +46,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
             save_algorithm=False,
 
             save_best=False,
+            save_epoch=False,
             save_best_starting_from_epoch=0,
             best_key='AverageReturn', # higher is better
             
@@ -528,7 +529,8 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
             'statistics': statistics
         }
         data_to_save.update(self.get_epoch_snapshot(epoch))
-        logger.save_extra_data(data_to_save, 'epoch{}.pkl'.format(epoch))
+        if self.save_epoch:
+            logger.save_extra_data(data_to_save, 'epoch{}.pkl'.format(epoch))
         print('\n\nSAVED MODEL AT EPOCH {}\n\n'.format(epoch))
         if best_statistic > self.best_statistic_so_far:
             self.best_statistic_so_far = best_statistic
