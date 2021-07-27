@@ -1,0 +1,30 @@
+meta_data:
+  script_path: run_scripts/gen_expert_demos.py
+  exp_name: test_gen_mountain_demos
+  description: Generate demonstrations for imitation learning algorithms
+  num_workers: 1
+  using_gpus: true
+# -----------------------------------------------------------------------------
+variables: {}
+
+# -----------------------------------------------------------------------------
+constants:
+  use_scripted_policy: false
+  expert_path: './logs/test-sac-mountain/test_sac_mountain_2020_09_21_01_52_28_0000--s-0/best.pkl'
+  use_deterministic_expert: false
+
+  num_rollouts: 4
+  subsample_factor: 20
+  max_path_length: 1000
+  no_terminal: false
+  check_for_success: false
+
+  render: true
+  render_kwargs: {}
+
+  seed: 723894
+
+  env_specs:
+    env_name: 'mountaincarcont'
+    env_kwargs: {}
+    env_seed: 55334

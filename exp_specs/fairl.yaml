@@ -1,0 +1,82 @@
+meta_data:
+  script_path: run_scripts/adv_irl_exp_script.py
+  exp_name: fairl_lunar_4_hype_search
+  description: Train an adversarial IRL model
+  num_workers: 6
+  using_gpus: true
+# -----------------------------------------------------------------------------
+variables:
+  adv_irl_params:
+    grad_pen_weight: [0.5, 1.0] # [0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]
+  sac_params:
+    reward_scale: [16.0, 32.0, 64.0] # [0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]
+  # seed: [723894, 23789]
+  seed: [723894]
+
+# -----------------------------------------------------------------------------
+constants:
+  expert_name: 'lunar_4_demos_sub_20'
+  expert_idx: 0
+  scale_env_with_demo_stats: false
+  minmax_env_with_demo_stats: false
+
+  disc_num_blocks: 2
+  disc_hid_dim: 128
+  disc_hid_act: tanh
+  disc_use_bn: false
+  disc_clamp_magnitude: 10.0
+
+  policy_net_size: 256
+  policy_num_hidden_layers: 2
+
+  adv_irl_params:
+    mode: 'fairl'
+    state_only: false
+
+    num_epochs: 162
+    num_steps_per_epoch: 100000
+    num_steps_between_train_calls: 1000
+    max_path_length: 1000
+    min_steps_before_training: 5000
+
+    eval_deterministic: true
+    num_steps_per_eval: 20000
+    
+    replay_buffer_size: 20000
+    no_terminal: false
+    wrap_absorbing: false
+
+    num_update_loops_per_train_call: 100
+    num_disc_updates_per_loop_iter: 1
+    num_policy_updates_per_loop_iter: 1
+
+    disc_lr: 0.0003
+    disc_momentum: 0.0
+    use_grad_pen: true
+    # grad_pen_weight: 10.0
+    disc_optim_batch_size: 256
+    policy_optim_batch_size: 256
+    policy_optim_batch_size_from_expert: 0
+
+    save_best: true
+    freq_saving: 20
+    save_replay_buffer: false
+    save_environment: false
+    save_algorithm: false
+
+  sac_params:
+    # reward_scale: 8.0
+    discount: 0.99
+    soft_target_tau: 0.005
+    beta_1: 0.25
+    policy_lr: 0.0003
+    qf_lr: 0.0003
+    vf_lr: 0.0003
+    policy_mean_reg_weight: 0.001
+    policy_std_reg_weight: 0.001
+
+  env_specs:
+    env_name: 'lunarlandercont'
+    env_kwargs: {}
+    eval_env_seed: 78236
+    training_env_seed: 24495

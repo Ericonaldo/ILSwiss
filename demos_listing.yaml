@@ -1,0 +1,73 @@
+# hopper_4:
+#   description: "Hopper"
+#   file_paths: [
+#     ./demos/norm_hopper_4_demos_20_subsampling.pkl
+#   ]
+
+# hopper_32:
+#   description: "Hopper"
+#   file_paths: [
+#     ./demos/norm_hopper_32_demos_20_subsampling.pkl
+#   ]
+
+
+# walker_4:
+#   description: "Walker2d"
+#   file_paths: [
+#     ./demos/norm_walker_4_demos_20_subsampling.pkl
+#   ]
+
+hopper_sac:
+  description: "Hopper, expert"
+  file_paths: [
+    ./demos/expert_trajs_50/Hopper/seed-0/exp_trajs_sac_50.pkl
+  ]
+
+walker_sac:
+  description: "Walker, expert"
+  file_paths: [
+    ./demos/expert_trajs_50/Walker2d/seed-0/exp_trajs_sac_50.pkl
+  ]
+
+halfcheetah_sac:
+  description: "Halfcheetah, expert"
+  file_paths: [
+    ./demos/expert_trajs_50/HalfCheetah/seed-0/exp_trajs_sac_50.pkl
+  ]
+
+swimmer_sac:
+  description: "Swimmer, expert"
+  file_paths: [
+    ./demos/expert_trajs_50/Swimmer/seed-0/exp_trajs_sac_50.pkl
+  ]
+
+ant_sac:
+  description: "Ant, expert"
+  file_paths: [
+    ./demos/expert_trajs_50/Ant/seed-0/exp_trajs_sac_50.pkl
+  ]
+
+humanoid_sac:
+  description: "Humanoid, expert"
+  file_paths: [
+    ./demos/expert_trajs_50/Humanoid/seed-0/exp_trajs_sac_50.pkl
+  ]
+
+
+pendulum_sac:
+  description: "Pendulum, expert"
+  file_paths: [
+    ./demos/expert_trajs_50/Pendulum/seed-0/exp_trajs_sac_50.pkl
+  ]
+
+invpendulum_sac:
+  description: "InvertPendulum, expert"
+  file_paths: [
+    ./demos/expert_trajs_50/InvertedPendulum/seed-0/exp_trajs_sac_50.pkl
+  ]
+
+invdoublependulum_sac:
+  description: "InvertDoublePendulum, expert"
+  file_paths: [
+    ./demos/expert_trajs_50/InvertedDoublePendulum/seed-0/exp_trajs_sac_50.pkl
+  ]
