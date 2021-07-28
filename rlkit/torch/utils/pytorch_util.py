@@ -8,9 +8,7 @@ import numpy as np
 
 def soft_update_from_to(source, target, tau):
     for target_param, param in zip(target.parameters(), source.parameters()):
-        target_param.data.copy_(
-            target_param.data * (1.0 - tau) + param.data * tau
-        )
+        target_param.data.copy_(target_param.data * (1.0 - tau) + param.data * tau)
 
 
 def copy_model_params_from_to(source, target):
@@ -26,7 +24,7 @@ def fanin_init(tensor):
         fan_in = np.prod(size[1:])
     else:
         raise Exception("Shape must be have dimension at least 2.")
-    bound = 1. / np.sqrt(fan_in)
+    bound = 1.0 / np.sqrt(fan_in)
     return tensor.data.uniform_(-bound, bound)
 
 
@@ -38,7 +36,7 @@ def fanin_init_weights_like(tensor):
         fan_in = np.prod(size[1:])
     else:
         raise Exception("Shape must be have dimension at least 2.")
-    bound = 1. / np.sqrt(fan_in)
+    bound = 1.0 / np.sqrt(fan_in)
     new_tensor = FloatTensor(tensor.size())
     new_tensor.uniform_(-bound, bound)
     return new_tensor
@@ -84,7 +82,7 @@ def from_numpy(np_array, requires_grad=False):
 
 
 def get_numpy(tensor):
-    return tensor.to('cpu').detach().numpy()
+    return tensor.to("cpu").detach().numpy()
 
 
 def zeros(*sizes, torch_device=None, **kwargs):

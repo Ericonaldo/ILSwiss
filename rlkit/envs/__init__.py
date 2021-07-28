@@ -13,7 +13,7 @@ import sys
 # from rlkit.envs.humanoid import HumanoidEnv
 # from rlkit.envs.swimmer import SwimmerEnv
 
-env_overwrite = {}#{'Ant': AntEnv, 'Humanoid': HumanoidEnv, 'Swimmer':SwimmerEnv}
+env_overwrite = {}  # {'Ant': AntEnv, 'Humanoid': HumanoidEnv, 'Swimmer':SwimmerEnv}
 
 
 def load(name):
@@ -23,22 +23,28 @@ def load(name):
     fn = getattr(mod, attr_name)
     return fn
 
+
 def get_env(env_specs):
     """
     env_specs:
         env_name: 'halfcheetah'
         env_kwargs: {} # kwargs to pass to the env constructor call
     """
-    domain = envs_dict[env_specs['env_name']]
-    
+    domain = envs_dict[env_specs["env_name"]]
+
     env_class = load(domain)
-    env = env_class(**env_specs['env_kwargs'])
+    env = env_class(**env_specs["env_kwargs"])
 
     if domain in env_overwrite:
-        print('[ environments/utils ] WARNING: Using overwritten {} environment'.format(domain))
+        print(
+            "[ environments/utils ] WARNING: Using overwritten {} environment".format(
+                domain
+            )
+        )
         env = env_overwrite[domain]()
 
     return env
+
 
 def get_task_params_samplers(task_specs):
     """
@@ -50,12 +56,12 @@ def get_task_params_samplers(task_specs):
         meta_val_kwargs: {}
         meta_test_kwargs: {}
     """
-    keys = ['meta_train_tasks', 'meta_val_tasks', 'meta_test_tasks']
+    keys = ["meta_train_tasks", "meta_val_tasks", "meta_test_tasks"]
     d = {}
     for k in keys:
         if k in task_specs:
             task_class = load(task_specs[k])
-            d[k] = task_class(**task_specs[k+'_kwargs'])
+            d[k] = task_class(**task_specs[k + "_kwargs"])
     return d
 
 
@@ -66,8 +72,7 @@ class EnvFactory(metaclass=abc.ABCMeta):
         Implements returning and environment corresponding to given task params
         """
         pass
-    
-    
+
     @abc.abstractmethod
     def get_task_identifier(self, task_params):
         """
@@ -75,7 +80,6 @@ class EnvFactory(metaclass=abc.ABCMeta):
         as dictionary keys etc.
         """
         pass
-
 
     def task_params_to_obs_task_params(self, task_params):
         """

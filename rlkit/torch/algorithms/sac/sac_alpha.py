@@ -21,29 +21,26 @@ class SoftActorCritic(Trainer):
     as well as an implementation of entropy tuning but I have not implemented
     those
     """
+
     def __init__(
-            self,
-            policy,
-            qf1,
-            qf2,
-            vf,
-
-            reward_scale=1.0,
-            discount=0.99,
-
-            policy_lr=1e-3,
-            qf_lr=1e-3,
-            alpha_lr=3e-4,
-            soft_target_tau=1e-2,
-            alpha=0.2,
-            train_alpha=True,
-
-            policy_mean_reg_weight=1e-3,
-            policy_std_reg_weight=1e-3,
-
-            optimizer_class=optim.Adam,
-            beta_1=0.9,
-            **kwargs
+        self,
+        policy,
+        qf1,
+        qf2,
+        vf,
+        reward_scale=1.0,
+        discount=0.99,
+        policy_lr=1e-3,
+        qf_lr=1e-3,
+        alpha_lr=3e-4,
+        soft_target_tau=1e-2,
+        alpha=0.2,
+        train_alpha=True,
+        policy_mean_reg_weight=1e-3,
+        policy_std_reg_weight=1e-3,
+        optimizer_class=optim.Adam,
+        beta_1=0.9,
+        **kwargs
     ):
         self.policy = policy
         self.qf1 = qf1
@@ -58,46 +55,37 @@ class SoftActorCritic(Trainer):
         self.train_alpha = train_alpha
         self.log_alpha = torch.tensor(np.log(alpha), requires_grad=train_alpha)
         self.alpha = self.log_alpha.detach().exp()
-        assert 'env' in kwargs.keys(), 'env info should be taken into SAC alpha'
-        self.target_entropy = -np.prod(kwargs['env'].action_space.shape)
+        assert "env" in kwargs.keys(), "env info should be taken into SAC alpha"
+        self.target_entropy = -np.prod(kwargs["env"].action_space.shape)
 
         self.target_qf1 = qf1.copy()
         self.target_qf2 = qf2.copy()
-         
+
         self.eval_statistics = None
 
         self.policy_optimizer = optimizer_class(
-            self.policy.parameters(),
-            lr=policy_lr,
-            betas=(beta_1, 0.999)
+            self.policy.parameters(), lr=policy_lr, betas=(beta_1, 0.999)
         )
         self.qf1_optimizer = optimizer_class(
-            self.qf1.parameters(),
-            lr=qf_lr,
-            betas=(beta_1, 0.999)
+            self.qf1.parameters(), lr=qf_lr, betas=(beta_1, 0.999)
         )
         self.qf2_optimizer = optimizer_class(
-            self.qf2.parameters(),
-            lr=qf_lr,
-            betas=(beta_1, 0.999)
+            self.qf2.parameters(), lr=qf_lr, betas=(beta_1, 0.999)
         )
         self.alpha_optimizer = optimizer_class(
-            [self.log_alpha],
-            lr=alpha_lr,
-            betas=(beta_1, 0.999)
+            [self.log_alpha], lr=alpha_lr, betas=(beta_1, 0.999)
         )
-
 
     def train_step(self, batch):
         # q_params = itertools.chain(self.qf1.parameters(), self.qf2.parameters())
         # v_params = itertools.chain(self.vf.parameters())
         # policy_params = itertools.chain(self.policy.parameters())
 
-        rewards = self.reward_scale * batch['rewards']
-        terminals = batch['terminals']
-        obs = batch['observations']
-        actions = batch['actions']
-        next_obs = batch['next_observations']
+        rewards = self.reward_scale * batch["rewards"]
+        terminals = batch["terminals"]
+        obs = batch["observations"]
+        actions = batch["actions"]
+        next_obs = batch["next_observations"]
 
         """
         QF Loss
@@ -113,15 +101,26 @@ class SoftActorCritic(Trainer):
         self.qf2_optimizer.zero_grad()
         q1_pred = self.qf1(obs, actions)
         q2_pred = self.qf2(obs, actions)
-        
+
         # Make sure policy accounts for squashing functions like tanh correctly!
         next_policy_outputs = self.policy(next_obs, return_log_prob=True)
         # in this part, we only need new_actions and log_pi with no grad
-        next_new_actions, next_policy_mean, next_policy_log_std, next_log_pi = next_policy_outputs[:4]
-        target_qf1_values = self.target_qf1(next_obs, next_new_actions)  # do not need grad || it's the shared part of two calculation
-        target_qf2_values = self.target_qf2(next_obs, next_new_actions)  # do not need grad || it's the shared part of two calculation
+        (
+            next_new_actions,
+            next_policy_mean,
+            next_policy_log_std,
+            next_log_pi,
+        ) = next_policy_outputs[:4]
+        target_qf1_values = self.target_qf1(
+            next_obs, next_new_actions
+        )  # do not need grad || it's the shared part of two calculation
+        target_qf2_values = self.target_qf2(
+            next_obs, next_new_actions
+        )  # do not need grad || it's the shared part of two calculation
         min_target_value = torch.min(target_qf1_values, target_qf2_values)
-        q_target = (rewards + (1. - terminals) * self.discount * (min_target_value - self.alpha * next_log_pi))  ## original implementation has detach
+        q_target = rewards + (1.0 - terminals) * self.discount * (
+            min_target_value - self.alpha * next_log_pi
+        )  ## original implementation has detach
         q_target = q_target.detach()
 
         qf1_loss = 0.5 * torch.mean((q1_pred - q_target) ** 2)
@@ -161,7 +160,6 @@ class SoftActorCritic(Trainer):
         policy_loss.backward()
         self.policy_optimizer.step()
 
-
         """
         Update alpha
         """
@@ -199,37 +197,47 @@ class SoftActorCritic(Trainer):
             This way, these statistics are only computed for one batch.
             """
             self.eval_statistics = OrderedDict()
-            self.eval_statistics['Reward Scale'] = self.reward_scale
-            self.eval_statistics['QF1 Loss'] = np.mean(ptu.get_numpy(qf1_loss))
-            self.eval_statistics['QF2 Loss'] = np.mean(ptu.get_numpy(qf2_loss))
-            self.eval_statistics['Alpha Loss'] = np.mean(ptu.get_numpy(alpha_loss))
-            self.eval_statistics['Policy Loss'] = np.mean(ptu.get_numpy(
-                policy_loss
-            ))
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Q1 Predictions',
-                ptu.get_numpy(q1_pred),
-            ))
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Q2 Predictions',
-                ptu.get_numpy(q2_pred),
-            ))
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Alpha',
-                [ptu.get_numpy(self.alpha)],
-            ))
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Log Pis',
-                ptu.get_numpy(log_pi),
-            ))
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Policy mu',
-                ptu.get_numpy(policy_mean),
-            ))
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Policy log std',
-                ptu.get_numpy(policy_log_std),
-            ))
+            self.eval_statistics["Reward Scale"] = self.reward_scale
+            self.eval_statistics["QF1 Loss"] = np.mean(ptu.get_numpy(qf1_loss))
+            self.eval_statistics["QF2 Loss"] = np.mean(ptu.get_numpy(qf2_loss))
+            self.eval_statistics["Alpha Loss"] = np.mean(ptu.get_numpy(alpha_loss))
+            self.eval_statistics["Policy Loss"] = np.mean(ptu.get_numpy(policy_loss))
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "Q1 Predictions",
+                    ptu.get_numpy(q1_pred),
+                )
+            )
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "Q2 Predictions",
+                    ptu.get_numpy(q2_pred),
+                )
+            )
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "Alpha",
+                    [ptu.get_numpy(self.alpha)],
+                )
+            )
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "Log Pis",
+                    ptu.get_numpy(log_pi),
+                )
+            )
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "Policy mu",
+                    ptu.get_numpy(policy_mean),
+                )
+            )
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "Policy log std",
+                    ptu.get_numpy(policy_log_std),
+                )
+            )
 
     @property
     def networks(self):
@@ -241,11 +249,9 @@ class SoftActorCritic(Trainer):
             self.target_qf2,
         ]
 
-
     def _update_target_network(self):
         ptu.soft_update_from_to(self.qf1, self.target_qf1, self.soft_target_tau)
         ptu.soft_update_from_to(self.qf2, self.target_qf2, self.soft_target_tau)
-
 
     def get_snapshot(self):
         return dict(
@@ -256,11 +262,9 @@ class SoftActorCritic(Trainer):
             target_qf2=self.target_qf2,
             log_alpha=self.log_alpha,
         )
-    
 
     def get_eval_statistics(self):
         return self.eval_statistics
-    
 
     def end_epoch(self):
         self.eval_statistics = None

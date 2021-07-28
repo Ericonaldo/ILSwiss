@@ -1,9 +1,10 @@
 """ General utiliy functions """
 import logging
+
 try:
-   import cPickle as pickle
+    import cPickle as pickle
 except:
-   import pickle
+    import pickle
 import gzip
 import contextlib
 import numpy as np
@@ -18,16 +19,18 @@ from rlkit.data_management.mil_color_print import *
 
 LOGGER = logging.getLogger(__name__)
 
+
 @contextlib.contextmanager
-def open_zip(filename, mode='r'):
+def open_zip(filename, mode="r"):
     """
     Open a file; if filename ends with .gz, opens as a gzip file
     """
-    if filename.endswith('.gz'):
+    if filename.endswith(".gz"):
         openfn = gzip.open
     else:
         openfn = open
     yield openfn(filename, mode)
+
 
 class DataLogger(object):
     """
@@ -37,24 +40,26 @@ class DataLogger(object):
     TODO: Handle logging data to terminal, GUI text/plots, and/or data
           files.
     """
+
     def __init__(self):
         pass
 
     def pickle(self, filename, data):
         """ Pickle data into file specified by filename. """
-        with open_zip(filename, 'wb') as f:
+        with open_zip(filename, "wb") as f:
             pickle.dump(data, f)
 
     def unpickle(self, filename):
         """ Unpickle data from file specified by filename. """
         try:
-            with open_zip(filename, 'rb') as f:
+            with open_zip(filename, "rb") as f:
                 result = pickle.load(f)
             return result
         except IOError:
-            LOGGER.debug('Unpickle error. Cannot find file: %s', filename)
+            LOGGER.debug("Unpickle error. Cannot find file: %s", filename)
             return None
-            
+
+
 def mkdir_p(path):
     try:
         os.makedirs(path)
@@ -64,15 +69,17 @@ def mkdir_p(path):
         else:
             raise
 
+
 def extract_demo_dict(demo_file):
     if type(demo_file) is not list:
         demos = DataLogger().unpickle(demo_file)
     else:
         demos = {}
         for i in range(0, len(demo_file)):
-            with Timer('Extracting demo file %d' % i):
+            with Timer("Extracting demo file %d" % i):
                 demos[i] = DataLogger().unpickle(demo_file[i])
     return demos
+
 
 class Timer(object):
     def __init__(self, message):
@@ -85,16 +92,23 @@ class Timer(object):
         new_time = time.time() - self.time_start
         fname, lineno, method, _ = tb.extract_stack()[-2]  # Get caller
         _, fname = os.path.split(fname)
-        id_str = '%s:%s' % (fname, method)
-        print('TIMER:'+color_string('%s: %s (Elapsed: %fs)' % (id_str, self.message, new_time), color='gray'))
+        id_str = "%s:%s" % (fname, method)
+        print(
+            "TIMER:"
+            + color_string(
+                "%s: %s (Elapsed: %fs)" % (id_str, self.message, new_time), color="gray"
+            )
+        )
+
 
 def load_scale_and_bias(data_path):
-    with open(data_path, 'rb') as f:
+    with open(data_path, "rb") as f:
         data = pickle.load(f)
-        scale = data['scale']
-        bias = data['bias']
+        scale = data["scale"]
+        bias = data["bias"]
     return scale, bias
-    
+
+
 def generate_noise(T, dU):
     """
     Generate a T x dU gaussian-distributed noise vector. This will

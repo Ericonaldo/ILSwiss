@@ -10,7 +10,6 @@ from rlkit.core.serializable import Serializable
 
 
 class PyTorchModule(nn.Module, Serializable, metaclass=abc.ABCMeta):
-
     def get_param_values(self):
         return self.state_dict()
 
@@ -91,21 +90,21 @@ class PyTorchModule(nn.Module, Serializable, metaclass=abc.ABCMeta):
 
 
 def eval_np(self, *args, **kwargs):
-        """
-        Eval this module with a numpy interface
+    """
+    Eval this module with a numpy interface
 
-        Same as a call to __call__ except all Variable input/outputs are
-        replaced with numpy equivalents.
+    Same as a call to __call__ except all Variable input/outputs are
+    replaced with numpy equivalents.
 
-        Assumes the output is either a single object or a tuple of objects.
-        """
-        torch_args = tuple(torch_ify(x) for x in args)
-        torch_kwargs = {k: torch_ify(v) for k, v in kwargs.items()}
-        outputs = self.__call__(*torch_args, **torch_kwargs)
-        if isinstance(outputs, tuple):
-            return tuple(np_ify(x) for x in outputs)
-        else:
-            return np_ify(outputs)
+    Assumes the output is either a single object or a tuple of objects.
+    """
+    torch_args = tuple(torch_ify(x) for x in args)
+    torch_kwargs = {k: torch_ify(v) for k, v in kwargs.items()}
+    outputs = self.__call__(*torch_args, **torch_kwargs)
+    if isinstance(outputs, tuple):
+        return tuple(np_ify(x) for x in outputs)
+    else:
+        return np_ify(outputs)
 
 
 def torch_ify(np_array_or_other):
@@ -124,9 +123,7 @@ def np_ify(tensor_or_other):
 
 def _elem_or_tuple_to_variable(elem_or_tuple):
     if isinstance(elem_or_tuple, tuple):
-        return tuple(
-            _elem_or_tuple_to_variable(e) for e in elem_or_tuple
-        )
+        return tuple(_elem_or_tuple_to_variable(e) for e in elem_or_tuple)
     return ptu.from_numpy(elem_or_tuple, requires_grad=False).float()
 
 
@@ -142,5 +139,5 @@ def np_to_pytorch_batch(np_batch):
     return {
         k: _elem_or_tuple_to_variable(x)
         for k, x in _filter_batch(np_batch)
-        if x.dtype != np.dtype('O')  # ignore object (e.g. dictionaries)
+        if x.dtype != np.dtype("O")  # ignore object (e.g. dictionaries)
     }

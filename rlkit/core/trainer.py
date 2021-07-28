@@ -8,10 +8,11 @@ class Trainer(object, metaclass=abc.ABCMeta):
     can be plugged into other algorithms
     E.g. SAC, TD3, etc.
     """
+
     @abc.abstractmethod
     def train_step(self, batch):
         pass
-    
+
     def get_eval_statistics(self):
         return {}
 

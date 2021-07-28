@@ -17,47 +17,47 @@ from gym.spaces import Dict
 
 class RLAlgorithm(metaclass=abc.ABCMeta):
     def __init__(
-            self,
-            env,
-            exploration_policy: ExplorationPolicy,
-            training_env=None,
-            num_epochs=100,
-            num_steps_per_epoch=10000,
-            num_steps_per_eval=1000,
-            num_updates_per_env_step=1,
-            max_num_episodes=None,
-            batch_size=1024,
-            max_path_length=1000,
-            discount=0.99,
-            replay_buffer_size=1000000,
-            reward_scale=1,
-            render=False,
-            save_replay_buffer=False,
-            save_algorithm=False,
-            save_environment=False,
-            save_best=False,
-            save_best_starting_from_epoch=0,
-            eval_sampler=None,
-            eval_policy=None,
-            replay_buffer=None,
-            # for compatibility with deepmind control suite
-            # Right now the semantics is that if observations is not a dictionary
-            # then it means the policy just uses that. If it's a dictionary, it
-            # checks whether policy_uses_pixels to see if it's true or false and
-            # based on that it decides whether the policy takes 'pixels' or 'obs'
-            # from the dictionary
-            policy_uses_pixels=False,
-            freq_saving=1,
-            # for meta-learning
-            policy_uses_task_params=False, # whether the policy uses the task parameters
-            concat_task_params_to_policy_obs=False, # how the policy sees the task parameters
-            # this is useful when you want to generate trajectories from the expert using the
-            # exploration policy
-            do_not_train=False,
-            # some environment like halfcheetah_v2 have a timelimit that defines the terminal
-            # this is used as a minor hack to turn off time limits
-            no_terminal=False,
-            **kwargs
+        self,
+        env,
+        exploration_policy: ExplorationPolicy,
+        training_env=None,
+        num_epochs=100,
+        num_steps_per_epoch=10000,
+        num_steps_per_eval=1000,
+        num_updates_per_env_step=1,
+        max_num_episodes=None,
+        batch_size=1024,
+        max_path_length=1000,
+        discount=0.99,
+        replay_buffer_size=1000000,
+        reward_scale=1,
+        render=False,
+        save_replay_buffer=False,
+        save_algorithm=False,
+        save_environment=False,
+        save_best=False,
+        save_best_starting_from_epoch=0,
+        eval_sampler=None,
+        eval_policy=None,
+        replay_buffer=None,
+        # for compatibility with deepmind control suite
+        # Right now the semantics is that if observations is not a dictionary
+        # then it means the policy just uses that. If it's a dictionary, it
+        # checks whether policy_uses_pixels to see if it's true or false and
+        # based on that it decides whether the policy takes 'pixels' or 'obs'
+        # from the dictionary
+        policy_uses_pixels=False,
+        freq_saving=1,
+        # for meta-learning
+        policy_uses_task_params=False,  # whether the policy uses the task parameters
+        concat_task_params_to_policy_obs=False,  # how the policy sees the task parameters
+        # this is useful when you want to generate trajectories from the expert using the
+        # exploration policy
+        do_not_train=False,
+        # some environment like halfcheetah_v2 have a timelimit that defines the terminal
+        # this is used as a minor hack to turn off time limits
+        no_terminal=False,
+        **kwargs
     ):
         """
         Base class for RL Algorithms
@@ -112,9 +112,10 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
                 env=env,
                 policy=eval_policy,
                 max_samples=self.num_steps_per_eval + self.max_path_length,
-                max_path_length=self.max_path_length, policy_uses_pixels=policy_uses_pixels,
+                max_path_length=self.max_path_length,
+                policy_uses_pixels=policy_uses_pixels,
                 policy_uses_task_params=policy_uses_task_params,
-                concat_task_params_to_policy_obs=concat_task_params_to_policy_obs
+                concat_task_params_to_policy_obs=concat_task_params_to_policy_obs,
             )
         self.eval_policy = eval_policy
         self.eval_sampler = eval_sampler
@@ -128,7 +129,7 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
                 self.env,
                 policy_uses_pixels=self.policy_uses_pixels,
                 policy_uses_task_params=self.policy_uses_task_params,
-                concat_task_params_to_policy_obs=self.concat_task_params_to_policy_obs
+                concat_task_params_to_policy_obs=self.concat_task_params_to_policy_obs,
             )
         self.replay_buffer = replay_buffer
 
@@ -143,7 +144,9 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
         self._exploration_paths = []
         self.do_not_train = do_not_train
         self.num_episodes = 0
-        self.max_num_episodes = max_num_episodes if max_num_episodes is not None else float('inf')
+        self.max_num_episodes = (
+            max_num_episodes if max_num_episodes is not None else float("inf")
+        )
         self.no_terminal = no_terminal
 
     def train(self, start_epoch=0):
@@ -167,8 +170,8 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
         self._current_path_builder = PathBuilder()
         observation = self._start_new_rollout()
         for epoch in gt.timed_for(
-                range(start_epoch, self.num_epochs),
-                save_itrs=True,
+            range(start_epoch, self.num_epochs),
+            save_itrs=True,
         ):
             self._start_epoch(epoch)
             for _ in range(self.num_env_steps_per_epoch):
@@ -176,25 +179,23 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
                 # pixels and obs, and maybe obs_task_params
                 if isinstance(self.obs_space, Dict):
                     if self.policy_uses_pixels:
-                        agent_obs = observation['pixels']
+                        agent_obs = observation["pixels"]
                     else:
-                        agent_obs = observation['obs']
+                        agent_obs = observation["obs"]
                 else:
                     agent_obs = observation
                 if self.policy_uses_task_params:
-                    task_params = observation['obs_task_params']
+                    task_params = observation["obs_task_params"]
                     if self.concat_task_params_to_policy_obs:
                         agent_obs = np.concatenate((agent_obs, task_params), -1)
                     else:
-                        agent_obs = {'obs': agent_obs, 'obs_task_params': task_params}
+                        agent_obs = {"obs": agent_obs, "obs_task_params": task_params}
                 action, agent_info = self._get_action_and_info(
                     agent_obs,
                 )
                 if self.render:
                     self.training_env.render()
-                next_ob, raw_reward, terminal, env_info = (
-                    self.training_env.step(action)
-                )
+                next_ob, raw_reward, terminal, env_info = self.training_env.step(action)
                 if self.no_terminal:
                     terminal = False
                 self._n_env_steps_total += 1
@@ -216,18 +217,19 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
                 else:
                     observation = next_ob
 
-                gt.stamp('sample')
-                if not self.do_not_train: self._try_to_train()
-                gt.stamp('train')
+                gt.stamp("sample")
+                if not self.do_not_train:
+                    self._try_to_train()
+                gt.stamp("train")
 
                 if self.num_episodes > self.max_num_episodes:
                     self._try_to_eval(epoch)
-                    gt.stamp('eval')
+                    gt.stamp("eval")
                     self._end_epoch()
                     return
 
             self._try_to_eval(epoch)
-            gt.stamp('eval')
+            gt.stamp("eval")
             self._end_epoch()
 
     def _try_to_train(self):
@@ -256,9 +258,9 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
                 # print('$$$$$$$$$$$$$$$')
                 # print(set(table_keys) - set(self._old_table_keys))
                 # print(set(self._old_table_keys) - set(table_keys))
-                assert table_keys == self._old_table_keys, (
-                    "Table keys cannot change from iteration to iteration."
-                )
+                assert (
+                    table_keys == self._old_table_keys
+                ), "Table keys cannot change from iteration to iteration."
             self._old_table_keys = table_keys
 
             logger.record_tabular(
@@ -275,17 +277,17 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
             )
 
             times_itrs = gt.get_times().stamps.itrs
-            train_time = times_itrs['train'][-1]
-            sample_time = times_itrs['sample'][-1]
-            eval_time = times_itrs['eval'][-1] if epoch > 0 else 0
+            train_time = times_itrs["train"][-1]
+            sample_time = times_itrs["sample"][-1]
+            eval_time = times_itrs["eval"][-1] if epoch > 0 else 0
             epoch_time = train_time + sample_time + eval_time
             total_time = gt.get_times().total
 
-            logger.record_tabular('Train Time (s)', train_time)
-            logger.record_tabular('(Previous) Eval Time (s)', eval_time)
-            logger.record_tabular('Sample Time (s)', sample_time)
-            logger.record_tabular('Epoch Time (s)', epoch_time)
-            logger.record_tabular('Total Train Time (s)', total_time)
+            logger.record_tabular("Train Time (s)", train_time)
+            logger.record_tabular("(Previous) Eval Time (s)", eval_time)
+            logger.record_tabular("Sample Time (s)", sample_time)
+            logger.record_tabular("Epoch Time (s)", epoch_time)
+            logger.record_tabular("Total Train Time (s)", total_time)
 
             logger.record_tabular("Epoch", epoch)
             logger.dump_tabular(with_prefix=False, with_timestamp=False)
@@ -327,12 +329,10 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
         self._epoch_start_time = time.time()
         self._exploration_paths = []
         self._do_train_time = 0
-        logger.push_prefix('Iteration #%d | ' % epoch)
+        logger.push_prefix("Iteration #%d | " % epoch)
 
     def _end_epoch(self):
-        logger.log("Epoch Duration: {0}".format(
-            time.time() - self._epoch_start_time
-        ))
+        logger.log("Epoch Duration: {0}".format(time.time() - self._epoch_start_time))
         logger.log("Started Training: {0}".format(self._can_train()))
         logger.pop_prefix()
 
@@ -347,15 +347,7 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
         :param path:
         :return:
         """
-        for (
-            ob,
-            action,
-            reward,
-            next_ob,
-            terminal,
-            agent_info,
-            env_info
-        ) in zip(
+        for (ob, action, reward, next_ob, terminal, agent_info, env_info) in zip(
             path["observations"],
             path["actions"],
             path["rewards"],
@@ -376,14 +368,14 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
         self._handle_rollout_ending()
 
     def _handle_step(
-            self,
-            observation,
-            action,
-            reward,
-            next_observation,
-            terminal,
-            agent_info,
-            env_info,
+        self,
+        observation,
+        action,
+        reward,
+        next_observation,
+        terminal,
+        agent_info,
+        env_info,
     ):
         """
         Implement anything that needs to happen after every step
@@ -415,9 +407,7 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
         self.replay_buffer.terminate_episode()
         self._n_rollouts_total += 1
         if len(self._current_path_builder) > 0:
-            self._exploration_paths.append(
-                self._current_path_builder.get_all_stacked()
-            )
+            self._exploration_paths.append(self._current_path_builder.get_all_stacked())
             self._current_path_builder = PathBuilder()
 
     def get_epoch_snapshot(self, epoch):
@@ -426,7 +416,7 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
             exploration_policy=self.exploration_policy,
         )
         if self.save_environment:
-            data_to_save['env'] = self.training_env
+            data_to_save["env"] = self.training_env
         return data_to_save
 
     def get_extra_data_to_save(self, epoch):
@@ -442,11 +432,11 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
             epoch=epoch,
         )
         if self.save_environment:
-            data_to_save['env'] = self.training_env
+            data_to_save["env"] = self.training_env
         if self.save_replay_buffer:
-            data_to_save['replay_buffer'] = self.replay_buffer
+            data_to_save["replay_buffer"] = self.replay_buffer
         if self.save_algorithm:
-            data_to_save['algorithm'] = self
+            data_to_save["algorithm"] = self
         return data_to_save
 
     @abc.abstractmethod

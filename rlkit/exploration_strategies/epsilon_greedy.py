@@ -10,6 +10,7 @@ class EpsilonGreedy(RawExplorationStrategy, Serializable):
     """
     Take a random discrete action with some probability.
     """
+
     def __init__(self, action_space, prob_random_action=0.1):
         Serializable.quick_init(self, locals())
         assert isinstance(action_space, Discrete)

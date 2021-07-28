@@ -6,9 +6,7 @@ import torch.optim as optim
 from torch import nn as nn
 
 import rlkit.torch.utils.pytorch_util as ptu
-from rlkit.exploration_strategies.base import (
-    PolicyWrappedWithExplorationStrategy
-)
+from rlkit.exploration_strategies.base import PolicyWrappedWithExplorationStrategy
 from rlkit.exploration_strategies.epsilon_greedy import EpsilonGreedy
 from rlkit.core.eval_util import create_stats_ordered_dict
 from rlkit.policies.argmax import ArgmaxDiscretePolicy
@@ -17,17 +15,17 @@ from rlkit.torch.torch_rl_algorithm import TorchRLAlgorithm, MetaTorchRLAlgorith
 
 class DQN(TorchRLAlgorithm):
     def __init__(
-            self,
-            env,
-            qf,
-            policy=None,
-            learning_rate=1e-3,
-            use_hard_updates=False,
-            hard_update_period=1000,
-            tau=0.001,
-            epsilon=0.1,
-            qf_criterion=None,
-            **kwargs
+        self,
+        env,
+        qf,
+        policy=None,
+        learning_rate=1e-3,
+        use_hard_updates=False,
+        hard_update_period=1000,
+        tau=0.001,
+        epsilon=0.1,
+        qf_criterion=None,
+        **kwargs
     ):
         """
 
@@ -51,9 +49,7 @@ class DQN(TorchRLAlgorithm):
             exploration_strategy=exploration_strategy,
             policy=self.policy,
         )
-        super().__init__(
-            env, exploration_policy, eval_policy=self.policy, **kwargs
-        )
+        super().__init__(env, exploration_policy, eval_policy=self.policy, **kwargs)
         self.qf = qf
         self.target_qf = self.qf.copy()
         self.learning_rate = learning_rate
@@ -70,20 +66,18 @@ class DQN(TorchRLAlgorithm):
 
     def _do_training(self):
         batch = self.get_batch()
-        rewards = batch['rewards']
-        terminals = batch['terminals']
-        obs = batch['observations']
-        actions = batch['actions']
-        next_obs = batch['next_observations']
+        rewards = batch["rewards"]
+        terminals = batch["terminals"]
+        obs = batch["observations"]
+        actions = batch["actions"]
+        next_obs = batch["next_observations"]
 
         """
         Compute loss
         """
 
-        target_q_values = self.target_qf(next_obs).detach().max(
-            1, keepdim=True
-        )[0]
-        y_target = rewards + (1. - terminals) * self.discount * target_q_values
+        target_q_values = self.target_qf(next_obs).detach().max(1, keepdim=True)[0]
+        y_target = rewards + (1.0 - terminals) * self.discount * target_q_values
         y_target = y_target.detach()
         # actions is a one-hot vector
         y_pred = torch.sum(self.qf(obs) * actions, dim=1, keepdim=True)
@@ -102,11 +96,13 @@ class DQN(TorchRLAlgorithm):
         """
         if self.eval_statistics is None:
             self.eval_statistics = OrderedDict()
-            self.eval_statistics['QF Loss'] = np.mean(ptu.get_numpy(qf_loss))
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Y Predictions',
-                ptu.get_numpy(y_pred),
-            ))
+            self.eval_statistics["QF Loss"] = np.mean(ptu.get_numpy(qf_loss))
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "Y Predictions",
+                    ptu.get_numpy(y_pred),
+                )
+            )
 
     def _update_target_network(self):
         if self.use_hard_updates:
@@ -134,21 +130,19 @@ class DQN(TorchRLAlgorithm):
         ]
 
 
-
-
 class MetaDQN(MetaTorchRLAlgorithm):
     def __init__(
-            self,
-            env_sampler,
-            qf,
-            policy=None,
-            learning_rate=1e-3,
-            use_hard_updates=False,
-            hard_update_period=1000,
-            tau=0.001,
-            epsilon=0.1,
-            qf_criterion=None,
-            **kwargs
+        self,
+        env_sampler,
+        qf,
+        policy=None,
+        learning_rate=1e-3,
+        use_hard_updates=False,
+        hard_update_period=1000,
+        tau=0.001,
+        epsilon=0.1,
+        qf_criterion=None,
+        **kwargs
     ):
         """
 
@@ -193,20 +187,18 @@ class MetaDQN(MetaTorchRLAlgorithm):
 
     def _do_training(self):
         batch = self.get_batch()
-        rewards = batch['rewards']
-        terminals = batch['terminals']
-        obs = batch['observations']
-        actions = batch['actions']
-        next_obs = batch['next_observations']
+        rewards = batch["rewards"]
+        terminals = batch["terminals"]
+        obs = batch["observations"]
+        actions = batch["actions"]
+        next_obs = batch["next_observations"]
 
         """
         Compute loss
         """
 
-        target_q_values = self.target_qf(next_obs).detach().max(
-            1, keepdim=True
-        )[0]
-        y_target = rewards + (1. - terminals) * self.discount * target_q_values
+        target_q_values = self.target_qf(next_obs).detach().max(1, keepdim=True)[0]
+        y_target = rewards + (1.0 - terminals) * self.discount * target_q_values
         y_target = y_target.detach()
         # actions is a one-hot vector
         y_pred = torch.sum(self.qf(obs) * actions, dim=1, keepdim=True)
@@ -225,11 +217,13 @@ class MetaDQN(MetaTorchRLAlgorithm):
         """
         if self.eval_statistics is None:
             self.eval_statistics = OrderedDict()
-            self.eval_statistics['QF Loss'] = np.mean(ptu.get_numpy(qf_loss))
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Y Predictions',
-                ptu.get_numpy(y_pred),
-            ))
+            self.eval_statistics["QF Loss"] = np.mean(ptu.get_numpy(qf_loss))
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "Y Predictions",
+                    ptu.get_numpy(y_pred),
+                )
+            )
 
     def _update_target_network(self):
         if self.use_hard_updates:

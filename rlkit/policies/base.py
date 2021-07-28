@@ -5,6 +5,7 @@ class Policy(object, metaclass=abc.ABCMeta):
     """
     General policy interface.
     """
+
     @abc.abstractmethod
     def get_action(self, observation):
         """
@@ -27,6 +28,7 @@ class SerializablePolicy(Policy, metaclass=abc.ABCMeta):
     """
     Policy that can be serialized.
     """
+
     def get_param_values(self):
         return None
 
@@ -36,6 +38,7 @@ class SerializablePolicy(Policy, metaclass=abc.ABCMeta):
     """
     Parameters should be passed as np arrays in the two functions below.
     """
+
     def get_param_values_np(self):
         return None
 

@@ -19,7 +19,7 @@ class TorchIRLAlgorithm(IRLAlgorithm, metaclass=abc.ABCMeta):
         self.policy_eval_statistics = None
         self.render_eval_paths = render_eval_paths
         self.plotter = plotter
-        self.max_returns = np.float('-inf')
+        self.max_returns = np.float("-inf")
         self.best_success_rate = 0.0
 
     @property
@@ -46,12 +46,18 @@ class TorchIRLAlgorithm(IRLAlgorithm, metaclass=abc.ABCMeta):
         logger.log("Collecting samples for evaluation")
         test_paths = self.eval_sampler.obtain_samples()
 
-        statistics.update(eval_util.get_generic_path_information(
-            test_paths, stat_prefix="Test",
-        ))
-        statistics.update(eval_util.get_generic_path_information(
-            self._exploration_paths, stat_prefix="Exploration",
-        ))
+        statistics.update(
+            eval_util.get_generic_path_information(
+                test_paths,
+                stat_prefix="Test",
+            )
+        )
+        statistics.update(
+            eval_util.get_generic_path_information(
+                self._exploration_paths,
+                stat_prefix="Exploration",
+            )
+        )
         # print(statistics.keys())
         if hasattr(self.env, "log_diagnostics"):
             self.env.log_diagnostics(test_paths)
@@ -59,11 +65,13 @@ class TorchIRLAlgorithm(IRLAlgorithm, metaclass=abc.ABCMeta):
             env_log_stats = self.env.log_statistics(test_paths)
             statistics.update(env_log_stats)
         if hasattr(self.env, "log_new_ant_multi_statistics"):
-            env_log_stats = self.env.log_new_ant_multi_statistics(test_paths, epoch, logger.get_snapshot_dir())
+            env_log_stats = self.env.log_new_ant_multi_statistics(
+                test_paths, epoch, logger.get_snapshot_dir()
+            )
             statistics.update(env_log_stats)
 
         average_returns = rlkit.core.eval_util.get_average_returns(test_paths)
-        statistics['AverageReturn'] = average_returns
+        statistics["AverageReturn"] = average_returns
         for key, value in statistics.items():
             logger.record_tabular(key, value)
 
@@ -72,34 +80,32 @@ class TorchIRLAlgorithm(IRLAlgorithm, metaclass=abc.ABCMeta):
 
         if self.plotter:
             self.plotter.draw()
-        
+
         # if self.best_success_rate < statistics['Success Rate']:
         #     self.best_success_rate = statistics['Success Rate']
         #     params = self.get_epoch_snapshot(-1)
         #     params['epoch'] = epoch
         #     logger.save_extra_data(params, 'best_params.pkl')
-        
+
         if average_returns > self.max_returns:
             self.max_returns = average_returns
             if self.save_best and epoch >= self.save_best_starting_from_epoch:
                 data_to_save = {
-                    'algorithm': self,
-                    'epoch': epoch,
-                    'average_returns': average_returns,
-                    'test_returns_mean': statistics['Test Returns Mean'],
-                    'test_returns_std': statistics['Test Returns Std'],
-                    'exp_returns_mean': statistics['Exploration Returns Mean'],
-                    'exp_returns_std': statistics['Exploration Returns Std']
+                    "algorithm": self,
+                    "epoch": epoch,
+                    "average_returns": average_returns,
+                    "test_returns_mean": statistics["Test Returns Mean"],
+                    "test_returns_std": statistics["Test Returns Std"],
+                    "exp_returns_mean": statistics["Exploration Returns Mean"],
+                    "exp_returns_std": statistics["Exploration Returns Std"],
                 }
-                logger.save_extra_data(data_to_save, 'best_test.pkl')
-                print('\n\nSAVED BEST\n\n')
+                logger.save_extra_data(data_to_save, "best_test.pkl")
+                print("\n\nSAVED BEST\n\n")
 
 
 def _elem_or_tuple_to_variable(elem_or_tuple):
     if isinstance(elem_or_tuple, tuple):
-        return tuple(
-            _elem_or_tuple_to_variable(e) for e in elem_or_tuple
-        )
+        return tuple(_elem_or_tuple_to_variable(e) for e in elem_or_tuple)
     return Variable(ptu.from_numpy(elem_or_tuple).float(), requires_grad=False)
 
 
@@ -115,5 +121,5 @@ def np_to_pytorch_batch(np_batch):
     return {
         k: _elem_or_tuple_to_variable(x)
         for k, x in _filter_batch(np_batch)
-        if x.dtype != np.dtype('O')  # ignore object (e.g. dictionaries)
+        if x.dtype != np.dtype("O")  # ignore object (e.g. dictionaries)
     }

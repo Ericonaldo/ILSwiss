@@ -1,6 +1,7 @@
 import numpy as np
 from rlkit.data_management.path_builder import PathBuilder
 
+
 def rollout(
     env,
     policy,
@@ -14,10 +15,12 @@ def rollout(
 
     for _ in range(max_path_length):
         action, agent_info = policy.get_action(observation)
-        if render: env.render(**render_kwargs)
+        if render:
+            env.render(**render_kwargs)
 
         next_ob, reward, terminal, env_info = env.step(action)
-        if no_terminal: terminal = False
+        if no_terminal:
+            terminal = False
 
         path_builder.add_all(
             observations=observation,
@@ -25,17 +28,18 @@ def rollout(
             rewards=np.array([reward]),
             next_observations=next_ob,
             terminals=np.array([terminal]),
-            absorbing=np.array([0., 0.]),
+            absorbing=np.array([0.0, 0.0]),
             agent_info=agent_info,
             env_info=env_info,
         )
 
         observation = next_ob
-        if terminal: break
+        if terminal:
+            break
     return path_builder
 
 
-class PathSampler():
+class PathSampler:
     def __init__(
         self,
         env,
@@ -44,7 +48,7 @@ class PathSampler():
         max_path_length,
         no_terminal=False,
         render=False,
-        render_kwargs={}
+        render_kwargs={},
     ):
         """
         When obtain_samples is called, the path sampler will generates the
@@ -58,7 +62,6 @@ class PathSampler():
         self.no_terminal = no_terminal
         self.render = render
         self.render_kwargs = render_kwargs
-    
 
     def obtain_samples(self, num_steps=None):
         paths = []
@@ -72,8 +75,8 @@ class PathSampler():
                 self.max_path_length,
                 no_terminal=self.no_terminal,
                 render=self.render,
-                render_kwargs=self.render_kwargs
+                render_kwargs=self.render_kwargs,
             )
             paths.append(new_path)
-            total_steps += len(new_path['rewards'])
+            total_steps += len(new_path["rewards"])
         return paths

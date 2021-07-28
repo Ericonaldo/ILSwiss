@@ -9,7 +9,11 @@ import torch.nn.functional as F
 
 import rlkit.torch.utils.normalizerpytorch_util as ptu
 from rlkit.core.eval_util import create_stats_ordered_dict
-from rlkit.torch.algorithms.torch_rl_algorithm import TorchRLAlgorithm, MetaTorchRLAlgorithm, NPMetaTorchRLAlgorithm
+from rlkit.torch.algorithms.torch_rl_algorithm import (
+    TorchRLAlgorithm,
+    MetaTorchRLAlgorithm,
+    NPMetaTorchRLAlgorithm,
+)
 from rlkit.torch.algorithms.sac.policies import MakeDeterministic
 
 
@@ -39,22 +43,19 @@ def logsumexp(inputs, dim=None, keepdim=False):
 
 class MetaSoftQLearning(MetaTorchRLAlgorithm):
     def __init__(
-            self,
-            env_sampler,
-            policy,
-            qf,
-            discrete_policy=True,
-
-            qf_lr=1e-3,
-            optimizer_class=optim.Adam,
-
-            sql_one_over_alpha=1.,
-
-            soft_target_tau=1e-2,
-            plotter=None,
-            render_eval_paths=False,
-            eval_deterministic=True,
-            **kwargs
+        self,
+        env_sampler,
+        policy,
+        qf,
+        discrete_policy=True,
+        qf_lr=1e-3,
+        optimizer_class=optim.Adam,
+        sql_one_over_alpha=1.0,
+        soft_target_tau=1e-2,
+        plotter=None,
+        render_eval_paths=False,
+        eval_deterministic=True,
+        **kwargs
     ):
         if eval_deterministic:
             eval_policy = MakeDeterministic(policy)
@@ -88,21 +89,26 @@ class MetaSoftQLearning(MetaTorchRLAlgorithm):
 
     def _do_training(self):
         batch = self.get_batch()
-        rewards = batch['rewards']
-        terminals = batch['terminals']
-        obs = batch['observations']
-        actions = batch['actions']
-        next_obs = batch['next_observations']
+        rewards = batch["rewards"]
+        terminals = batch["terminals"]
+        obs = batch["observations"]
+        actions = batch["actions"]
+        next_obs = batch["next_observations"]
 
         """
         QF Loss
         """
         q_preds = self.qf(obs)
         target_q_next_obs_preds = self.target_qf(next_obs)
-        target_v_next_obs_pred = logsumexp(self.sql_one_over_alpha * target_q_next_obs_preds, dim=1, keepdim=True) / self.sql_one_over_alpha
-        q_target = rewards + (1. - terminals) * self.discount * target_v_next_obs_pred
-        qf_loss = 0.5 * torch.mean((q_preds - q_target.detach())**2)
-        
+        target_v_next_obs_pred = (
+            logsumexp(
+                self.sql_one_over_alpha * target_q_next_obs_preds, dim=1, keepdim=True
+            )
+            / self.sql_one_over_alpha
+        )
+        q_target = rewards + (1.0 - terminals) * self.discount * target_v_next_obs_pred
+        qf_loss = 0.5 * torch.mean((q_preds - q_target.detach()) ** 2)
+
         # print(q_preds[0].data.numpy())
 
         """
@@ -123,15 +129,19 @@ class MetaSoftQLearning(MetaTorchRLAlgorithm):
             This way, these statistics are only computed for one batch.
             """
             self.eval_statistics = OrderedDict()
-            self.eval_statistics['QF Loss'] = np.mean(ptu.get_numpy(qf_loss))
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Q Predictions',
-                ptu.get_numpy(q_preds),
-            ))
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Log Pis',
-                ptu.get_numpy(F.softmax(q_preds, dim=1)),
-            ))
+            self.eval_statistics["QF Loss"] = np.mean(ptu.get_numpy(qf_loss))
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "Q Predictions",
+                    ptu.get_numpy(q_preds),
+                )
+            )
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "Log Pis",
+                    ptu.get_numpy(F.softmax(q_preds, dim=1)),
+                )
+            )
 
     @property
     def networks(self):

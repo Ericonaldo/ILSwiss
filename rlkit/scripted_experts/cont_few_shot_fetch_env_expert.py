@@ -8,15 +8,19 @@ from rlkit.scripted_experts.scripted_policy import ScriptedPolicy
 INV_TEMP = 1000
 NUM_ACTION_SAMPLES = 1000
 ACT_SCALE_DOWN = 0.25
+
+
 def get_pos_act(cur_pos, reach_pos):
     cur_pos = cur_pos.copy()
     reach_pos = reach_pos.copy()
 
-    possible_actions = np.random.uniform(low=-1.0, high=1.0, size=(NUM_ACTION_SAMPLES, 3))
+    possible_actions = np.random.uniform(
+        low=-1.0, high=1.0, size=(NUM_ACTION_SAMPLES, 3)
+    )
     potentials = possible_actions.copy() * 0.03
     potentials += cur_pos[None, :]
     potentials -= reach_pos[None, :]
-    potentials = np.sum(potentials**2, axis=1)**0.5
+    potentials = np.sum(potentials ** 2, axis=1) ** 0.5
     potentials *= -1.0
     potentials = np.exp(potentials * INV_TEMP).flatten()
     potentials = potentials / np.sum(potentials)
@@ -28,7 +32,6 @@ def get_pos_act(cur_pos, reach_pos):
 class ScriptedContFewShotFetchPolicy(ScriptedPolicy):
     def __init__(self):
         super().__init__()
-    
 
     def reset(self, env):
         # # first make the gripper go slightly above the object
@@ -54,7 +57,7 @@ class ScriptedContFewShotFetchPolicy(ScriptedPolicy):
         # self.GRIP_Z_DISP = np.random.uniform(-0.005, 0.015)
         def cond_0(obs):
             correct_obj_rel_pos = obs[
-                6 + 3*self.correct_obj_idx : 9 + 3*self.correct_obj_idx
+                6 + 3 * self.correct_obj_idx : 9 + 3 * self.correct_obj_idx
             ]
             grip_goal = correct_obj_rel_pos.copy()
             grip_goal[0] += self.GRIP_X_DISP
@@ -62,15 +65,17 @@ class ScriptedContFewShotFetchPolicy(ScriptedPolicy):
             grip_goal[2] += self.GRIP_Z_DISP
             return 0.01 > np.linalg.norm(grip_goal)
             # return 0.005 > np.linalg.norm(grip_goal)
+
         self.milestone_0_cond = cond_0
 
         # then lift it and take it to the goal
         def cond_1(obs):
             correct_obj_rel_target = obs[
-                3*self.correct_obj_idx : 3 + 3*self.correct_obj_idx
+                3 * self.correct_obj_idx : 3 + 3 * self.correct_obj_idx
             ]
             correct_obj_rel_target = correct_obj_rel_target.copy()
             return 0.005 > np.linalg.norm(correct_obj_rel_target)
+
         self.milestone_1_cond = cond_1
 
         # reset the milestones
@@ -78,7 +83,6 @@ class ScriptedContFewShotFetchPolicy(ScriptedPolicy):
         self.milestone_1_complete = False
         # self.milestone_2_complete = False
         self.first_time_all_complete = -1
-
 
     def get_action(self, obs, env, timestep):
         # first find out what stage we are in and update milestone info
@@ -122,7 +126,7 @@ class ScriptedContFewShotFetchPolicy(ScriptedPolicy):
         #     action[len(action)-1] = np.random.uniform(0.005, 0.015) #open
         if cur_stage == 0:
             correct_obj_rel_pos = obs[
-                6 + 3*self.correct_obj_idx : 9 + 3*self.correct_obj_idx
+                6 + 3 * self.correct_obj_idx : 9 + 3 * self.correct_obj_idx
             ]
             grip_goal = correct_obj_rel_pos.copy()
             grip_goal[0] += self.GRIP_X_DISP
@@ -136,13 +140,13 @@ class ScriptedContFewShotFetchPolicy(ScriptedPolicy):
 
             OPEN_CLOSE_D = 0.03
             if np.linalg.norm(correct_obj_rel_pos, axis=-1) > OPEN_CLOSE_D:
-                action[len(action)-1] = np.random.uniform(0.005, 0.015) #open
+                action[len(action) - 1] = np.random.uniform(0.005, 0.015)  # open
             else:
-                action[len(action)-1] = np.random.uniform(-0.015, -0.005) #close
+                action[len(action) - 1] = np.random.uniform(-0.015, -0.005)  # close
             # action[len(action)-1] = np.random.uniform(-0.015, -0.005) #close
         else:
             correct_obj_rel_target = obs[
-                3*self.correct_obj_idx : 3 + 3*self.correct_obj_idx
+                3 * self.correct_obj_idx : 3 + 3 * self.correct_obj_idx
             ]
             correct_obj_rel_target = correct_obj_rel_target.copy()
 
@@ -150,7 +154,7 @@ class ScriptedContFewShotFetchPolicy(ScriptedPolicy):
             pos_act = get_pos_act(np.zeros(3), correct_obj_rel_target)
             for i in range(len(pos_act)):
                 action[i] = pos_act[i]
-            action[len(action)-1] = np.random.uniform(-0.005, -0.015) # close
-        
+            action[len(action) - 1] = np.random.uniform(-0.005, -0.015)  # close
+
         action = np.clip(action, -1.0, 1.0)
         return action, {}

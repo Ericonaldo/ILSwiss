@@ -17,46 +17,47 @@ from gym.spaces import Dict
 
 
 class IRLAlgorithm(metaclass=abc.ABCMeta):
-    '''
+    """
     Generic IRL algorithm class
     Structure:
     while True:
         generate trajectories
         update reward
         fit policy
-    '''
+    """
+
     def __init__(
-            self,
-            env,
-            exploration_policy: ExplorationPolicy,
-            expert_replay_buffer,
-            training_env=None,
-            num_epochs=100,
-            num_steps_per_epoch=10000,
-            num_steps_per_eval=1000,
-            num_steps_between_updates=1000,
-            min_steps_before_training=1000,
-            max_path_length=1000,
-            discount=0.99,
-            replay_buffer_size=10000,
-            render=False,
-            save_replay_buffer=False,
-            save_algorithm=False,
-            save_environment=False,
-            save_best=False,
-            save_best_starting_from_epoch=0,
-            eval_sampler=None,
-            eval_policy=None,
-            replay_buffer=None,
-            policy_uses_pixels=False,
-            wrap_absorbing=False,
-            freq_saving=1,
-            # some environment like halfcheetah_v2 have a timelimit that defines the terminal
-            # this is used as a minor hack to turn off time limits
-            no_terminal=False,
-            policy_uses_task_params=False,
-            concat_task_params_to_policy_obs=False
-        ):
+        self,
+        env,
+        exploration_policy: ExplorationPolicy,
+        expert_replay_buffer,
+        training_env=None,
+        num_epochs=100,
+        num_steps_per_epoch=10000,
+        num_steps_per_eval=1000,
+        num_steps_between_updates=1000,
+        min_steps_before_training=1000,
+        max_path_length=1000,
+        discount=0.99,
+        replay_buffer_size=10000,
+        render=False,
+        save_replay_buffer=False,
+        save_algorithm=False,
+        save_environment=False,
+        save_best=False,
+        save_best_starting_from_epoch=0,
+        eval_sampler=None,
+        eval_policy=None,
+        replay_buffer=None,
+        policy_uses_pixels=False,
+        wrap_absorbing=False,
+        freq_saving=1,
+        # some environment like halfcheetah_v2 have a timelimit that defines the terminal
+        # this is used as a minor hack to turn off time limits
+        no_terminal=False,
+        policy_uses_task_params=False,
+        concat_task_params_to_policy_obs=False,
+    ):
         """
         Base class for RL Algorithms
         :param env: Environment used to evaluate.
@@ -108,9 +109,10 @@ class IRLAlgorithm(metaclass=abc.ABCMeta):
                 env=env,
                 policy=eval_policy,
                 max_samples=self.num_steps_per_eval + self.max_path_length,
-                max_path_length=self.max_path_length, policy_uses_pixels=policy_uses_pixels,
+                max_path_length=self.max_path_length,
+                policy_uses_pixels=policy_uses_pixels,
                 policy_uses_task_params=policy_uses_task_params,
-                concat_task_params_to_policy_obs=concat_task_params_to_policy_obs
+                concat_task_params_to_policy_obs=concat_task_params_to_policy_obs,
             )
         self.eval_policy = eval_policy
         self.eval_sampler = eval_sampler
@@ -124,7 +126,7 @@ class IRLAlgorithm(metaclass=abc.ABCMeta):
                 self.env,
                 policy_uses_pixels=self.policy_uses_pixels,
                 policy_uses_task_params=self.policy_uses_task_params,
-                concat_task_params_to_policy_obs=self.concat_task_params_to_policy_obs
+                concat_task_params_to_policy_obs=self.concat_task_params_to_policy_obs,
             )
         self.replay_buffer = replay_buffer
 
@@ -141,7 +143,6 @@ class IRLAlgorithm(metaclass=abc.ABCMeta):
         self.freq_saving = freq_saving
         self.no_terminal = no_terminal
 
-
     def train(self, start_epoch=0):
         self.pretrain()
         if start_epoch == 0:
@@ -153,20 +154,18 @@ class IRLAlgorithm(metaclass=abc.ABCMeta):
         gt.set_def_unique(False)
         self.train_online(start_epoch=start_epoch)
 
-
     def pretrain(self):
         """
         Do anything before the main training phase.
         """
         pass
 
-
     def train_online(self, start_epoch=0):
         self._current_path_builder = PathBuilder()
         observation = self._start_new_rollout()
         for epoch in gt.timed_for(
-                range(start_epoch, self.num_epochs),
-                save_itrs=True,
+            range(start_epoch, self.num_epochs),
+            save_itrs=True,
         ):
             self._start_epoch(epoch)
             steps_this_epoch = 0
@@ -175,24 +174,27 @@ class IRLAlgorithm(metaclass=abc.ABCMeta):
                 for _ in range(self.num_steps_between_updates):
                     if isinstance(self.obs_space, Dict):
                         if self.policy_uses_pixels:
-                            agent_obs = observation['pixels']
+                            agent_obs = observation["pixels"]
                         else:
-                            agent_obs = observation['obs']
+                            agent_obs = observation["obs"]
                     else:
                         agent_obs = observation
                     if self.policy_uses_task_params:
-                        task_params = observation['obs_task_params']
+                        task_params = observation["obs_task_params"]
                         if self.concat_task_params_to_policy_obs:
                             agent_obs = np.concatenate((agent_obs, task_params), -1)
                         else:
-                            agent_obs = {'obs': agent_obs, 'obs_task_params': task_params}
+                            agent_obs = {
+                                "obs": agent_obs,
+                                "obs_task_params": task_params,
+                            }
                     action, agent_info = self._get_action_and_info(
                         agent_obs,
                     )
                     if self.render:
                         self.training_env.render()
-                    next_ob, raw_reward, terminal, env_info = (
-                        self.training_env.step(action)
+                    next_ob, raw_reward, terminal, env_info = self.training_env.step(
+                        action
                     )
                     if self.no_terminal:
                         terminal = False
@@ -206,13 +208,13 @@ class IRLAlgorithm(metaclass=abc.ABCMeta):
                         reward,
                         next_ob,
                         np.array([False]) if self.wrap_absorbing else terminal,
-                        absorbing=np.array([0., 0.]),
+                        absorbing=np.array([0.0, 0.0]),
                         agent_info=agent_info,
                         env_info=env_info,
                     )
                     if terminal:
                         if self.wrap_absorbing:
-                            '''
+                            """
                             If we wrap absorbing states, two additional
                             transitions must be added: (s_T, s_abs) and
                             (s_abs, s_abs). In Disc Actor Critic paper
@@ -221,7 +223,7 @@ class IRLAlgorithm(metaclass=abc.ABCMeta):
                             ([next_ob,0], random_action, [next_ob, 1]) and
                             ([next_ob,1], random_action, [next_ob, 1])
                             This way we can handle varying types of terminal states.
-                            '''
+                            """
                             # next_ob is the absorbing state
                             # for now just taking the previous action
                             self._handle_step(
@@ -234,7 +236,7 @@ class IRLAlgorithm(metaclass=abc.ABCMeta):
                                 np.array([False]),
                                 absorbing=np.array([0.0, 1.0]),
                                 agent_info=agent_info,
-                                env_info=env_info
+                                env_info=env_info,
                             )
                             self._handle_step(
                                 next_ob,
@@ -246,7 +248,7 @@ class IRLAlgorithm(metaclass=abc.ABCMeta):
                                 np.array([False]),
                                 absorbing=np.array([1.0, 1.0]),
                                 agent_info=agent_info,
-                                env_info=env_info
+                                env_info=env_info,
                             )
                         self._handle_rollout_ending()
                         observation = self._start_new_rollout()
@@ -258,12 +260,12 @@ class IRLAlgorithm(metaclass=abc.ABCMeta):
 
                     steps_this_epoch += 1
 
-                gt.stamp('sample')
+                gt.stamp("sample")
                 self._try_to_train(epoch)
-                gt.stamp('train')
+                gt.stamp("train")
 
             self._try_to_eval(epoch)
-            gt.stamp('eval')
+            gt.stamp("eval")
             self._end_epoch()
 
     def _try_to_train(self, epoch):
@@ -310,17 +312,17 @@ class IRLAlgorithm(metaclass=abc.ABCMeta):
             )
 
             times_itrs = gt.get_times().stamps.itrs
-            train_time = times_itrs['train'][-1]
-            sample_time = times_itrs['sample'][-1]
-            eval_time = times_itrs['eval'][-1] if epoch > 0 else 0
+            train_time = times_itrs["train"][-1]
+            sample_time = times_itrs["sample"][-1]
+            eval_time = times_itrs["eval"][-1] if epoch > 0 else 0
             epoch_time = train_time + sample_time + eval_time
             total_time = gt.get_times().total
 
-            logger.record_tabular('Train Time (s)', train_time)
-            logger.record_tabular('(Previous) Eval Time (s)', eval_time)
-            logger.record_tabular('Sample Time (s)', sample_time)
-            logger.record_tabular('Epoch Time (s)', epoch_time)
-            logger.record_tabular('Total Train Time (s)', total_time)
+            logger.record_tabular("Train Time (s)", train_time)
+            logger.record_tabular("(Previous) Eval Time (s)", eval_time)
+            logger.record_tabular("Sample Time (s)", sample_time)
+            logger.record_tabular("Epoch Time (s)", epoch_time)
+            logger.record_tabular("Total Train Time (s)", total_time)
 
             logger.record_tabular("Epoch", epoch)
             logger.dump_tabular(with_prefix=False, with_timestamp=False)
@@ -341,11 +343,14 @@ class IRLAlgorithm(metaclass=abc.ABCMeta):
         """
         return (
             len(self._exploration_paths) > 0
-            and self.replay_buffer.num_steps_can_sample() >= self.min_steps_before_training
+            and self.replay_buffer.num_steps_can_sample()
+            >= self.min_steps_before_training
         )
 
     def _can_train(self):
-        return self.replay_buffer.num_steps_can_sample() >= self.min_steps_before_training
+        return (
+            self.replay_buffer.num_steps_can_sample() >= self.min_steps_before_training
+        )
 
     def _get_action_and_info(self, observation):
         """
@@ -362,12 +367,10 @@ class IRLAlgorithm(metaclass=abc.ABCMeta):
         self._epoch_start_time = time.time()
         self._exploration_paths = []
         self._do_train_time = 0
-        logger.push_prefix('Iteration #%d | ' % epoch)
+        logger.push_prefix("Iteration #%d | " % epoch)
 
     def _end_epoch(self):
-        logger.log("Epoch Duration: {0}".format(
-            time.time() - self._epoch_start_time
-        ))
+        logger.log("Epoch Duration: {0}".format(time.time() - self._epoch_start_time))
         logger.log("Started Training: {0}".format(self._can_train()))
         logger.pop_prefix()
 
@@ -376,21 +379,13 @@ class IRLAlgorithm(metaclass=abc.ABCMeta):
         return self.training_env.reset()
 
     def _handle_path(self, path):
-        raise NotImplementedError('Does not handle absorbing states')
+        raise NotImplementedError("Does not handle absorbing states")
         """
         Naive implementation: just loop through each transition.
         :param path:
         :return:
         """
-        for (
-            ob,
-            action,
-            reward,
-            next_ob,
-            terminal,
-            agent_info,
-            env_info
-        ) in zip(
+        for (ob, action, reward, next_ob, terminal, agent_info, env_info) in zip(
             path["observations"],
             path["actions"],
             path["rewards"],
@@ -411,15 +406,15 @@ class IRLAlgorithm(metaclass=abc.ABCMeta):
         self._handle_rollout_ending()
 
     def _handle_step(
-            self,
-            observation,
-            action,
-            reward,
-            next_observation,
-            terminal,
-            absorbing,
-            agent_info,
-            env_info,
+        self,
+        observation,
+        action,
+        reward,
+        next_observation,
+        terminal,
+        absorbing,
+        agent_info,
+        env_info,
     ):
         """
         Implement anything that needs to happen after every step
@@ -453,9 +448,7 @@ class IRLAlgorithm(metaclass=abc.ABCMeta):
         self.replay_buffer.terminate_episode()
         self._n_rollouts_total += 1
         if len(self._current_path_builder) > 0:
-            self._exploration_paths.append(
-                self._current_path_builder.get_all_stacked()
-            )
+            self._exploration_paths.append(self._current_path_builder.get_all_stacked())
             self._current_path_builder = PathBuilder()
 
     def get_epoch_snapshot(self, epoch):
@@ -464,7 +457,7 @@ class IRLAlgorithm(metaclass=abc.ABCMeta):
             exploration_policy=self.exploration_policy,
         )
         if self.save_environment:
-            data_to_save['env'] = self.training_env
+            data_to_save["env"] = self.training_env
         return data_to_save
 
     def get_extra_data_to_save(self, epoch):
@@ -480,11 +473,11 @@ class IRLAlgorithm(metaclass=abc.ABCMeta):
             epoch=epoch,
         )
         if self.save_environment:
-            data_to_save['env'] = self.training_env
+            data_to_save["env"] = self.training_env
         if self.save_replay_buffer:
-            data_to_save['replay_buffer'] = self.replay_buffer
+            data_to_save["replay_buffer"] = self.replay_buffer
         if self.save_algorithm:
-            data_to_save['algorithm'] = self
+            data_to_save["algorithm"] = self
         return data_to_save
 
     @abc.abstractmethod

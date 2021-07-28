@@ -15,23 +15,21 @@ class DAgger(BC):
     with our policy, we label them with expert actions and then add them
     to the self.replay_buffer.
     """
+
     def __init__(
         self,
         expert_policy,
         *args,
         unscale_for_expert=True,
-        num_initial_train_steps=100, # how many initial train steps using only expert data
+        num_initial_train_steps=100,  # how many initial train steps using only expert data
         **kwargs
     ):
-        super().__init__(
-            *args,
-            **kwargs
-        )
+        super().__init__(*args, **kwargs)
 
         self.unscale_for_expert = unscale_for_expert
         self.expert_policy = expert_policy
         self.num_initial_train_steps = num_initial_train_steps
-        
+
         erb = self.expert_replay_buffer
         for i in range(erb._size):
             self.replay_buffer.add_sample(
@@ -39,9 +37,8 @@ class DAgger(BC):
                 erb._actions[i],
                 erb._rewards[i],
                 erb._terminals[i],
-                erb._next_obs[i]
+                erb._next_obs[i],
             )
-
 
     def _do_training(self, epoch):
         if epoch == 0:
@@ -49,7 +46,6 @@ class DAgger(BC):
                 self._do_update_step(epoch, use_expert_buffer=True)
         for t in range(self.num_updates_per_train_call):
             self._do_update_step(epoch, use_expert_buffer=False)
-    
 
     def _handle_step(
         self,
@@ -78,14 +74,12 @@ class DAgger(BC):
             agent_info,
             env_info,
         )
-    
 
     @property
     def networks(self):
         nets = super().networks
         nets.append(self.expert_policy)
         return nets
-    
 
     def get_epoch_snapshot(self, epoch):
         d = super().get_epoch_snapshot(epoch)

@@ -1,3 +1,1 @@
-tasks_dict = {
-
-}
+tasks_dict = {}

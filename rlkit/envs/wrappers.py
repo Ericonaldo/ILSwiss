@@ -6,6 +6,7 @@ from rlkit.core.serializable import Serializable
 
 EPS = np.finfo(np.float32).eps.item()
 
+
 class ProxyEnv(Serializable, Env):
     def __init__(self, wrapped_env):
         Serializable.quick_init(self, locals())
@@ -27,7 +28,7 @@ class ProxyEnv(Serializable, Env):
         return self._wrapped_env.render(*args, **kwargs)
 
     def log_diagnostics(self, paths, *args, **kwargs):
-        if hasattr(self._wrapped_env, 'log_diagnostics'):
+        if hasattr(self._wrapped_env, "log_diagnostics"):
             self._wrapped_env.log_diagnostics(paths, *args, **kwargs)
 
     @property
@@ -37,16 +38,17 @@ class ProxyEnv(Serializable, Env):
     def terminate(self):
         if hasattr(self._wrapped_env, "terminate"):
             self._wrapped_env.terminate()
-    
+
     def seed(self, seed):
         return self._wrapped_env.seed(seed)
 
 
 class ScaledEnv(ProxyEnv, Serializable):
-    '''
+    """
     Scale the obs if desired
     Unscale the acts if desired
-    '''
+    """
+
     def __init__(
         self,
         env,
@@ -54,7 +56,7 @@ class ScaledEnv(ProxyEnv, Serializable):
         obs_std=None,
         acts_mean=None,
         acts_std=None,
-        meta=False
+        meta=False,
     ):
         self._wrapped_env = env
         self._serializable_initialized = False
@@ -67,70 +69,63 @@ class ScaledEnv(ProxyEnv, Serializable):
         else:
             assert obs_std is None
             self._scale_obs = False
-        
+
         if acts_mean is not None:
             assert acts_std is not None
             self._unscale_acts = True
         else:
             assert acts_std is None
             self._unscale_acts = False
-        
+
         self.obs_mean = obs_mean
         self.obs_std = obs_std
         self.acts_mean = acts_mean
         self.acts_std = acts_std
 
-
     def get_unscaled_obs(self, obs):
         if self._scale_obs:
-            return obs*(self.obs_std+EPS) + self.obs_mean
+            return obs * (self.obs_std + EPS) + self.obs_mean
         else:
             return obs
-    
 
     def get_scaled_obs(self, obs):
         if self._scale_obs:
-            return (obs - self.obs_mean) / (self.obs_std+EPS)
+            return (obs - self.obs_mean) / (self.obs_std + EPS)
         else:
             return obs
-    
 
     def get_unscaled_acts(self, acts):
         if self._unscale_acts:
-            return acts * (self.acts_std+EPS) + self.acts_mean
+            return acts * (self.acts_std + EPS) + self.acts_mean
         else:
             return acts
-    
 
     def get_scaled_acts(self, acts):
         if self._unscale_acts:
-            return (acts - self.acts_mean) / (self.acts_std+EPS)
+            return (acts - self.acts_mean) / (self.acts_std + EPS)
         else:
             return acts
 
-    
     def step(self, action):
         if self._unscale_acts:
-            action = action * (self.acts_std+EPS) + self.acts_mean
+            action = action * (self.acts_std + EPS) + self.acts_mean
         obs, r, done, info = self._wrapped_env.step(action)
         if self._scale_obs:
-            obs = (obs - self.obs_mean) / (self.obs_std+EPS)
+            obs = (obs - self.obs_mean) / (self.obs_std + EPS)
         return obs, r, done, info
-    
 
     def reset(self, **kwargs):
         obs = self._wrapped_env.reset(**kwargs)
         if self._scale_obs:
-            obs = (obs - self.obs_mean) / (self.obs_std+EPS)
+            obs = (obs - self.obs_mean) / (self.obs_std + EPS)
         return obs
-
 
     def log_statistics(self, *args, **kwargs):
         if hasattr(self._wrapped_env, "log_statistics"):
             return self._wrapped_env.log_statistics(*args, **kwargs)
         else:
             return {}
-    
+
     def log_new_ant_multi_statistics(self, paths, epoch, log_dir):
         if hasattr(self._wrapped_env, "log_new_ant_multi_statistics"):
             return self._wrapped_env.log_new_ant_multi_statistics(paths, epoch, log_dir)
@@ -139,9 +134,10 @@ class ScaledEnv(ProxyEnv, Serializable):
 
 
 class MinmaxEnv(ProxyEnv, Serializable):
-    '''
+    """
     Scale the obs if desired
-    '''
+    """
+
     def __init__(
         self,
         env,
@@ -159,55 +155,53 @@ class MinmaxEnv(ProxyEnv, Serializable):
         else:
             assert obs_max is None
             self._scale_obs = False
-        
+
         self.obs_min = obs_min
         self.obs_max = obs_max
 
     def get_unscaled_obs(self, obs):
         if self._scale_obs:
-            return obs*(self.obs_max-self.obs_min+EPS) + self.obs_min
+            return obs * (self.obs_max - self.obs_min + EPS) + self.obs_min
         else:
             return obs
-    
 
     def get_scaled_obs(self, obs):
         if self._scale_obs:
-            return (obs - self.obs_min) / (self.obs_max-self.obs_min+EPS)
+            return (obs - self.obs_min) / (self.obs_max - self.obs_min + EPS)
         else:
             return obs
-    
+
     def step(self, action):
         obs, r, done, info = self._wrapped_env.step(action)
         if self._scale_obs:
-            obs = (obs - self.obs_min) / (self.obs_max-self.obs_min+EPS)
+            obs = (obs - self.obs_min) / (self.obs_max - self.obs_min + EPS)
         return obs, r, done, info
-    
 
     def reset(self, **kwargs):
         obs = self._wrapped_env.reset(**kwargs)
         if self._scale_obs:
-            obs = (obs - self.obs_min) / (self.obs_max-self.obs_min+EPS)
+            obs = (obs - self.obs_min) / (self.obs_max - self.obs_min + EPS)
         return obs
-
 
     def log_statistics(self, *args, **kwargs):
         if hasattr(self._wrapped_env, "log_statistics"):
             return self._wrapped_env.log_statistics(*args, **kwargs)
         else:
             return {}
-    
+
     def log_new_ant_multi_statistics(self, paths, epoch, log_dir):
         if hasattr(self._wrapped_env, "log_new_ant_multi_statistics"):
             return self._wrapped_env.log_new_ant_multi_statistics(paths, epoch, log_dir)
         else:
             return {}
-    
+
 
 class ScaledMetaEnv(ProxyEnv, Serializable):
-    '''
+    """
     Scale the obs if desired
     Unscale the acts if desired
-    '''
+    """
+
     def __init__(
         self,
         env,
@@ -227,50 +221,44 @@ class ScaledMetaEnv(ProxyEnv, Serializable):
         else:
             assert obs_std is None
             self._scale_obs = False
-        
+
         if acts_mean is not None:
             assert acts_std is not None
             self._unscale_acts = True
         else:
             assert acts_std is None
             self._unscale_acts = False
-        
+
         self.obs_mean = obs_mean
         self.obs_std = obs_std
         self.acts_mean = acts_mean
         self.acts_std = acts_std
 
-    
     def step(self, action):
         if self._unscale_acts:
-            action = action * (self.acts_std+EPS) + self.acts_mean
+            action = action * (self.acts_std + EPS) + self.acts_mean
         obs, r, done, info = self._wrapped_env.step(action)
         if self._scale_obs:
-            obs['obs'] = (obs['obs'] - self.obs_mean) / (self.obs_std+EPS)
-            obs['obs'] = obs['obs'][0]
+            obs["obs"] = (obs["obs"] - self.obs_mean) / (self.obs_std + EPS)
+            obs["obs"] = obs["obs"][0]
         return obs, r, done, info
-    
 
     def reset(self, **kwargs):
         obs = self._wrapped_env.reset(**kwargs)
         if self._scale_obs:
-            obs['obs'] = (obs['obs'] - self.obs_mean) / (self.obs_std+EPS)
-            obs['obs'] = obs['obs'][0]
+            obs["obs"] = (obs["obs"] - self.obs_mean) / (self.obs_std + EPS)
+            obs["obs"] = obs["obs"][0]
         return obs
-    
 
     @property
     def task_identifier(self):
         return self._wrapped_env.task_identifier
 
-
     def task_id_to_obs_task_params(self, task_id):
         return self._wrapped_env.task_id_to_obs_task_params(task_id)
 
-
     def log_statistics(self, paths):
         return self._wrapped_env.log_statistics(paths)
-    
 
     def log_diagnostics(self, paths):
         if hasattr(self._wrapped_env, "log_diagnostics"):
@@ -283,12 +271,13 @@ class NormalizedBoxEnv(ProxyEnv, Serializable):
 
     Optionally normalize observations and scale reward.
     """
+
     def __init__(
-            self,
-            env,
-            reward_scale=1.,
-            obs_mean=None,
-            obs_std=None,
+        self,
+        env,
+        reward_scale=1.0,
+        obs_mean=None,
+        obs_std=None,
     ):
         # self._wrapped_env needs to be called first because
         # Serializable.quick_init calls getattr, on this class. And the
@@ -319,8 +308,10 @@ class NormalizedBoxEnv(ProxyEnv, Serializable):
 
     def estimate_obs_stats(self, obs_batch, override_values=False):
         if self._obs_mean is not None and not override_values:
-            raise Exception("Observation mean and std already set. To "
-                            "override, set override_values to True.")
+            raise Exception(
+                "Observation mean and std already set. To "
+                "override, set override_values to True."
+            )
         self._obs_mean = np.mean(obs_batch, axis=0)
         self._obs_std = np.std(obs_batch, axis=0)
 
@@ -344,7 +335,7 @@ class NormalizedBoxEnv(ProxyEnv, Serializable):
     def step(self, action):
         lb = self._wrapped_env.action_space.low
         ub = self._wrapped_env.action_space.high
-        scaled_action = lb + (action + 1.) * 0.5 * (ub - lb)
+        scaled_action = lb + (action + 1.0) * 0.5 * (ub - lb)
         scaled_action = np.clip(scaled_action, lb, ub)
 
         wrapped_step = self._wrapped_env.step(scaled_action)
