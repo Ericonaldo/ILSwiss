@@ -146,6 +146,76 @@ class MlpPolicy(Mlp, ExplorationPolicy):
         return self.eval_np(obs_np)[0]
 
 
+class MlpGaussianNoisePolicy(Mlp, ExplorationPolicy):
+    def __init__(
+        self,
+        hidden_sizes,
+        obs_dim,
+        action_dim,
+        init_w=1e-3,
+        policy_noise=0.1,
+        policy_noise_clip=0.5,
+        max_act = 1.0,
+        **kwargs
+    ):
+        self.save_init_params(locals())
+        super().__init__(
+            hidden_sizes,
+            input_size=obs_dim,
+            output_size=action_dim,
+            init_w=init_w,
+            **kwargs
+        )
+        self.noise = policy_noise
+        self.noise_clip = policy_noise_clip
+        self.max_act = max_act
+    
+    def get_action(self, obs_np, deterministic=False):
+        '''
+        deterministic=False makes no diff, just doing this for
+        consistency in interface for now
+        '''
+        actions = self.get_actions(obs_np[None], deterministic=deterministic)
+        actions = actions[None]
+        return actions[0, :], {}
+
+    def get_actions(self, obs_np, deterministic=False):
+        return self.eval_np(obs_np, deterministic=deterministic)[0]
+
+    def forward(
+            self,
+            obs,
+            deterministic=False):
+        h = obs
+        for i, fc in enumerate(self.fcs):
+            h = fc(h)
+            if self.layer_norm:
+                h = self.layer_norms[i](h)
+            if self.batch_norm:
+                h = self.batch_norms[i](h)
+            h = self.hidden_activation(h)
+        preactivation = self.last_fc(h)
+        if self.batch_norm_before_output_activation:
+            preactivation = self.batch_norms[-1](preactivation)
+        action = self.max_act * self.output_activation(preactivation)
+        if deterministic:
+            pass
+        else:
+            noise = torch.normal(
+                torch.zeros_like(action),
+                self.noise,
+            )
+            noise = torch.clamp(
+                noise,
+                -self.noise_clip,
+                self.noise_clip
+            )
+            action += noise
+        
+        return (action, preactivation)
+        
+        
+
 
 class ReparamTanhMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
     """
@@ -172,6 +242,7 @@ class ReparamTanhMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
             action_dim,
             std=None,
             init_w=1e-3,
+            max_act = 1.0,
             **kwargs
     ):
         self.save_init_params(locals())
@@ -184,6 +255,7 @@ class ReparamTanhMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
         )
         self.log_std = None
         self.std = std
+        self.max_act = max_act
         if std is None:
             last_hidden_size = obs_dim
             if len(hidden_sizes) > 0:
@@ -214,12 +286,11 @@ class ReparamTanhMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
         :param deterministic: If True, do not sample
         :param return_log_prob: If True, return a sample and its log probability
         """
-        # print('forward')
-        # print(obs.shape)
+        
         h = obs
         for i, fc in enumerate(self.fcs):
             h = self.hidden_activation(fc(h))
-        # print('fuck')
+        
         # print(h)
         mean = self.last_fc(h)
         # print(mean)
@@ -253,7 +324,7 @@ class ReparamTanhMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
             else:
                 action = tanh_normal.sample()
 
-        # I'm doing it like this for now for backwards compatibility, sorry!
+        # doing it like this for now for backwards compatibility
         if return_tanh_normal:
             return (
                 action, mean, log_std, log_prob, expected_log_prob, std,

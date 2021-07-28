@@ -78,6 +78,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         self.save_algorithm = save_algorithm
         self.save_environment = save_environment
         self.save_best = save_best
+        self.save_epoch = save_epoch
         self.save_best_starting_from_epoch = save_best_starting_from_epoch
         self.best_key = best_key
         self.best_statistic_so_far = float('-Inf')
@@ -531,7 +532,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         data_to_save.update(self.get_epoch_snapshot(epoch))
         if self.save_epoch:
             logger.save_extra_data(data_to_save, 'epoch{}.pkl'.format(epoch))
-        print('\n\nSAVED MODEL AT EPOCH {}\n\n'.format(epoch))
+            print('\n\nSAVED MODEL AT EPOCH {}\n\n'.format(epoch))
         if best_statistic > self.best_statistic_so_far:
             self.best_statistic_so_far = best_statistic
             if self.save_best and epoch >= self.save_best_starting_from_epoch:

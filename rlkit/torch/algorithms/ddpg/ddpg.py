@@ -5,41 +5,38 @@ import torch.optim as optim
 
 import rlkit.torch.utils.pytorch_util as ptu
 import torch
+from rlkit.core.trainer import Trainer
 from rlkit.core.eval_util import create_stats_ordered_dict
 from rlkit.policies.simple import RandomPolicy
-from rlkit.samplers.util import rollout
+from rlkit.samplers import rollout
 from rlkit.torch.algorithms.torch_rl_algorithm import TorchRLAlgorithm
 from rlkit.torch.utils.normalizer import TorchFixedNormalizer
 from torch import nn as nn
 
 
-class DDPG(TorchRLAlgorithm):
+class DDPG(Trainer):
     """
     Deep Deterministic Policy Gradient
     """
 
     def __init__(
             self,
-            env,
-            qf,
             policy,
-            exploration_policy,
+            qf,
 
-            policy_learning_rate=1e-4,
-            qf_learning_rate=1e-3,
+            policy_lr=1e-4,
+            qf_lr=1e-3,
             qf_weight_decay=0,
-            target_hard_update_period=1000,
-            tau=1e-2,
+            target_update_period=1000,
+            soft_target_tau=1e-2,
             use_soft_update=False,
             qf_criterion=None,
+
             residual_gradient_weight=0,
             epoch_discount_schedule=None,
             eval_with_target_policy=False,
             policy_pre_activation_weight=0.,
             optimizer_class=optim.Adam,
-
-            plotter=None,
-            render_eval_paths=False,
 
             obs_normalizer: TorchFixedNormalizer=None,
             action_normalizer: TorchFixedNormalizer=None,
@@ -72,35 +69,22 @@ class DDPG(TorchRLAlgorithm):
         :param kwargs:
         """
         self.target_policy = policy.copy()
-        if eval_with_target_policy:
-            eval_policy = self.target_policy
-        else:
-            eval_policy = policy
-        super().__init__(
-            env,
-            exploration_policy,
-            eval_policy=eval_policy,
-            **kwargs
-        )
         if qf_criterion is None:
             qf_criterion = nn.MSELoss()
         self.qf = qf
         self.policy = policy
-        self.policy_learning_rate = policy_learning_rate
-        self.qf_learning_rate = qf_learning_rate
+        self.policy_learning_rate = policy_lr
+        self.qf_learning_rate = qf_lr
         self.qf_weight_decay = qf_weight_decay
-        self.target_hard_update_period = target_hard_update_period
-        self.tau = tau
+        self.target_hard_update_period = target_update_period
+        self.tau = soft_target_tau
         self.use_soft_update = use_soft_update
+
         self.residual_gradient_weight = residual_gradient_weight
         self.policy_pre_activation_weight = policy_pre_activation_weight
         self.qf_criterion = qf_criterion
         self.epoch_discount_schedule = epoch_discount_schedule
-        self.plotter = plotter
-        self.render_eval_paths = render_eval_paths
-        self.obs_normalizer = obs_normalizer
-        self.action_normalizer = action_normalizer
-        self.num_paths_for_normalization = num_paths_for_normalization
+        
         self.min_q_value = min_q_value
         self.max_q_value = max_q_value
 
@@ -115,8 +99,14 @@ class DDPG(TorchRLAlgorithm):
         )
         self.eval_statistics = None
 
-    def _do_training(self):
-        batch = self.get_batch()
+        self.obs_normalizer = obs_normalizer
+        self.action_normalizer = action_normalizer
+        self.num_paths_for_normalization=num_paths_for_normalization
+
+        self._n_env_steps_total = 0
+
+    def train_step(self, batch):
+        
         rewards = batch['rewards']
         terminals = batch['terminals']
         obs = batch['observations']
@@ -149,7 +139,6 @@ class DDPG(TorchRLAlgorithm):
         """
 
         next_actions = self.target_policy(next_obs)
-        # speed up computation by not backpropping these gradients
         next_actions.detach()
         target_q_values = self.target_qf(
             next_obs,
@@ -158,16 +147,12 @@ class DDPG(TorchRLAlgorithm):
         q_target = rewards + (1. - terminals) * self.discount * target_q_values
         q_target = q_target.detach()
         q_target = torch.clamp(q_target, self.min_q_value, self.max_q_value)
-        # Hack for ICLR rebuttal
-        if hasattr(self, 'reward_type') and self.reward_type == 'indicator':
-            q_target = torch.clamp(q_target, -self.reward_scale/(1-self.discount), 0)
         q_pred = self.qf(obs, actions)
         bellman_errors = (q_pred - q_target) ** 2
         raw_qf_loss = self.qf_criterion(q_pred, q_target)
 
         if self.residual_gradient_weight > 0:
             residual_next_actions = self.policy(next_obs)
-            # speed up computation by not backpropping these gradients
             residual_next_actions.detach()
             residual_target_q_values = self.qf(
                 next_obs,
@@ -178,7 +163,7 @@ class DDPG(TorchRLAlgorithm):
                 + (1. - terminals) * self.discount * residual_target_q_values
             )
             residual_bellman_errors = (q_pred - residual_q_target) ** 2
-            # noinspection PyUnresolvedReferences
+            
             residual_qf_loss = residual_bellman_errors.mean()
             raw_qf_loss = (
                 self.residual_gradient_weight * residual_qf_loss
@@ -241,6 +226,7 @@ class DDPG(TorchRLAlgorithm):
                 'Policy Action',
                 ptu.get_numpy(policy_actions),
             ))
+        self._n_env_steps_total += 1
 
     def _update_target_networks(self):
         if self.use_soft_update:
