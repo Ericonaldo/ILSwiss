@@ -8,13 +8,14 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 print(sys.path)
 
-from gym.spaces import Dict
+import gym
 from torch import tanh
 
 from rlkit.envs import get_env
 
 import rlkit.torch.utils.pytorch_util as ptu
 from rlkit.launchers.launcher_util import setup_logger, set_seed
+from rlkit.envs.wrappers import NormalizedBoxEnv
 
 from rlkit.torch.common.networks import FlattenMlp
 from rlkit.torch.common.policies import MlpGaussianNoisePolicy
@@ -36,11 +37,13 @@ def experiment(variant):
 
     obs_space = env.observation_space
     act_space = env.action_space
-    max_act = float(env.action_space.high[0])
-
-    assert not isinstance(obs_space, Dict)
+    assert not isinstance(obs_space, gym.spaces.Dict)
     assert len(obs_space.shape) == 1
     assert len(act_space.shape) == 1
+
+    if isinstance(act_space, gym.spaces.Box):
+        env = NormalizedBoxEnv(env)
+        training_env = NormalizedBoxEnv(training_env)
 
     obs_dim = obs_space.shape[0]
     action_dim = act_space.shape[0]
@@ -64,7 +67,6 @@ def experiment(variant):
         output_activation=tanh,
         policy_noise=variant["policy_noise"],
         policy_noise_clip=variant["policy_noise_clip"],
-        max_act=max_act,
     )
 
     trainer = TD3(policy=policy, qf1=qf1, qf2=qf2, **variant["td3_params"])
