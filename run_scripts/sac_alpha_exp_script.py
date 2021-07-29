@@ -11,7 +11,7 @@ sys.path.insert(0,parentdir)
 print(sys.path)
 
 from gym.spaces import Dict
-from rlkit.envs import get_env
+from rlkit.envs import get_env, get_envs
 
 import rlkit.torch.pytorch_util as ptu
 from rlkit.launchers.launcher_util import setup_logger, set_seed
@@ -26,7 +26,7 @@ def experiment(variant):
     env_specs = variant['env_specs']
     env = get_env(env_specs)
     env.seed(env_specs['eval_env_seed'])
-    training_env = get_env(env_specs)
+    training_env = get_envs(env_specs)
     training_env.seed(env_specs['training_env_seed'])
 
     print('\n\nEnv: {}'.format(env_specs['env_name']))

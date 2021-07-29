@@ -201,9 +201,8 @@ class MlpGaussianNoisePolicy(Mlp, ExplorationPolicy):
         if deterministic:
             pass
         else:
-            noise = torch.normal(
+            noise = self.noise * torch.normal(
                 torch.zeros_like(action),
-                self.noise,
             )
             noise = torch.clamp(
                 noise,

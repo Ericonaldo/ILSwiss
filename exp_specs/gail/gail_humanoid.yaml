@@ -35,7 +35,7 @@ constants:
 
     num_epochs: 162
     num_steps_per_epoch: 100000
-    num_steps_between_train_calls: 1000
+    num_steps_between_train_calls: 1
     max_path_length: 1000
     min_steps_before_training: 5000
 
@@ -47,9 +47,9 @@ constants:
     eval_no_terminal: false
     wrap_absorbing: false
 
-    num_update_loops_per_train_call: 100
+    num_update_loops_per_train_call: 1
     num_disc_updates_per_loop_iter: 1
-    num_policy_updates_per_loop_iter: 2
+    num_policy_updates_per_loop_iter: 1
 
     disc_lr: 0.0003
     disc_momentum: 0.9

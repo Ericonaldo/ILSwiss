@@ -1,7 +1,7 @@
 meta_data:
-  script_path: run_scripts/td3_exp_script.py
-  exp_name: td3_humanoid
-  description: Train an agent using TD3
+  script_path: run_scripts/sac_exp_script.py
+  exp_name: test_sac_hopper_vec
+  description: Train an agent using Soft-Actor-Critic
   num_workers: 2
   using_gpus: true
 # -----------------------------------------------------------------------------
@@ -12,17 +12,15 @@ variables:
 constants:
   net_size: 256
   num_hidden_layers: 2
-  policy_noise: 0.1
-  policy_noise_clip: 0.5
 
   rl_alg_params:
     num_epochs: 282
     num_steps_per_epoch: 10000
-    num_steps_between_train_calls: 1
-    num_train_steps_per_train_call: 1
+    num_steps_between_train_calls: 1000
+    num_train_steps_per_train_call: 1000
     num_steps_per_eval: 10000
     max_path_length: 1000
-    min_steps_before_training: 2500
+    min_steps_before_training: 0
 
     eval_deterministic: true
 
@@ -37,17 +35,20 @@ constants:
     save_environment: false
     save_algorithm: false
 
-  td3_params:
-    policy_and_target_update_period: 2
+  sac_params:
+    alpha: 0.2
     reward_scale: 1.0
     discount: 0.99
     soft_target_tau: 0.005
-    policy_lr: 0.001
-    qf_lr: 0.001
-    
+    policy_lr: 0.0003
+    qf_lr: 0.0003
+    vf_lr: 0.0003
+    policy_mean_reg_weight: 0.001
+    policy_std_reg_weight: 0.001
 
   env_specs:
-    env_name: 'humanoid'
+    env_name: 'hopper'
     env_kwargs: {}
+    env_num: 5
     eval_env_seed: 78236
     training_env_seed: 24495

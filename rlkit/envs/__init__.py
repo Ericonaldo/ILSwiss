@@ -5,6 +5,13 @@ import importlib
 from rlkit.envs.envs_dict import envs_dict
 from rlkit.envs.tasks_dict import tasks_dict
 from rlkit.envs.wrappers import NormalizedBoxEnv
+from rlkit.envs.vecenvs import BaseVectorEnv, DummyVectorEnv, SubprocVectorEnv
+
+__all__ = [
+    "BaseVectorEnv",
+    "DummyVectorEnv",
+    "SubprocVectorEnv",
+]
 
 import sys
 
@@ -14,6 +21,8 @@ import sys
 # from rlkit.envs.swimmer import SwimmerEnv
 
 env_overwrite = {}#{'Ant': AntEnv, 'Humanoid': HumanoidEnv, 'Swimmer':SwimmerEnv}
+
+
 
 
 def load(name):
@@ -31,14 +40,49 @@ def get_env(env_specs):
     """
     domain = envs_dict[env_specs['env_name']]
     
+    # Equal to gym.make()
     env_class = load(domain)
     env = env_class(**env_specs['env_kwargs'])
+
 
     if domain in env_overwrite:
         print('[ environments/utils ] WARNING: Using overwritten {} environment'.format(domain))
         env = env_overwrite[domain]()
 
+       
+
     return env
+
+def get_envs(env_specs):
+    """
+    env_specs:
+        env_name: 'halfcheetah'
+        env_kwargs: {} # kwargs to pass to the env constructor call
+    """
+    domain = envs_dict[env_specs['env_name']]
+    
+    # Equal to gym.make()
+    env_class = load(domain)
+
+    if ('env_num' not in env_specs.keys()) or (env_specs['env_num'] == 1):
+        envs = env_class(**env_specs['env_kwargs'])
+
+        if domain in env_overwrite:
+            print('[ environments/utils ] WARNING: Using overwritten {} environment'.format(domain))
+            envs = env_overwrite[domain]()
+
+        print("\n WARNING: Single environment detected, wrap to DummyVectorEnv.")
+        envs = DummyVectorEnv([lambda: envs])
+    
+    else:
+        envs = SubprocVectorEnv(
+                [lambda: env_class(**env_specs['env_kwargs']) for _ in range(env_specs['env_num'])])
+
+        if domain in env_overwrite:
+            envs = SubprocVectorEnv(
+                [lambda: env_overwrite[domain]() for _ in range(env_specs['env_num'])])
+    
+    return envs
 
 def get_task_params_samplers(task_specs):
     """
