@@ -4,7 +4,7 @@ ILSwiss is an Easy-to-run Imitation Learning (IL, or Learning from Demonstration
 
 The most works are based on [rlswiss](https://github.com/KamyarGh/rl_swiss), which has been extended from the August 2018 version of [rlkit](https://github.com/vitchyr/rlkit). Since the original rlswiss contains meta-rl methods and redundant codes, in this repo, we clean and optimize the code architecture, modify and re-implement algorithms for the purpose of easier running imitation learning experiments. We further introduce vec envs to sample data in a parallel style to boost the sampling stage refering to [tianshou](https://github.com/thu-ml/tianshou) and add tensorboard support.
 
-You can easily built experiment codes under this framework in your research. We will continue to maintain this repo while keeping it clear and clean.
+You can easily build experiment codes under this framework in your research. We will continue to maintain this repo while keeping it clear and clean.
 
 ## Implemented RL algorithms:
 
@@ -43,4 +43,4 @@ RL algorithms do not need demonstrations. Therefore, all you need is to write an
 
 IL algorithms need to be assigned with demonstrations. A input-format-matching standard mujoco demonstrations can be download in [here](https://github.com/apexrl/Baseline_Pool/tree/master/imitation_learning/sac/expert_trajs_50). If you want to sample your own data, train an expert agent using RL algorithms and sample using `\run_scripts\gen_expert_demo.py` or `\run_scripts\evaluate_policy.py`, and do not forget to modify your IO format.
 
-If you get the demos ready, write the path for each expert name in `demos_listing.yaml` (there are already some examples). Then you should specify the expert name and the traj number in the corresponding yaml file (see `\exp_specs\sac\bc.yaml` for example). After all the stuff, you can run it as a regular experiment following the above suggestion.
+If you get the demos ready, write the path for each expert name in `demos_listing.yaml` (there are already some examples). Then you should specify the expert name and the traj number in the corresponding yaml file (see `\exp_specs\bc.yaml` for example). After all the stuff, you can run it as a regular experiment following the above suggestions.
