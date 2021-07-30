@@ -220,6 +220,7 @@ def setup_logger(
     tabular_log_file="progress.csv",
     snapshot_mode="last",
     snapshot_gap=1,
+    log_tboard=True,
     log_tabular_only=False,
     log_dir=None,
     git_info=None,
@@ -276,7 +277,7 @@ def setup_logger(
         )
         for tabular_fd in logger._tabular_fds:
             logger._tabular_header_written.add(tabular_fd)
-    logger.set_snapshot_dir(log_dir)
+    logger.set_snapshot_dir(log_dir, log_tboard)
     logger.set_snapshot_mode(snapshot_mode)
     logger.set_snapshot_gap(snapshot_gap)
     logger.set_log_tabular_only(log_tabular_only)

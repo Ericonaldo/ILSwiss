@@ -7,7 +7,7 @@ meta_data:
 # -----------------------------------------------------------------------------
 variables:
   adv_irl_params:
-    grad_pen_weight: [8.0] # [0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]
+    grad_pen_weight: [64.0] # [0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]
   sac_params:
     reward_scale: [1.0] # [0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]
   seed: [0]
@@ -35,7 +35,7 @@ constants:
 
     num_epochs: 162
     num_steps_per_epoch: 100000
-    num_steps_between_train_calls: 1
+    num_steps_between_train_calls: 1000
     max_path_length: 1000
     min_steps_before_training: 5000
 
@@ -48,8 +48,8 @@ constants:
     wrap_absorbing: false
 
     num_update_loops_per_train_call: 1
-    num_disc_updates_per_loop_iter: 1
-    num_policy_updates_per_loop_iter: 1
+    num_disc_updates_per_loop_iter: 100
+    num_policy_updates_per_loop_iter: 100
 
     disc_lr: 0.0003
     disc_momentum: 0.9

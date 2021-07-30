@@ -130,11 +130,11 @@ class TD3(Trainer):
             This way, these statistics are only computed for one batch.
             """
             if policy_loss is None:
-                policy_loss = 0
-                # policy_outputs = self.policy(obs, deterministic=True)
-                # policy_actions = policy_outputs[0]
-                # q_output = self.qf1(obs, policy_actions)
-                # policy_loss = - q_output.mean()
+                # policy_loss = 0
+                policy_outputs = self.policy(obs, deterministic=True)
+                policy_actions = policy_outputs[0]
+                q_output = self.qf1(obs, policy_actions)
+                policy_loss = - q_output.mean()
 
             self.eval_statistics = OrderedDict()
             self.eval_statistics["QF1 Loss"] = np.mean(ptu.get_numpy(qf1_loss))

@@ -21,7 +21,7 @@ import errno
 import pickle
 
 from rlkit.core.tabulate import tabulate
-
+from torch.utils.tensorboard import SummaryWriter
 
 def mkdir_p(path):
     try:
@@ -54,7 +54,10 @@ _snapshot_gap = 1
 
 _log_tabular_only = False
 _header_printed = False
+_log_tboard = True
+_step_key = "Epoch"
 
+_summary_writer = None
 
 def _add_output(file_name, arr, fds, mode="a"):
     if file_name not in arr:
@@ -93,10 +96,18 @@ def remove_tabular_output(file_name):
         _tabular_header_written.remove(_tabular_fds[file_name])
     _remove_output(file_name, _tabular_outputs, _tabular_fds)
 
+def set_tboard(dir_name, name='tboard'):
+    log_path = osp.join(dir_name, name)
+    global _summary_writer
+    _summary_writer = SummaryWriter(log_path)
+    
 
-def set_snapshot_dir(dir_name):
-    global _snapshot_dir
+def set_snapshot_dir(dir_name, log_tboard=True):
+    global _snapshot_dir, _log_tboard
     _snapshot_dir = dir_name
+    _log_tboard = log_tboard
+    if log_tboard:
+        set_tboard(dir_name)
 
 
 def get_snapshot_dir():
@@ -129,6 +140,17 @@ def set_log_tabular_only(log_tabular_only):
 def get_log_tabular_only():
     return _log_tabular_only
 
+def set_log_tboard(log_tboard):
+    global _log_tboard
+    _log_tboard = log_tboard
+
+
+def get_log_tboard():
+    return _log_tboard
+
+def record_tboard(key, x, y, **kwargs) -> None:
+    print('record_tboard')
+    _summary_writer.add_scalar(key, y, global_step=x)
 
 def log(s, with_prefix=True, with_timestamp=True):
     out = s
@@ -241,7 +263,16 @@ def dump_tabular(*args, **kwargs):
                 _tabular_header_written.add(tabular_fd)
             writer.writerow(tabular_dict)
             tabular_fd.flush()
+
         del _tabular[:]
+        
+        # Try to write in tensorboard
+        if _log_tboard:
+            assert _summary_writer is not None, "summary writer is none!"
+            step = tabular_dict[_step_key]
+            for key in tabular_dict.keys():
+                if key != _step_key:
+                    record_tboard(key, step, np.array(tabular_dict[key]))
 
 
 def pop_prefix():

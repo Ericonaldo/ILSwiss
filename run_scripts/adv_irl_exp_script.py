@@ -84,7 +84,7 @@ def experiment(variant):
             traj_list[i], absorbing=variant["adv_irl_params"]["wrap_absorbing"], env=env
         )
 
-    env_wrapper = ProxyEnv  # Identical wrapper
+    tmp_env_wrapper = env_wrapper = ProxyEnv  # Identical wrapper
     kwargs = {}
 
     if variant["scale_env_with_demo_stats"]:

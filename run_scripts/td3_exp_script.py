@@ -68,8 +68,7 @@ def experiment(variant):
         action_dim=action_dim,
         output_activation=tanh,
         policy_noise=variant["policy_noise"],
-        policy_noise_clip=variant["policy_noise_clip"],
-        max_act=max_act,
+        policy_noise_clip=variant["policy_noise_clip"]
     )
 
     trainer = TD3(policy=policy, qf1=qf1, qf2=qf2, **variant["td3_params"])
