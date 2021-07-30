@@ -24,7 +24,7 @@ You can easily built experiment codes under this framework in your research. We 
 
 # Running Notes:
 
-Before running, assign important log and output paths in `\rlkit\launchers\launcher_util.py`
+Before running, assign important log and output paths in `\rlkit\launchers\common.py` (There is an example file show necessary variables).
 
 Their are simple multiple processing shcheduling (we use multiple processing to clarify it with multi-processing since it only stars many independent sub-process without communication) for simple hyperparameter grid search.
 
