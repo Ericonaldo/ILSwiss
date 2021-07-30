@@ -248,7 +248,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
                 elif np.any(np.array([len(self._current_path_builder[i]) for i in range(len(self.ready_env_ids))]) >= self.max_path_length):
                     env_ind_local = np.where(np.array([len(self._current_path_builder[i]) for i in range(len(self.ready_env_ids))]) >= self.max_path_length)[0]
                     self._handle_vec_rollout_ending(env_ind_local)
-                    observations = self._start_new_rollout(env_ind_local)
+                    reset_observations = self._start_new_rollout(env_ind_local)
                     next_obs[env_ind_local] = reset_observations
                 
                 observations = next_obs

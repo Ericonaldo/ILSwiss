@@ -22,7 +22,7 @@ constants:
     num_train_steps_per_train_call: 1
     num_steps_per_eval: 10000
     max_path_length: 1000
-    min_steps_before_training: 2500
+    min_steps_before_training: 25000
 
     eval_deterministic: true
 
@@ -42,12 +42,13 @@ constants:
     reward_scale: 1.0
     discount: 0.99
     soft_target_tau: 0.005
-    policy_lr: 0.001
-    qf_lr: 0.001
+    policy_lr: 0.0003
+    qf_lr: 0.0003
     
 
   env_specs:
     env_name: 'humanoid'
     env_kwargs: {}
+    env_num: 5
     eval_env_seed: 78236
     training_env_seed: 24495
