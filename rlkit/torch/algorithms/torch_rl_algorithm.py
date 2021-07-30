@@ -6,7 +6,9 @@ from rlkit.torch.algorithms.torch_base_algorithm import TorchBaseAlgorithm
 
 
 class TorchRLAlgorithm(TorchBaseAlgorithm):
-    def __init__(self, trainer, batch_size, num_train_steps_per_train_call, *args, **kwargs):
+    def __init__(
+        self, trainer, batch_size, num_train_steps_per_train_call, *args, **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.trainer = trainer
         self.batch_size = batch_size

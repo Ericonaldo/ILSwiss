@@ -7,34 +7,34 @@ import sys
 import traceback as tb
 
 COLOR_CODES = {
-    'utility': 'yellow',
-    'algorithm': 'lblue',
-    'traj_opt': 'lgreen',
-    'dynamics': 'lblue',
-    'agent': 'lyellow',
-    'default': 'white',
+    "utility": "yellow",
+    "algorithm": "lblue",
+    "traj_opt": "lgreen",
+    "dynamics": "lblue",
+    "agent": "lyellow",
+    "default": "white",
 }
 
 
-CSI = '\033['
-OSC = '\033]'
-BEL = '\007'
+CSI = "\033["
+OSC = "\033]"
+BEL = "\007"
 
 
 def code_to_chars(code):
-    return CSI + str(code) + 'm'
+    return CSI + str(code) + "m"
 
 
 def set_title(title):
-    return OSC + '2;' + title + BEL
+    return OSC + "2;" + title + BEL
 
 
 def clear_screen(mode=2):
-    return CSI + str(mode) + 'J'
+    return CSI + str(mode) + "J"
 
 
 def clear_line(mode=2):
-    return CSI + str(mode) + 'K'
+    return CSI + str(mode) + "K"
 
 
 class AnsiCodes(object):
@@ -43,26 +43,26 @@ class AnsiCodes(object):
         # Upon instantiation we define instance attributes, which are the same
         # as the class attributes but wrapped with the ANSI escape sequence
         for name in dir(self):
-            if not name.startswith('_'):
+            if not name.startswith("_"):
                 value = getattr(self, name)
                 setattr(self, name, code_to_chars(value))
 
 
 class AnsiCursor(object):
     def UP(self, n=1):
-        return CSI + str(n) + 'A'
+        return CSI + str(n) + "A"
 
     def DOWN(self, n=1):
-        return CSI + str(n) + 'B'
+        return CSI + str(n) + "B"
 
     def FORWARD(self, n=1):
-        return CSI + str(n) + 'C'
+        return CSI + str(n) + "C"
 
     def BACK(self, n=1):
-        return CSI + str(n) + 'D'
+        return CSI + str(n) + "D"
 
     def POS(self, x=1, y=1):
-        return CSI + str(y) + ';' + str(x) + 'H'
+        return CSI + str(y) + ";" + str(x) + "H"
 
 
 class AnsiFore(AnsiCodes):
@@ -122,25 +122,25 @@ Style = AnsiStyle()
 Cursor = AnsiCursor()
 
 _COLOR_MAP = {
-    'red': (Fore.RED, Back.RED),
-    'blue': (Fore.BLUE, Back.BLUE),
-    'green': (Fore.GREEN, Back.GREEN),
-    'white': (Fore.WHITE, Back.WHITE),
-    'black': (Fore.BLACK, Back.BLACK),
-    'yellow': (Fore.YELLOW, Back.YELLOW),
-    'magenta': (Fore.MAGENTA, Back.MAGENTA),
-    'cyan': (Fore.CYAN, Back.CYAN),
-    'gray': (Fore.LIGHTBLACK_EX, Back.LIGHTBLACK_EX),
-    'reset': (Fore.RESET, Back.RESET),
-    'lred': (Fore.LIGHTRED_EX, Back.LIGHTRED_EX),
-    'lblue': (Fore.LIGHTBLUE_EX, Back.LIGHTBLUE_EX),
-    'lgreen': (Fore.LIGHTGREEN_EX, Back.LIGHTGREEN_EX),
-    'lwhite': (Fore.LIGHTWHITE_EX, Back.LIGHTWHITE_EX),
-    'lblack': (Fore.LIGHTBLACK_EX, Back.LIGHTBLACK_EX),
-    'lyellow': (Fore.LIGHTYELLOW_EX, Back.LIGHTYELLOW_EX),
-    'lmagenta': (Fore.LIGHTMAGENTA_EX, Back.LIGHTMAGENTA_EX),
-    'lcyan': (Fore.LIGHTCYAN_EX, Back.LIGHTCYAN_EX),
-    None: (Fore.RESET, Back.RESET)
+    "red": (Fore.RED, Back.RED),
+    "blue": (Fore.BLUE, Back.BLUE),
+    "green": (Fore.GREEN, Back.GREEN),
+    "white": (Fore.WHITE, Back.WHITE),
+    "black": (Fore.BLACK, Back.BLACK),
+    "yellow": (Fore.YELLOW, Back.YELLOW),
+    "magenta": (Fore.MAGENTA, Back.MAGENTA),
+    "cyan": (Fore.CYAN, Back.CYAN),
+    "gray": (Fore.LIGHTBLACK_EX, Back.LIGHTBLACK_EX),
+    "reset": (Fore.RESET, Back.RESET),
+    "lred": (Fore.LIGHTRED_EX, Back.LIGHTRED_EX),
+    "lblue": (Fore.LIGHTBLUE_EX, Back.LIGHTBLUE_EX),
+    "lgreen": (Fore.LIGHTGREEN_EX, Back.LIGHTGREEN_EX),
+    "lwhite": (Fore.LIGHTWHITE_EX, Back.LIGHTWHITE_EX),
+    "lblack": (Fore.LIGHTBLACK_EX, Back.LIGHTBLACK_EX),
+    "lyellow": (Fore.LIGHTYELLOW_EX, Back.LIGHTYELLOW_EX),
+    "lmagenta": (Fore.LIGHTMAGENTA_EX, Back.LIGHTMAGENTA_EX),
+    "lcyan": (Fore.LIGHTCYAN_EX, Back.LIGHTCYAN_EX),
+    None: (Fore.RESET, Back.RESET),
 }
 
 
@@ -159,7 +159,7 @@ def print_color(text, fore=None, back=None, reset=True, outstream=sys.stdout):
         after printing.
     :return: None
     """
-    reset_ = Fore.RESET + Back.RESET if reset else ''
+    reset_ = Fore.RESET + Back.RESET if reset else ""
     outstream.write(_COLOR_MAP[fore][0] + _COLOR_MAP[back][1] + text + reset_)
 
 
@@ -179,11 +179,11 @@ def get_color_code(fname):
     for code_dir in COLOR_CODES:
         if code_dir in fname:
             return COLOR_CODES[code_dir]
-    return COLOR_CODES['default']
+    return COLOR_CODES["default"]
 
 
 def color_string(msg, color=None):
-    if color==None:
+    if color == None:
         fname, lineno, method, _ = tb.extract_stack()[-2]  # Get caller
         color = get_color_code(fname)
     return _COLOR_MAP[color][0] + msg + Fore.RESET
@@ -203,5 +203,5 @@ class ColorLogger(object):
         self.logger.debug(msg)
 
     def warning(self, msg, *frmat):
-        msg = color_string(msg % frmat, color='red')
+        msg = color_string(msg % frmat, color="red")
         self.logger.warning(msg)

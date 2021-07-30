@@ -19,10 +19,8 @@ class ExpertTrajGeneratorAlgorithm(TorchRLAlgorithm):
 
         # self.do_not_train = True
 
-
     def _do_training(self):
         pass
-    
 
     @property
     def networks(self):
@@ -49,7 +47,6 @@ class MetaExpertTrajGeneratorAlgorithm(TorchRLAlgorithm):
         self.num_trajs_generated_for_cur_task = 0
 
         self.num_episodes = num_trajs_per_task * len(task_params_list)
-    
 
     def _start_new_rollout(self):
         self.num_episodes += 1
@@ -61,6 +58,11 @@ class MetaExpertTrajGeneratorAlgorithm(TorchRLAlgorithm):
             self.task_idx += 1
             self.num_trajs_generated_for_cur_task = 0
 
-        task_params, obs_task_params = self.task_params_list[self.task_idx], self.obs_task_params_list[self.task_idx]
+        task_params, obs_task_params = (
+            self.task_params_list[self.task_idx],
+            self.obs_task_params_list[self.task_idx],
+        )
 
-        return self.training_env.reset(task_params=task_params, obs_task_params=obs_task_params)
+        return self.training_env.reset(
+            task_params=task_params, obs_task_params=obs_task_params
+        )

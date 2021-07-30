@@ -5,13 +5,14 @@ from rlkit.torch.common.policies import MakeDeterministic
 
 # assert False, 'I have not successfully used or tested this yet'
 
+
 def experiment(checkpoint, deterministic=False):
     d = joblib.load(checkpoint)
-    print('Epoch = %d' % d['epoch'])
+    print("Epoch = %d" % d["epoch"])
 
     print(d)
 
-    algorithm = d['algorithm']
+    algorithm = d["algorithm"]
     algorithm.render = True
     print(algorithm.discriminator)
 
@@ -19,7 +20,7 @@ def experiment(checkpoint, deterministic=False):
         algorithm.exploration_policy = MakeDeterministic(algorithm.exploration_policy)
 
     # print(algorithm.grad_pen_weight)
-    
+
     # algorithm.do_not_train = True
     # algorithm.do_not_eval = True
     # for i in range(100):
@@ -31,11 +32,16 @@ def experiment(checkpoint, deterministic=False):
     return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--checkpoint', help='experiment specification file')
-    parser.add_argument('-d', '--deterministic', help='make the policy deterministic', action='store_true')
+    parser.add_argument("-c", "--checkpoint", help="experiment specification file")
+    parser.add_argument(
+        "-d",
+        "--deterministic",
+        help="make the policy deterministic",
+        action="store_true",
+    )
     args = parser.parse_args()
 
     experiment(args.checkpoint, deterministic=args.deterministic)

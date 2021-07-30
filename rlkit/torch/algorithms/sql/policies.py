@@ -16,25 +16,22 @@ class DiscreteQWrapperPolicy(PyTorchModule, ExplorationPolicy):
         self.save_init_params(locals())
         super().__init__()
         self.qf = qf
-    
 
     def get_action(self, obs_np, deterministic=False):
         actions = self.get_actions(obs_np[None], deterministic=deterministic)
         return actions[0, :], {}
 
-
     def get_actions(self, obs_np, deterministic=False):
         temp = self.eval_np(obs_np, deterministic=deterministic)[0]
         return temp
 
-    
     def forward(self, obs, deterministic=False, return_log_prob=False):
         logits = self.qf(obs)
         log_probs = F.log_softmax(logits, dim=1)
 
         if deterministic:
             _, idx = torch.max(log_probs, 1)
-            return (torch.unsqueeze(idx,1), None)
+            return (torch.unsqueeze(idx, 1), None)
         else:
             # Using Gumbel-Max trick to sample from the multinomials
             u = Variable(torch.rand(log_probs.size()))

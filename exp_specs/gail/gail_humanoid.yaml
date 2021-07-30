@@ -17,7 +17,7 @@ constants:
   expert_name: 'humanoid_sac'
   expert_idx: 0
   traj_num: 4
-  scale_env_with_demo_stats: false
+  scale_env_with_demo_stats: True
   minmax_env_with_demo_stats: false
 
   disc_num_blocks: 2

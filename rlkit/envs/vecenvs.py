@@ -11,6 +11,7 @@ from rlkit.data_management.normalizer import RunningMeanStd
 
 EPS = np.finfo(np.float32).eps.item()
 
+
 class BaseVectorEnv(Env):
     """Base class for vectorized environments wrapper.
     Usage:
@@ -79,11 +80,13 @@ class BaseVectorEnv(Env):
 
         self.env_num = len(env_fns)
         self.wait_num = wait_num or len(env_fns)
-        assert 1 <= self.wait_num <= len(env_fns), \
-            f"wait_num should be in [1, {len(env_fns)}], but got {wait_num}"
+        assert (
+            1 <= self.wait_num <= len(env_fns)
+        ), f"wait_num should be in [1, {len(env_fns)}], but got {wait_num}"
         self.timeout = timeout
-        assert self.timeout is None or self.timeout > 0, \
-            f"timeout is {timeout}, it should be positive if provided!"
+        assert (
+            self.timeout is None or self.timeout > 0
+        ), f"timeout is {timeout}, it should be positive if provided!"
         self.is_async = self.wait_num != len(env_fns) or timeout is not None
         self.waiting_conn: List[EnvWorker] = []
         # environments in self.ready_id is actually ready
@@ -102,8 +105,9 @@ class BaseVectorEnv(Env):
         self.__eps = np.finfo(np.float32).eps.item()
 
     def _assert_is_not_closed(self) -> None:
-        assert not self.is_closed, \
-            f"Methods of {self.__class__.__name__} cannot be called after close."
+        assert (
+            not self.is_closed
+        ), f"Methods of {self.__class__.__name__} cannot be called after close."
 
     def __len__(self) -> int:
         """Return len(self), which is the number of environments."""
@@ -115,8 +119,13 @@ class BaseVectorEnv(Env):
         ``action_space``. However, we would like the attribute lookup to go straight
         into the worker (in fact, this vector env's action_space is always None).
         """
-        if key in ['metadata', 'reward_range', 'spec', 'action_space',
-                   'observation_space']:  # reserved keys in Env
+        if key in [
+            "metadata",
+            "reward_range",
+            "spec",
+            "action_space",
+            "observation_space",
+        ]:  # reserved keys in Env
             return self.__getattr__(key)
         else:
             return super().__getattribute__(key)
@@ -137,10 +146,12 @@ class BaseVectorEnv(Env):
 
     def _assert_id(self, id: Union[List[int], np.ndarray]) -> None:
         for i in id:
-            assert i not in self.waiting_id, \
-                f"Cannot interact with environment {i} which is stepping now."
-            assert i in self.ready_id, \
-                f"Can only interact with ready environments {self.ready_id}."
+            assert (
+                i not in self.waiting_id
+            ), f"Cannot interact with environment {i} which is stepping now."
+            assert (
+                i in self.ready_id
+            ), f"Can only interact with ready environments {self.ready_id}."
 
     def reset(
         self, id: Optional[Union[int, List[int], np.ndarray]] = None
@@ -164,9 +175,7 @@ class BaseVectorEnv(Env):
         return self.normalize_obs(obs)
 
     def step(
-        self,
-        action: np.ndarray,
-        id: Optional[Union[int, List[int], np.ndarray]] = None
+        self, action: np.ndarray, id: Optional[Union[int, List[int], np.ndarray]] = None
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Run one timestep of some environments' dynamics.
         If id is None, run one timestep of all the environments’ dynamics;
@@ -214,7 +223,8 @@ class BaseVectorEnv(Env):
             ready_conns: List[EnvWorker] = []
             while not ready_conns:
                 ready_conns = self.worker_class.wait(
-                    self.waiting_conn, self.wait_num, self.timeout)
+                    self.waiting_conn, self.wait_num, self.timeout
+                )
             result = []
             for conn in ready_conns:
                 waiting_index = self.waiting_conn.index(conn)
@@ -230,7 +240,8 @@ class BaseVectorEnv(Env):
         except ValueError:  # different len(obs)
             obs_stack = np.array(obs_list, dtype=object)
         rew_stack, done_stack, info_stack = map(
-            np.stack, [rew_list, done_list, info_list])
+            np.stack, [rew_list, done_list, info_list]
+        )
         if self.obs_rms and self.update_obs_rms:
             self.obs_rms.update(obs_stack)
         return self.normalize_obs(obs_stack), rew_stack, done_stack, info_stack
@@ -261,7 +272,8 @@ class BaseVectorEnv(Env):
         if self.is_async and len(self.waiting_id) > 0:
             raise RuntimeError(
                 f"Environments {self.waiting_id} are still stepping, cannot "
-                "render them now.")
+                "render them now."
+            )
         return [w.render(**kwargs) for w in self.workers]
 
     def close(self) -> None:
@@ -295,8 +307,7 @@ class DummyVectorEnv(BaseVectorEnv):
 
 
 class SubprocVectorEnv(BaseVectorEnv):
-    """Vectorized environment wrapper based on subprocess.
-    """
+    """Vectorized environment wrapper based on subprocess."""
 
     def __init__(self, env_fns: List[Callable[[], gym.Env]], **kwargs: Any) -> None:
         def worker_fn(fn: Callable[[], gym.Env]) -> SubprocEnvWorker:

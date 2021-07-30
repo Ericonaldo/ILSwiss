@@ -6,12 +6,12 @@ import numpy as np
 
 class Normalizer(object):
     def __init__(
-            self,
-            size,
-            eps=1e-8,
-            default_clip_range=np.inf,
-            mean=0,
-            std=1,
+        self,
+        size,
+        eps=1e-8,
+        default_clip_range=np.inf,
+        mean=0,
+        std=1,
     ):
         self.size = size
         self.eps = eps
@@ -57,8 +57,7 @@ class Normalizer(object):
         self.mean[...] = self.sum / self.count[0]
         self.std[...] = np.sqrt(
             np.maximum(
-                np.square(self.eps),
-                self.sumsq / self.count[0] - np.square(self.mean)
+                np.square(self.eps), self.sumsq / self.count[0] - np.square(self.mean)
             )
         )
         self.synchronized = True
@@ -80,12 +79,12 @@ class IdentityNormalizer(object):
 
 class FixedNormalizer(object):
     def __init__(
-            self,
-            size,
-            default_clip_range=np.inf,
-            mean=0,
-            std=1,
-            eps=1e-8,
+        self,
+        size,
+        default_clip_range=np.inf,
+        mean=0,
+        std=1,
+        eps=1e-8,
     ):
         assert std > 0
         std = std + eps
@@ -122,14 +121,13 @@ class FixedNormalizer(object):
         self.set_mean(other.mean)
         self.set_std(other.std)
 
+
 class RunningMeanStd(object):
     """Calulates the running mean and std of a data stream.
     https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Parallel_algorithm
     """
 
-    def __init__(
-        self, mean = 0.0, std = 1.0
-    ) -> None:
+    def __init__(self, mean=0.0, std=1.0) -> None:
         self.mean, self.var = mean, std
         self.count = 0
 

@@ -22,46 +22,38 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
     base algorithm for single task setting
     can be used for RL or Learning from Demonstrations
     """
+
     def __init__(
-            self,
-            env,
-            
-            exploration_policy: ExplorationPolicy,
-            training_env=None,
-            eval_policy=None,
-            eval_sampler=None,      ##
-
-            num_epochs=100,
-            num_steps_per_epoch=10000,
-            num_steps_between_train_calls=1000,
-            num_steps_per_eval=1000,
-            max_path_length=1000,
-            min_steps_before_training=0,
-
-            replay_buffer=None,
-            replay_buffer_size=10000,
-
-            freq_saving=1,
-            save_replay_buffer=False,
-            save_environment=False,
-            save_algorithm=False,
-
-            save_best=False,
-            save_epoch=False,
-            save_best_starting_from_epoch=0,
-            best_key='AverageReturn', # higher is better
-            
-            no_terminal=False,
-            eval_no_terminal=False,
-            wrap_absorbing=False,
-
-            render=False,
-            render_kwargs={},
-
-            freq_log_visuals=1,
-
-            eval_deterministic=False
-        ):
+        self,
+        env,
+        exploration_policy: ExplorationPolicy,
+        training_env=None,
+        eval_policy=None,
+        eval_sampler=None,  ##
+        num_epochs=100,
+        num_steps_per_epoch=10000,
+        num_steps_between_train_calls=1000,
+        num_steps_per_eval=1000,
+        max_path_length=1000,
+        min_steps_before_training=0,
+        replay_buffer=None,
+        replay_buffer_size=10000,
+        freq_saving=1,
+        save_replay_buffer=False,
+        save_environment=False,
+        save_algorithm=False,
+        save_best=False,
+        save_epoch=False,
+        save_best_starting_from_epoch=0,
+        best_key="AverageReturn",  # higher is better
+        no_terminal=False,
+        eval_no_terminal=False,
+        wrap_absorbing=False,
+        render=False,
+        render_kwargs={},
+        freq_log_visuals=1,
+        eval_deterministic=False,
+    ):
         self.env = env
         self.env_num = 1
         try:
@@ -87,8 +79,8 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         self.save_epoch = save_epoch
         self.save_best_starting_from_epoch = save_best_starting_from_epoch
         self.best_key = best_key
-        self.best_statistic_so_far = float('-Inf')
-        
+        self.best_statistic_so_far = float("-Inf")
+
         if eval_sampler is None:
             if eval_policy is None:
                 eval_policy = exploration_policy
@@ -100,7 +92,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
                 max_path_length,
                 no_terminal=eval_no_terminal,
                 render=render,
-                render_kwargs=render_kwargs
+                render_kwargs=render_kwargs,
             )
         self.eval_policy = eval_policy
         self.eval_sampler = eval_sampler
@@ -111,9 +103,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         if replay_buffer is None:
             assert max_path_length < replay_buffer_size
             replay_buffer = EnvReplayBuffer(
-                self.replay_buffer_size,
-                self.env,
-                random_seed=np.random.randint(10000)
+                self.replay_buffer_size, self.env, random_seed=np.random.randint(10000)
             )
         else:
             assert max_path_length < replay_buffer._max_replay_buffer_size
@@ -142,7 +132,6 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
 
         self.ready_env_ids = np.arange(self.env_num)
 
-
     def train(self, start_epoch=0, flag=False):
         self.pretrain()
         if start_epoch == 0:
@@ -154,7 +143,6 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         gt.set_def_unique(False)
         self.start_training(start_epoch=start_epoch, flag=flag)
 
-
     def pretrain(self):
         """
         Do anything before the main training phase.
@@ -164,9 +152,13 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
     def start_training(self, start_epoch=0, flag=False):
         # self._current_path_builder = PathBuilder()
         self.ready_env_ids = np.arange(self.env_num)
-        observations = self._start_new_rollout(self.ready_env_ids) # Do it for support vec env
+        observations = self._start_new_rollout(
+            self.ready_env_ids
+        )  # Do it for support vec env
 
-        self._current_path_builder = [PathBuilder() for _ in range(len(self.ready_env_ids))]
+        self._current_path_builder = [
+            PathBuilder() for _ in range(len(self.ready_env_ids))
+        ]
 
         for epoch in gt.timed_for(
             range(start_epoch, self.num_epochs),
@@ -174,31 +166,37 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         ):
             self._start_epoch(epoch)
             total_rews = np.array([0.0 for _ in range(len(self.ready_env_ids))])
-            for steps_this_epoch in range(self.num_env_steps_per_epoch//self.env_num):
+            for steps_this_epoch in range(self.num_env_steps_per_epoch // self.env_num):
                 actions = self._get_action_and_info(observations)
-                
+
                 if type(actions) is tuple:
                     actions = actions[0]
 
-                if self.render: self.training_env.render()
+                if self.render:
+                    self.training_env.render()
 
-                next_obs, raw_rewards, terminals, env_infos = (
-                    self.training_env.step(actions, self.ready_env_ids)
+                next_obs, raw_rewards, terminals, env_infos = self.training_env.step(
+                    actions, self.ready_env_ids
                 )
-                if self.no_terminal: terminals = [False for _ in range(len(self.ready_env_ids))]
+                if self.no_terminal:
+                    terminals = [False for _ in range(len(self.ready_env_ids))]
                 # self._n_env_steps_total += 1
                 self._n_env_steps_total += len(self.ready_env_ids)
-                 
+
                 rewards = raw_rewards
                 total_rews += raw_rewards
-                
+
                 self._handle_vec_step(
                     observations,
                     actions,
                     rewards,
                     next_obs,
-                    np.array([False for _ in range(len(self.ready_env_ids))]) if self.no_terminal else terminals,
-                    absorbings=[np.array([0., 0.]) for _ in range(len(self.ready_env_ids))],
+                    np.array([False for _ in range(len(self.ready_env_ids))])
+                    if self.no_terminal
+                    else terminals,
+                    absorbings=[
+                        np.array([0.0, 0.0]) for _ in range(len(self.ready_env_ids))
+                    ],
                     env_infos=env_infos,
                 )
                 if np.any(terminals):
@@ -208,7 +206,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
                     total_rews[env_ind_local] = 0.0
                     if self.wrap_absorbing:
                         # raise NotImplementedError()
-                        '''
+                        """
                         If we wrap absorbing states, two additional
                         transitions must be added: (s_T, s_abs) and
                         (s_abs, s_abs). In Disc Actor Critic paper
@@ -217,7 +215,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
                         ([next_ob,0], random_action, [next_ob, 1]) and
                         ([next_ob,1], random_action, [next_ob, 1])
                         This way we can handle varying types of terminal states.
-                        '''
+                        """
                         # next_ob is the absorbing state
                         # for now just taking the previous action
                         self._handle_vec_step(
@@ -228,8 +226,11 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
                             rewards,
                             next_obs,
                             np.array([False for _ in range(len(self.ready_env_ids))]),
-                            absorbings=[np.array([0., 1.0]) for _ in range(len(self.ready_env_ids))],
-                            env_infos=env_infos
+                            absorbings=[
+                                np.array([0.0, 1.0])
+                                for _ in range(len(self.ready_env_ids))
+                            ],
+                            env_infos=env_infos,
                         )
                         self._handle_vec_step(
                             next_obs,
@@ -239,28 +240,47 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
                             rewards,
                             next_obs,
                             np.array([False for _ in range(len(self.ready_env_ids))]),
-                            absorbings=[np.array([1.0, 1.0]) for _ in range(len(self.ready_env_ids))],
-                            env_infos=env_infos
+                            absorbings=[
+                                np.array([1.0, 1.0])
+                                for _ in range(len(self.ready_env_ids))
+                            ],
+                            env_infos=env_infos,
                         )
                     self._handle_vec_rollout_ending(env_ind_local)
                     reset_observations = self._start_new_rollout(env_ind_local)
                     next_obs[env_ind_local] = reset_observations
-                elif np.any(np.array([len(self._current_path_builder[i]) for i in range(len(self.ready_env_ids))]) >= self.max_path_length):
-                    env_ind_local = np.where(np.array([len(self._current_path_builder[i]) for i in range(len(self.ready_env_ids))]) >= self.max_path_length)[0]
+                elif np.any(
+                    np.array(
+                        [
+                            len(self._current_path_builder[i])
+                            for i in range(len(self.ready_env_ids))
+                        ]
+                    )
+                    >= self.max_path_length
+                ):
+                    env_ind_local = np.where(
+                        np.array(
+                            [
+                                len(self._current_path_builder[i])
+                                for i in range(len(self.ready_env_ids))
+                            ]
+                        )
+                        >= self.max_path_length
+                    )[0]
                     self._handle_vec_rollout_ending(env_ind_local)
                     reset_observations = self._start_new_rollout(env_ind_local)
                     next_obs[env_ind_local] = reset_observations
-                
-                observations = next_obs
-                
-                if self._n_env_steps_total % self.num_steps_between_train_calls == 0:
-                    gt.stamp('sample')
-                    self._try_to_train(epoch)
-                    gt.stamp('train')
 
-            gt.stamp('sample')
+                observations = next_obs
+
+                if self._n_env_steps_total % self.num_steps_between_train_calls == 0:
+                    gt.stamp("sample")
+                    self._try_to_train(epoch)
+                    gt.stamp("train")
+
+            gt.stamp("sample")
             self._try_to_eval(epoch)
-            gt.stamp('eval')
+            gt.stamp("eval")
             self._end_epoch()
 
     def _try_to_train(self, epoch):
@@ -276,7 +296,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
             # save if it's time to save
             if (int(epoch) % self.freq_saving == 0) or (epoch + 1 >= self.num_epochs):
                 # if epoch + 1 >= self.num_epochs:
-                    # epoch = 'final'
+                # epoch = 'final'
                 logger.save_extra_data(self.get_extra_data_to_save(epoch))
                 params = self.get_epoch_snapshot(epoch)
                 logger.save_itr_params(epoch, params)
@@ -297,17 +317,17 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
             )
 
             times_itrs = gt.get_times().stamps.itrs
-            train_time = times_itrs['train'][-1]
-            sample_time = times_itrs['sample'][-1]
-            eval_time = times_itrs['eval'][-1] if epoch > 0 else 0
+            train_time = times_itrs["train"][-1]
+            sample_time = times_itrs["sample"][-1]
+            eval_time = times_itrs["eval"][-1] if epoch > 0 else 0
             epoch_time = train_time + sample_time + eval_time
             total_time = gt.get_times().total
 
-            logger.record_tabular('Train Time (s)', train_time)
-            logger.record_tabular('(Previous) Eval Time (s)', eval_time)
-            logger.record_tabular('Sample Time (s)', sample_time)
-            logger.record_tabular('Epoch Time (s)', epoch_time)
-            logger.record_tabular('Total Train Time (s)', total_time)
+            logger.record_tabular("Train Time (s)", train_time)
+            logger.record_tabular("(Previous) Eval Time (s)", eval_time)
+            logger.record_tabular("Sample Time (s)", sample_time)
+            logger.record_tabular("Epoch Time (s)", epoch_time)
+            logger.record_tabular("Total Train Time (s)", total_time)
 
             logger.record_tabular("Epoch", epoch)
             logger.dump_tabular(with_prefix=False, with_timestamp=False)
@@ -328,11 +348,14 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         """
         return (
             len(self._exploration_paths) > 0
-            and self.replay_buffer.num_steps_can_sample() >= self.min_steps_before_training
+            and self.replay_buffer.num_steps_can_sample()
+            >= self.min_steps_before_training
         )
 
     def _can_train(self):
-        return self.replay_buffer.num_steps_can_sample() >= self.min_steps_before_training
+        return (
+            self.replay_buffer.num_steps_can_sample() >= self.min_steps_before_training
+        )
 
     def _get_action_and_info(self, observation):
         """
@@ -349,13 +372,11 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         self._epoch_start_time = time.time()
         self._exploration_paths = []
         self._do_train_time = 0
-        logger.push_prefix('Iteration #%d | ' % epoch)
+        logger.push_prefix("Iteration #%d | " % epoch)
 
     def _end_epoch(self):
         self.eval_statistics = None
-        logger.log("Epoch Duration: {0}".format(
-            time.time() - self._epoch_start_time
-        ))
+        logger.log("Epoch Duration: {0}".format(time.time() - self._epoch_start_time))
         logger.log("Started Training: {0}".format(self._can_train()))
         logger.pop_prefix()
 
@@ -370,15 +391,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         :param path:
         :return:
         """
-        for (
-            ob,
-            action,
-            reward,
-            next_ob,
-            terminal,
-            absorbing,
-            env_info
-        ) in zip(
+        for (ob, action, reward, next_ob, terminal, absorbing, env_info) in zip(
             path["observations"],
             path["actions"],
             path["rewards"],
@@ -420,16 +433,18 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
             next_ob,
             terminal,
             absorbing,
-            env_info
-        ) in enumerate(zip(
-            observations,
-            actions,
-            rewards,
-            next_observations,
-            terminals,
-            absorbings,
-            env_infos,
-        )):
+            env_info,
+        ) in enumerate(
+            zip(
+                observations,
+                actions,
+                rewards,
+                next_observations,
+                terminals,
+                absorbings,
+                env_infos,
+            )
+        ):
             self._handle_step(
                 ob,
                 action,
@@ -489,10 +504,8 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
             self.replay_buffer.terminate_episode()
             self._n_rollouts_total += 1
             if len(self._current_path_builder[idx]) > 0:
-                self._exploration_paths.append(
-                    self._current_path_builder[idx]
-                )
-                self._current_path_builder[idx] = PathBuilder()  
+                self._exploration_paths.append(self._current_path_builder[idx])
+                self._current_path_builder[idx] = PathBuilder()
 
     def _handle_rollout_ending(self):
         """
@@ -501,9 +514,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         self.replay_buffer.terminate_episode()
         self._n_rollouts_total += 1
         if len(self._current_path_builder) > 0:
-            self._exploration_paths.append(
-                self._current_path_builder
-            )
+            self._exploration_paths.append(self._current_path_builder)
             self._current_path_builder = PathBuilder()
 
     def get_epoch_snapshot(self, epoch):
@@ -515,9 +526,9 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
             exploration_policy=self.exploration_policy,
         )
         if self.save_environment:
-            data_to_save['env'] = self.training_env
+            data_to_save["env"] = self.training_env
         return data_to_save
-    
+
     # @abc.abstractmethod
     # def load_snapshot(self, snapshot):
     #     """
@@ -540,11 +551,11 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
             epoch=epoch,
         )
         if self.save_environment:
-            data_to_save['env'] = self.training_env
+            data_to_save["env"] = self.training_env
         if self.save_replay_buffer:
-            data_to_save['replay_buffer'] = self.replay_buffer
+            data_to_save["replay_buffer"] = self.replay_buffer
         if self.save_algorithm:
-            data_to_save['algorithm'] = self
+            data_to_save["algorithm"] = self
         return data_to_save
 
     @abc.abstractmethod
@@ -556,7 +567,6 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         """
         pass
 
-
     @abc.abstractmethod
     def _do_training(self):
         """
@@ -564,7 +574,6 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         :return:
         """
         pass
-
 
     def evaluate(self, epoch):
         """
@@ -577,17 +586,23 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
             statistics.update(self.eval_statistics)
             self.eval_statistics = None
         except:
-            print('No Stats to Eval')
+            print("No Stats to Eval")
 
         logger.log("Collecting samples for evaluation")
         test_paths = self.eval_sampler.obtain_samples()
 
-        statistics.update(eval_util.get_generic_path_information(
-            test_paths, stat_prefix="Test",
-        ))
-        statistics.update(eval_util.get_generic_path_information(
-            self._exploration_paths, stat_prefix="Exploration",
-        ))
+        statistics.update(
+            eval_util.get_generic_path_information(
+                test_paths,
+                stat_prefix="Test",
+            )
+        )
+        statistics.update(
+            eval_util.get_generic_path_information(
+                self._exploration_paths,
+                stat_prefix="Exploration",
+            )
+        )
 
         if hasattr(self.env, "log_diagnostics"):
             self.env.log_diagnostics(test_paths)
@@ -596,28 +611,22 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         if int(epoch) % self.freq_log_visuals == 0:
             if hasattr(self.env, "log_visuals"):
                 self.env.log_visuals(test_paths, epoch, logger.get_snapshot_dir())
-        
+
         average_returns = eval_util.get_average_returns(test_paths)
-        statistics['AverageReturn'] = average_returns
+        statistics["AverageReturn"] = average_returns
         for key, value in statistics.items():
             logger.record_tabular(key, np.mean(value))
-        
+
         best_statistic = statistics[self.best_key]
-        data_to_save = {
-            'epoch': epoch,
-            'statistics': statistics
-        }
+        data_to_save = {"epoch": epoch, "statistics": statistics}
         data_to_save.update(self.get_epoch_snapshot(epoch))
         if self.save_epoch:
-            logger.save_extra_data(data_to_save, 'epoch{}.pkl'.format(epoch))
-            print('\n\nSAVED MODEL AT EPOCH {}\n\n'.format(epoch))
+            logger.save_extra_data(data_to_save, "epoch{}.pkl".format(epoch))
+            print("\n\nSAVED MODEL AT EPOCH {}\n\n".format(epoch))
         if best_statistic > self.best_statistic_so_far:
             self.best_statistic_so_far = best_statistic
             if self.save_best and epoch >= self.save_best_starting_from_epoch:
-                data_to_save = {
-                    'epoch': epoch,
-                    'statistics': statistics
-                }
+                data_to_save = {"epoch": epoch, "statistics": statistics}
                 data_to_save.update(self.get_epoch_snapshot(epoch))
-                logger.save_extra_data(data_to_save, 'best.pkl')
-                print('\n\nSAVED BEST\n\n')
+                logger.save_extra_data(data_to_save, "best.pkl")
+                print("\n\nSAVED BEST\n\n")

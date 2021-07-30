@@ -21,7 +21,7 @@ from rlkit.torch.utils.pytorch_util import set_gpu_mode
 
 import torch
 
-GitInfo = namedtuple('GitInfo', ['code_diff', 'commit_hash', 'branch_name'])
+GitInfo = namedtuple("GitInfo", ["code_diff", "commit_hash", "branch_name"])
 
 
 def recursive_items(dictionary):
@@ -50,10 +50,10 @@ def recursive_items(dictionary):
 
 
 def create_mounts(
-        mode,
-        base_log_dir,
-        sync_interval=180,
-        local_input_dir_to_mount_point_dict=None,
+    mode,
+    base_log_dir,
+    sync_interval=180,
+    local_input_dir_to_mount_point_dict=None,
 ):
     if local_input_dir_to_mount_point_dict is None:
         local_input_dir_to_mount_point_dict = {}
@@ -62,30 +62,32 @@ def create_mounts(
 
     mounts = [m for m in CODE_MOUNTS]
     for dir, mount_point in local_input_dir_to_mount_point_dict.items():
-        mounts.append(mount.MountLocal(
-            local_dir=dir,
-            mount_point=mount_point,
-            pythonpath=False,
-        ))
+        mounts.append(
+            mount.MountLocal(
+                local_dir=dir,
+                mount_point=mount_point,
+                pythonpath=False,
+            )
+        )
 
-    if mode != 'local':
+    if mode != "local":
         for m in NON_CODE_MOUNTS:
             mounts.append(m)
 
-    if mode == 'ec2':
+    if mode == "ec2":
         output_mount = mount.MountS3(
-            s3_path='',
+            s3_path="",
             mount_point=config.OUTPUT_DIR_FOR_DOODAD_TARGET,
             output=True,
             sync_interval=sync_interval,
         )
-    elif mode == 'local':
+    elif mode == "local":
         output_mount = mount.MountLocal(
             local_dir=base_log_dir,
             mount_point=None,  # For purely local mode, skip mounting.
             output=True,
         )
-    elif mode == 'local_docker':
+    elif mode == "local_docker":
         output_mount = mount.MountLocal(
             local_dir=base_log_dir,
             mount_point=config.OUTPUT_DIR_FOR_DOODAD_TARGET,
@@ -98,24 +100,24 @@ def create_mounts(
 
 
 def save_experiment_data(dictionary, log_dir):
-    with open(log_dir + '/experiment.pkl', 'wb') as handle:
+    with open(log_dir + "/experiment.pkl", "wb") as handle:
         pickle.dump(dictionary, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 def run_experiment_here(
-        experiment_function,
-        variant=None,
-        exp_id=0,
-        seed=0,
-        use_gpu=True,
-        # Logger params:
-        exp_prefix="default",
-        snapshot_mode='last',
-        snapshot_gap=1,
-        git_info=None,
-        script_name=None,
-        base_log_dir=None,
-        log_dir=None,
+    experiment_function,
+    variant=None,
+    exp_id=0,
+    seed=0,
+    use_gpu=True,
+    # Logger params:
+    exp_prefix="default",
+    snapshot_mode="last",
+    snapshot_gap=1,
+    git_info=None,
+    script_name=None,
+    base_log_dir=None,
+    log_dir=None,
 ):
     """
     Run an experiment locally without any serialization.
@@ -135,11 +137,11 @@ def run_experiment_here(
     """
     if variant is None:
         variant = {}
-    variant['exp_id'] = str(exp_id)
+    variant["exp_id"] = str(exp_id)
 
-    if seed is None and 'seed' not in variant:
+    if seed is None and "seed" not in variant:
         seed = random.randint(0, 100000)
-        variant['seed'] = str(seed)
+        variant["seed"] = str(seed)
     reset_execution_environment()
 
     actual_log_dir = setup_logger(
@@ -171,10 +173,7 @@ def run_experiment_here(
         base_log_dir=base_log_dir,
     )
     save_experiment_data(
-        dict(
-            run_experiment_here_kwargs=run_experiment_here_kwargs
-        ),
-        actual_log_dir
+        dict(run_experiment_here_kwargs=run_experiment_here_kwargs), actual_log_dir
     )
     return experiment_function(variant)
 
@@ -187,7 +186,7 @@ def create_exp_name(exp_prefix, exp_id=0, seed=0):
     :return:
     """
     now = datetime.datetime.now(dateutil.tz.tzlocal())
-    timestamp = now.strftime('%Y_%m_%d_%H_%M_%S')
+    timestamp = now.strftime("%Y_%m_%d_%H_%M_%S")
     return "%s_%s_%04d--s-%d" % (exp_prefix, timestamp, exp_id, seed)
 
 
@@ -200,8 +199,7 @@ def create_log_dir(exp_prefix, exp_id=0, seed=0, base_log_dir=None):
     :param exp_id: Different exp_ids will be in different directories.
     :return:
     """
-    exp_name = create_exp_name(exp_prefix, exp_id=exp_id,
-                               seed=seed)
+    exp_name = create_exp_name(exp_prefix, exp_id=exp_id, seed=seed)
     if base_log_dir is None:
         base_log_dir = config.LOCAL_LOG_DIR
     log_dir = osp.join(base_log_dir, exp_prefix.replace("_", "-"), exp_name)
@@ -212,20 +210,20 @@ def create_log_dir(exp_prefix, exp_id=0, seed=0, base_log_dir=None):
 
 
 def setup_logger(
-        exp_prefix="default",
-        exp_id=0,
-        seed=0,
-        variant=None,
-        base_log_dir=None,
-        text_log_file="debug.log",
-        variant_log_file="variant.json",
-        tabular_log_file="progress.csv",
-        snapshot_mode="last",
-        snapshot_gap=1,
-        log_tabular_only=False,
-        log_dir=None,
-        git_info=None,
-        script_name=None,
+    exp_prefix="default",
+    exp_id=0,
+    seed=0,
+    variant=None,
+    base_log_dir=None,
+    text_log_file="debug.log",
+    variant_log_file="variant.json",
+    tabular_log_file="progress.csv",
+    snapshot_mode="last",
+    snapshot_gap=1,
+    log_tabular_only=False,
+    log_dir=None,
+    git_info=None,
+    script_name=None,
 ):
     """
     Set up logger to have some reasonable default settings.
@@ -256,8 +254,9 @@ def setup_logger(
     """
     first_time = log_dir is None
     if first_time:
-        log_dir = create_log_dir(exp_prefix, exp_id=exp_id, seed=seed,
-                                 base_log_dir=base_log_dir)
+        log_dir = create_log_dir(
+            exp_prefix, exp_id=exp_id, seed=seed, base_log_dir=base_log_dir
+        )
 
     if variant is not None:
         logger.log("Variant:")
@@ -272,8 +271,9 @@ def setup_logger(
     if first_time:
         logger.add_tabular_output(tabular_log_path)
     else:
-        logger._add_output(tabular_log_path, logger._tabular_outputs,
-                           logger._tabular_fds, mode='a')
+        logger._add_output(
+            tabular_log_path, logger._tabular_outputs, logger._tabular_fds, mode="a"
+        )
         for tabular_fd in logger._tabular_fds:
             logger._tabular_header_written.add(tabular_fd)
     logger.set_snapshot_dir(log_dir)
@@ -290,7 +290,7 @@ def setup_logger(
                 f.write(code_diff)
         with open(osp.join(log_dir, "git_info.txt"), "w") as f:
             f.write("git hash: {}".format(commit_hash))
-            f.write('\n')
+            f.write("\n")
             f.write("git branch name: {}".format(branch_name))
     if script_name is not None:
         with open(osp.join(log_dir, "script_name.txt"), "w") as f:
@@ -347,6 +347,7 @@ def reset_execution_environment():
     :return:
     """
     import importlib
+
     importlib.reload(logger)
 
 
@@ -360,8 +361,7 @@ def query_yes_no(question, default="yes"):
 
     The "answer" return value is True for "yes" or False for "no".
     """
-    valid = {"yes": True, "y": True, "ye": True,
-             "no": False, "n": False}
+    valid = {"yes": True, "y": True, "ye": True, "no": False, "n": False}
     if default is None:
         prompt = " [y/n] "
     elif default == "yes":
@@ -374,42 +374,44 @@ def query_yes_no(question, default="yes"):
     while True:
         sys.stdout.write(question + prompt)
         choice = input().lower()
-        if default is not None and choice == '':
+        if default is not None and choice == "":
             return valid[default]
         elif choice in valid:
             return valid[choice]
         else:
-            sys.stdout.write("Please respond with 'yes' or 'no' "
-                             "(or 'y' or 'n').\n")
+            sys.stdout.write("Please respond with 'yes' or 'no' " "(or 'y' or 'n').\n")
 
 
 def check_exp_spec_format(specs):
-    '''
-        Check that all keys are strings that don't contain '.'
-    '''
+    """
+    Check that all keys are strings that don't contain '.'
+    """
     for k, v in specs.items():
-        if not isinstance(k, str): return False
-        if '.' in k: return False
+        if not isinstance(k, str):
+            return False
+        if "." in k:
+            return False
         if isinstance(v, dict):
             sub_ok = check_exp_spec_format(v)
-            if not sub_ok: return False
+            if not sub_ok:
+                return False
     return True
 
 
 def flatten_dict(dic):
-    '''
-        Assumes a potentially nested dictionary where all keys
-        are strings that do not contain a '.'
+    """
+    Assumes a potentially nested dictionary where all keys
+    are strings that do not contain a '.'
 
-        Returns a flat dict with keys having format:
-        {'key.sub_key.sub_sub_key': ..., etc.} 
-    '''
+    Returns a flat dict with keys having format:
+    {'key.sub_key.sub_sub_key': ..., etc.}
+    """
     new_dic = {}
     for k, v in dic.items():
         if isinstance(v, dict):
             sub_dict = flatten_dict(v)
             for sub_k, v in sub_dict.items():
-                new_dic['.'.join([k, sub_k])] = v
+                new_dic[".".join([k, sub_k])] = v
         else:
             new_dic[k] = v
 
@@ -420,8 +422,9 @@ def add_variable_to_constant_specs(constants, flat_variables):
     new_dict = deepcopy(constants)
     for k, v in flat_variables.items():
         cur_sub_dict = new_dict
-        split_k = k.split('.')
-        for sub_key in split_k[:-1]: cur_sub_dict = cur_sub_dict[sub_key]
+        split_k = k.split(".")
+        for sub_key in split_k[:-1]:
+            cur_sub_dict = cur_sub_dict[sub_key]
         cur_sub_dict[split_k[-1]] = v
     return new_dict
 
@@ -430,26 +433,29 @@ def build_nested_variant_generator(exp_spec):
     assert check_exp_spec_format(exp_spec)
     # from rllab.misc.instrument import VariantGenerator
 
-    variables = exp_spec['variables']
-    constants = exp_spec['constants']
+    variables = exp_spec["variables"]
+    constants = exp_spec["constants"]
 
     # check if we're effectively just running a single experiment
     if variables is None:
+
         def vg_fn():
             dict_to_yield = constants
-            dict_to_yield.update(exp_spec['meta_data'])
+            dict_to_yield.update(exp_spec["meta_data"])
             yield dict_to_yield
+
         return vg_fn
 
     variables = flatten_dict(variables)
     vg = VariantGenerator()
-    for k, v in variables.items(): vg.add(k, v)
-    
+    for k, v in variables.items():
+        vg.add(k, v)
+
     def vg_fn():
         for flat_variables in vg.variants():
             dict_to_yield = add_variable_to_constant_specs(constants, flat_variables)
-            dict_to_yield.update(exp_spec['meta_data'])
-            del dict_to_yield['_hidden_keys']
+            dict_to_yield.update(exp_spec["meta_data"])
+            del dict_to_yield["_hidden_keys"]
             yield dict_to_yield
 
     return vg_fn
@@ -457,42 +463,41 @@ def build_nested_variant_generator(exp_spec):
 
 def test_build_nested_variant_generator():
     variables = {
-        'hi': {
-            'one': [1,2,3,4],
-            'two': [5678],
-            'three': {
-                'apple': ['yummy', 'sour', 'sweet']
-            }
+        "hi": {
+            "one": [1, 2, 3, 4],
+            "two": [5678],
+            "three": {"apple": ["yummy", "sour", "sweet"]},
         },
-        'bye': ['omg', 'lmfao', 'waddup']
+        "bye": ["omg", "lmfao", "waddup"],
     }
 
     constants = {
-        'hi': {
-            'three': {
-                'constant_banana': 'potassium'
-            },
-            'other_constant_stuff': {
-                'idk': 'something funny and cool'
-            }
+        "hi": {
+            "three": {"constant_banana": "potassium"},
+            "other_constant_stuff": {"idk": "something funny and cool"},
         },
-        'yoyoyo': 'I like candy',
-        'wow': 1e8
+        "yoyoyo": "I like candy",
+        "wow": 1e8,
     }
 
-    vg_fn = build_nested_variant_generator(dict(constants=constants, variables=variables))
+    vg_fn = build_nested_variant_generator(
+        dict(constants=constants, variables=variables)
+    )
     for v in vg_fn():
         print(v)
-        print('\n'*4)
+        print("\n" * 4)
+
 
 """
 Based on rllab implement
 """
 
+
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
         super(AttrDict, self).__init__(*args, **kwargs)
         self.__dict__ = self
+
 
 class VariantDict(AttrDict):
     def __init__(self, d, hidden_keys):
@@ -532,9 +537,14 @@ class VariantGenerator(object):
 
     def _populate_variants(self):
         methods = inspect.getmembers(
-            self.__class__, predicate=lambda x: inspect.isfunction(x) or inspect.ismethod(x))
-        methods = [x[1].__get__(self, self.__class__)
-                   for x in methods if getattr(x[1], '__is_variant', False)]
+            self.__class__,
+            predicate=lambda x: inspect.isfunction(x) or inspect.ismethod(x),
+        )
+        methods = [
+            x[1].__get__(self, self.__class__)
+            for x in methods
+            if getattr(x[1], "__is_variant", False)
+        ]
         for m in methods:
             self.add(m.__name__, m, **getattr(m, "__variant_config", dict()))
 
@@ -559,7 +569,7 @@ class VariantGenerator(object):
         for key, vals, _ in self._variants:
             if hasattr(vals, "__call__"):
                 args = inspect.getargspec(vals).args
-                if hasattr(vals, 'im_self') or hasattr(vals, "__self__"):
+                if hasattr(vals, "im_self") or hasattr(vals, "__self__"):
                     # remove the first 'self' parameter
                     args = args[1:]
                 dependencies.append((key, set(args)))
@@ -576,8 +586,7 @@ class VariantGenerator(object):
                     if len(v) > 0:
                         error_msg += k + " depends on " + " & ".join(v) + "\n"
                 raise ValueError(error_msg)
-            dependencies = [(k, v)
-                            for k, v in dependencies if k not in free_nodes]
+            dependencies = [(k, v) for k, v in dependencies if k not in free_nodes]
             # remove the free nodes from the remaining dependencies
             for _, v in dependencies:
                 v.difference_update(free_nodes)
@@ -594,14 +603,13 @@ class VariantGenerator(object):
             last_vals = [v for k, v, _ in self._variants if k == last_key][0]
             if hasattr(last_vals, "__call__"):
                 last_val_keys = inspect.getargspec(last_vals).args
-                if hasattr(last_vals, 'im_self') or hasattr(last_vals, '__self__'):
+                if hasattr(last_vals, "im_self") or hasattr(last_vals, "__self__"):
                     last_val_keys = last_val_keys[1:]
             else:
                 last_val_keys = None
             for variant in first_variants:
                 if hasattr(last_vals, "__call__"):
-                    last_variants = last_vals(
-                        **{k: variant[k] for k in last_val_keys})
+                    last_variants = last_vals(**{k: variant[k] for k in last_val_keys})
                     for last_choice in last_variants:
                         yield AttrDict(variant, **{last_key: last_choice})
                 else:

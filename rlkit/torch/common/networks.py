@@ -23,20 +23,20 @@ def identity(x):
 
 class Mlp(PyTorchModule):
     def __init__(
-            self,
-            hidden_sizes,
-            output_size,
-            input_size,
-            init_w=3e-3,
-            hidden_activation=F.relu,
-            output_activation=identity,
-            hidden_init=ptu.fanin_init,
-            b_init_value=0.1,
-            layer_norm=False,
-            layer_norm_kwargs=None,
-            batch_norm=False,
-            # batch_norm_kwargs=None,
-            batch_norm_before_output_activation=False
+        self,
+        hidden_sizes,
+        output_size,
+        input_size,
+        init_w=3e-3,
+        hidden_activation=F.relu,
+        output_activation=identity,
+        hidden_init=ptu.fanin_init,
+        b_init_value=0.1,
+        layer_norm=False,
+        layer_norm_kwargs=None,
+        batch_norm=False,
+        # batch_norm_kwargs=None,
+        batch_norm_before_output_activation=False,
     ):
         self.save_init_params(locals())
         super().__init__()
@@ -68,7 +68,7 @@ class Mlp(PyTorchModule):
                 ln = LayerNorm(next_size)
                 self.__setattr__("layer_norm{}".format(i), ln)
                 self.layer_norms.append(ln)
-            
+
             if self.batch_norm:
                 bn = BatchNorm1d(next_size)
                 self.__setattr__("batch_norm{}".format(i), bn)
@@ -104,19 +104,19 @@ class Mlp(PyTorchModule):
 
 class ConvNet(PyTorchModule):
     def __init__(
-            self,
-            kernel_sizes,
-            num_channels,
-            strides,
-            paddings,
-            hidden_sizes,
-            output_size,
-            input_size,
-            init_w=3e-3,
-            hidden_activation=F.relu,
-            output_activation=identity,
-            hidden_init=ptu.fanin_init,
-            b_init_value=0.1,
+        self,
+        kernel_sizes,
+        num_channels,
+        strides,
+        paddings,
+        hidden_sizes,
+        output_size,
+        input_size,
+        init_w=3e-3,
+        hidden_activation=F.relu,
+        output_activation=identity,
+        hidden_init=ptu.fanin_init,
+        b_init_value=0.1,
     ):
         self.save_init_params(locals())
         super().__init__()
@@ -138,13 +138,11 @@ class ConvNet(PyTorchModule):
             conv.bias.data.fill_(b_init_value)
             self.convs.append(conv)
 
-            out_h = int(math.floor(
-                1 + (in_h + 2*p - k)/s
-            ))
+            out_h = int(math.floor(1 + (in_h + 2 * p - k) / s))
 
             in_c = c
             in_h = out_h
-        
+
         in_dim = in_c * in_h * in_h
         for h in hidden_sizes:
             fc = nn.Linear(in_dim, h)
@@ -190,12 +188,12 @@ class MlpPolicy(Mlp, Policy):
     """
 
     def __init__(
-            self,
-            hidden_sizes,
-            output_size,
-            input_size,
-            obs_normalizer: TorchFixedNormalizer = None,
-            **kwargs
+        self,
+        hidden_sizes,
+        output_size,
+        input_size,
+        obs_normalizer: TorchFixedNormalizer = None,
+        **kwargs
     ):
         self.save_init_params(locals())
         super().__init__(hidden_sizes, output_size, input_size, **kwargs)
@@ -218,6 +216,7 @@ class TanhMlpPolicy(MlpPolicy):
     """
     A helper class since most policies have a tanh output activation.
     """
+
     def __init__(self, *args, **kwargs):
         self.save_init_params(locals())
         super().__init__(*args, output_activation=torch.tanh, **kwargs)
@@ -225,14 +224,15 @@ class TanhMlpPolicy(MlpPolicy):
 
 
 class ObsPreprocessedQFunc(FlattenMlp):
-    '''
-        This is a weird thing and I didn't know what to call.
-        Basically I wanted this so that if you need to preprocess
-        your inputs somehow (attention, gating, etc.) with an external module
-        before passing to the policy you could do so.
-        Assumption is that you do not want to update the parameters of the preprocessing
-        module so its output is always detached.
-    '''
+    """
+    This is a weird thing and I didn't know what to call.
+    Basically I wanted this so that if you need to preprocess
+    your inputs somehow (attention, gating, etc.) with an external module
+    before passing to the policy you could do so.
+    Assumption is that you do not want to update the parameters of the preprocessing
+    module so its output is always detached.
+    """
+
     def __init__(self, preprocess_model, z_dim, *args, wrap_absorbing=False, **kwargs):
         self.save_init_params(locals())
         super().__init__(*args, **kwargs)
@@ -240,25 +240,22 @@ class ObsPreprocessedQFunc(FlattenMlp):
         self.preprocess_model_list = [preprocess_model]
         self.wrap_absorbing = wrap_absorbing
         self.z_dim = z_dim
-    
 
     @property
     def preprocess_model(self):
         # this is a hack so that it is not added as a submodule
         return self.preprocess_model_list[0]
 
-
     def preprocess_fn(self, obs_batch):
         mode = self.preprocess_model.training
         self.preprocess_model.eval()
         processed_obs_batch = self.preprocess_model(
-            obs_batch[:,:-self.z_dim],
+            obs_batch[:, : -self.z_dim],
             self.wrap_absorbing,
-            obs_batch[:,-self.z_dim:]
+            obs_batch[:, -self.z_dim :],
         ).detach()
         self.preprocess_model.train(mode)
         return processed_obs_batch
-    
 
     def forward(self, obs, actions):
         obs = self.preprocess_fn(obs).detach()
@@ -266,14 +263,15 @@ class ObsPreprocessedQFunc(FlattenMlp):
 
 
 class ObsPreprocessedVFunc(FlattenMlp):
-    '''
-        This is a weird thing and I didn't know what to call.
-        Basically I wanted this so that if you need to preprocess
-        your inputs somehow (attention, gating, etc.) with an external module
-        before passing to the policy you could do so.
-        Assumption is that you do not want to update the parameters of the preprocessing
-        module so its output is always detached.
-    '''
+    """
+    This is a weird thing and I didn't know what to call.
+    Basically I wanted this so that if you need to preprocess
+    your inputs somehow (attention, gating, etc.) with an external module
+    before passing to the policy you could do so.
+    Assumption is that you do not want to update the parameters of the preprocessing
+    module so its output is always detached.
+    """
+
     def __init__(self, preprocess_model, z_dim, *args, wrap_absorbing=False, **kwargs):
         self.save_init_params(locals())
         super().__init__(*args, **kwargs)
@@ -281,28 +279,23 @@ class ObsPreprocessedVFunc(FlattenMlp):
         self.preprocess_model_list = [preprocess_model]
         self.wrap_absorbing = wrap_absorbing
         self.z_dim = z_dim
-    
 
     @property
     def preprocess_model(self):
         # this is a hack so that it is not added as a submodule
         return self.preprocess_model_list[0]
 
-
     def preprocess_fn(self, obs_batch):
         mode = self.preprocess_model.training
         self.preprocess_model.eval()
         processed_obs_batch = self.preprocess_model(
-            obs_batch[:,:-self.z_dim],
+            obs_batch[:, : -self.z_dim],
             self.wrap_absorbing,
-            obs_batch[:,-self.z_dim:]
+            obs_batch[:, -self.z_dim :],
         ).detach()
         self.preprocess_model.train(mode)
         return processed_obs_batch
-    
 
     def forward(self, obs):
         obs = self.preprocess_fn(obs).detach()
         return super().forward(obs)
-
-

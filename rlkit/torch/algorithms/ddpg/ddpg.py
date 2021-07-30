@@ -20,32 +20,27 @@ class DDPG(Trainer):
     """
 
     def __init__(
-            self,
-            policy,
-            qf,
-
-            policy_lr=1e-4,
-            qf_lr=1e-3,
-            qf_weight_decay=0,
-            target_update_period=1000,
-            soft_target_tau=1e-2,
-            use_soft_update=False,
-            qf_criterion=None,
-
-            residual_gradient_weight=0,
-            epoch_discount_schedule=None,
-            eval_with_target_policy=False,
-            policy_pre_activation_weight=0.,
-            optimizer_class=optim.Adam,
-
-            obs_normalizer: TorchFixedNormalizer=None,
-            action_normalizer: TorchFixedNormalizer=None,
-            num_paths_for_normalization=0,
-
-            min_q_value=-np.inf,
-            max_q_value=np.inf,
-
-            **kwargs
+        self,
+        policy,
+        qf,
+        policy_lr=1e-4,
+        qf_lr=1e-3,
+        qf_weight_decay=0,
+        target_update_period=1000,
+        soft_target_tau=1e-2,
+        use_soft_update=False,
+        qf_criterion=None,
+        residual_gradient_weight=0,
+        epoch_discount_schedule=None,
+        eval_with_target_policy=False,
+        policy_pre_activation_weight=0.0,
+        optimizer_class=optim.Adam,
+        obs_normalizer: TorchFixedNormalizer = None,
+        action_normalizer: TorchFixedNormalizer = None,
+        num_paths_for_normalization=0,
+        min_q_value=-np.inf,
+        max_q_value=np.inf,
+        **kwargs
     ):
         """
 
@@ -84,7 +79,7 @@ class DDPG(Trainer):
         self.policy_pre_activation_weight = policy_pre_activation_weight
         self.qf_criterion = qf_criterion
         self.epoch_discount_schedule = epoch_discount_schedule
-        
+
         self.min_q_value = min_q_value
         self.max_q_value = max_q_value
 
@@ -101,38 +96,37 @@ class DDPG(Trainer):
 
         self.obs_normalizer = obs_normalizer
         self.action_normalizer = action_normalizer
-        self.num_paths_for_normalization=num_paths_for_normalization
+        self.num_paths_for_normalization = num_paths_for_normalization
 
         self._n_env_steps_total = 0
 
     def train_step(self, batch):
-        
-        rewards = batch['rewards']
-        terminals = batch['terminals']
-        obs = batch['observations']
-        actions = batch['actions']
-        next_obs = batch['next_observations']
+
+        rewards = batch["rewards"]
+        terminals = batch["terminals"]
+        obs = batch["observations"]
+        actions = batch["actions"]
+        next_obs = batch["next_observations"]
 
         """
         Policy operations.
         """
         if self.policy_pre_activation_weight > 0:
             policy_actions, pre_tanh_value = self.policy(
-                obs, return_preactivations=True,
+                obs,
+                return_preactivations=True,
             )
-            pre_activation_policy_loss = (
-                (pre_tanh_value**2).sum(dim=1).mean()
-            )
+            pre_activation_policy_loss = (pre_tanh_value ** 2).sum(dim=1).mean()
             q_output = self.qf(obs, policy_actions)
-            raw_policy_loss = - q_output.mean()
+            raw_policy_loss = -q_output.mean()
             policy_loss = (
-                raw_policy_loss +
-                pre_activation_policy_loss * self.policy_pre_activation_weight
+                raw_policy_loss
+                + pre_activation_policy_loss * self.policy_pre_activation_weight
             )
         else:
             policy_actions = self.policy(obs)
             q_output = self.qf(obs, policy_actions)
-            raw_policy_loss = policy_loss = - q_output.mean()
+            raw_policy_loss = policy_loss = -q_output.mean()
 
         """
         Critic operations.
@@ -144,7 +138,7 @@ class DDPG(Trainer):
             next_obs,
             next_actions,
         )
-        q_target = rewards + (1. - terminals) * self.discount * target_q_values
+        q_target = rewards + (1.0 - terminals) * self.discount * target_q_values
         q_target = q_target.detach()
         q_target = torch.clamp(q_target, self.min_q_value, self.max_q_value)
         q_pred = self.qf(obs, actions)
@@ -159,11 +153,10 @@ class DDPG(Trainer):
                 residual_next_actions,
             )
             residual_q_target = (
-                rewards
-                + (1. - terminals) * self.discount * residual_target_q_values
+                rewards + (1.0 - terminals) * self.discount * residual_target_q_values
             )
             residual_bellman_errors = (q_pred - residual_q_target) ** 2
-            
+
             residual_qf_loss = residual_bellman_errors.mean()
             raw_qf_loss = (
                 self.residual_gradient_weight * residual_qf_loss
@@ -172,8 +165,7 @@ class DDPG(Trainer):
 
         if self.qf_weight_decay > 0:
             reg_loss = self.qf_weight_decay * sum(
-                torch.sum(param ** 2)
-                for param in self.qf.regularizable_parameters()
+                torch.sum(param ** 2) for param in self.qf.regularizable_parameters()
             )
             qf_loss = raw_qf_loss + reg_loss
         else:
@@ -199,33 +191,39 @@ class DDPG(Trainer):
             This way, these statistics are only computed for one batch.
             """
             self.eval_statistics = OrderedDict()
-            self.eval_statistics['QF Loss'] = np.mean(ptu.get_numpy(qf_loss))
-            self.eval_statistics['Policy Loss'] = np.mean(ptu.get_numpy(
-                policy_loss
-            ))
-            self.eval_statistics['Raw Policy Loss'] = np.mean(ptu.get_numpy(
-                raw_policy_loss
-            ))
-            self.eval_statistics['Preactivation Policy Loss'] = (
-                self.eval_statistics['Policy Loss'] -
-                self.eval_statistics['Raw Policy Loss']
+            self.eval_statistics["QF Loss"] = np.mean(ptu.get_numpy(qf_loss))
+            self.eval_statistics["Policy Loss"] = np.mean(ptu.get_numpy(policy_loss))
+            self.eval_statistics["Raw Policy Loss"] = np.mean(
+                ptu.get_numpy(raw_policy_loss)
             )
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Q Predictions',
-                ptu.get_numpy(q_pred),
-            ))
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Q Targets',
-                ptu.get_numpy(q_target),
-            ))
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Bellman Errors',
-                ptu.get_numpy(bellman_errors),
-            ))
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Policy Action',
-                ptu.get_numpy(policy_actions),
-            ))
+            self.eval_statistics["Preactivation Policy Loss"] = (
+                self.eval_statistics["Policy Loss"]
+                - self.eval_statistics["Raw Policy Loss"]
+            )
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "Q Predictions",
+                    ptu.get_numpy(q_pred),
+                )
+            )
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "Q Targets",
+                    ptu.get_numpy(q_target),
+                )
+            )
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "Bellman Errors",
+                    ptu.get_numpy(bellman_errors),
+                )
+            )
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "Policy Action",
+                    ptu.get_numpy(policy_actions),
+                )
+            )
         self._n_env_steps_total += 1
 
     def _update_target_networks(self):
@@ -258,9 +256,8 @@ class DDPG(Trainer):
         ]
 
     def pretrain(self):
-        if (
-            self.num_paths_for_normalization == 0
-            or (self.obs_normalizer is None and self.action_normalizer is None)
+        if self.num_paths_for_normalization == 0 or (
+            self.obs_normalizer is None and self.action_normalizer is None
         ):
             return
 
@@ -269,9 +266,7 @@ class DDPG(Trainer):
         while len(pretrain_paths) < self.num_paths_for_normalization:
             path = rollout(self.env, random_policy, self.max_path_length)
             pretrain_paths.append(path)
-        ob_mean, ob_std, ac_mean, ac_std = (
-            compute_normalization(pretrain_paths)
-        )
+        ob_mean, ob_std, ac_mean, ac_std = compute_normalization(pretrain_paths)
         if self.obs_normalizer is not None:
             self.obs_normalizer.set_mean(ob_mean)
             self.obs_normalizer.set_std(ob_std)

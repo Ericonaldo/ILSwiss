@@ -21,22 +21,17 @@ class MakeDeterministic(Policy):
     def __init__(self, stochastic_policy):
         self.stochastic_policy = stochastic_policy
 
-
     def get_action(self, observation):
-        return self.stochastic_policy.get_action(observation,
-                                                 deterministic=True)
+        return self.stochastic_policy.get_action(observation, deterministic=True)
 
     def get_actions(self, observations):
-        return self.stochastic_policy.get_actions(observations,
-                                                  deterministic=True)
-    
+        return self.stochastic_policy.get_actions(observations, deterministic=True)
+
     def train(self, mode):
         pass
-    
 
     def set_num_steps_total(self, num):
         pass
-    
 
     def to(self, device):
         self.stochastic_policy.to(device)
@@ -51,14 +46,8 @@ class DiscretePolicy(Mlp, ExplorationPolicy):
     action, log_prob = policy(obs, return_log_prob=True)
     ```
     """
-    def __init__(
-            self,
-            hidden_sizes,
-            obs_dim,
-            action_dim,
-            init_w=1e-3,
-            **kwargs
-    ):
+
+    def __init__(self, hidden_sizes, obs_dim, action_dim, init_w=1e-3, **kwargs):
         self.save_init_params(locals())
         super().__init__(
             hidden_sizes,
@@ -77,10 +66,10 @@ class DiscretePolicy(Mlp, ExplorationPolicy):
         return self.eval_np(obs_np)[0]
 
     def forward(
-            self,
-            obs,
-            deterministic=False,
-            return_log_prob=False,
+        self,
+        obs,
+        deterministic=False,
+        return_log_prob=False,
     ):
         log_probs, pre_act = super().forward(obs, return_preactivations=True)
 
@@ -110,20 +99,13 @@ class DiscretePolicy(Mlp, ExplorationPolicy):
             # print(log_prob)
 
             return (idx, log_prob)
-    
+
     def get_log_pis(self, obs):
         return super().forward(obs)
 
 
 class MlpPolicy(Mlp, ExplorationPolicy):
-    def __init__(
-        self,
-        hidden_sizes,
-        obs_dim,
-        action_dim,
-        init_w=1e-3,
-        **kwargs
-    ):
+    def __init__(self, hidden_sizes, obs_dim, action_dim, init_w=1e-3, **kwargs):
         self.save_init_params(locals())
         super().__init__(
             hidden_sizes,
@@ -132,12 +114,12 @@ class MlpPolicy(Mlp, ExplorationPolicy):
             init_w=init_w,
             **kwargs
         )
-    
+
     def get_action(self, obs_np, deterministic=False):
-        '''
+        """
         deterministic=False makes no diff, just doing this for
         consistency in interface for now
-        '''
+        """
         actions = self.get_actions(obs_np[None], deterministic=deterministic)
         actions = actions[None]
         return actions[0, :], {}
@@ -155,7 +137,7 @@ class MlpGaussianNoisePolicy(Mlp, ExplorationPolicy):
         init_w=1e-3,
         policy_noise=0.1,
         policy_noise_clip=0.5,
-        max_act = 1.0,
+        max_act=1.0,
         **kwargs
     ):
         self.save_init_params(locals())
@@ -169,12 +151,12 @@ class MlpGaussianNoisePolicy(Mlp, ExplorationPolicy):
         self.noise = policy_noise
         self.noise_clip = policy_noise_clip
         self.max_act = max_act
-    
+
     def get_action(self, obs_np, deterministic=False):
-        '''
+        """
         deterministic=False makes no diff, just doing this for
         consistency in interface for now
-        '''
+        """
         actions = self.get_actions(obs_np[None], deterministic=deterministic)
         actions = actions[None]
         return actions[0, :], {}
@@ -182,10 +164,7 @@ class MlpGaussianNoisePolicy(Mlp, ExplorationPolicy):
     def get_actions(self, obs_np, deterministic=False):
         return self.eval_np(obs_np, deterministic=deterministic)[0]
 
-    def forward(
-            self,
-            obs,
-            deterministic=False):
+    def forward(self, obs, deterministic=False):
         h = obs
         for i, fc in enumerate(self.fcs):
             h = fc(h)
@@ -204,16 +183,10 @@ class MlpGaussianNoisePolicy(Mlp, ExplorationPolicy):
             noise = self.noise * torch.normal(
                 torch.zeros_like(action),
             )
-            noise = torch.clamp(
-                noise,
-                -self.noise_clip,
-                self.noise_clip
-            )
+            noise = torch.clamp(noise, -self.noise_clip, self.noise_clip)
             action += noise
-        
+
         return (action, preactivation)
-        
-        
 
 
 class ReparamTanhMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
@@ -234,15 +207,16 @@ class ReparamTanhMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
     If return_log_prob is False (default), log_prob = None
         This is done because computing the log_prob can be a bit expensive.
     """
+
     def __init__(
-            self,
-            hidden_sizes,
-            obs_dim,
-            action_dim,
-            std=None,
-            init_w=1e-3,
-            max_act = 1.0,
-            **kwargs
+        self,
+        hidden_sizes,
+        obs_dim,
+        action_dim,
+        std=None,
+        init_w=1e-3,
+        max_act=1.0,
+        **kwargs
     ):
         self.save_init_params(locals())
         super().__init__(
@@ -274,22 +248,18 @@ class ReparamTanhMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
         return self.eval_np(obs_np, deterministic=deterministic)[0]
 
     def forward(
-            self,
-            obs,
-            deterministic=False,
-            return_log_prob=False,
-            return_tanh_normal=False
+        self, obs, deterministic=False, return_log_prob=False, return_tanh_normal=False
     ):
         """
         :param obs: Observation
         :param deterministic: If True, do not sample
         :param return_log_prob: If True, return a sample and its log probability
         """
-        
+
         h = obs
         for i, fc in enumerate(self.fcs):
             h = self.hidden_activation(fc(h))
-        
+
         # print(h)
         mean = self.last_fc(h)
         # print(mean)
@@ -313,25 +283,33 @@ class ReparamTanhMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
             # print(mean)
             # print(log_std)
             if return_log_prob:
-                action, pre_tanh_value = tanh_normal.sample(
-                    return_pretanh_value=True
-                )
-                log_prob = tanh_normal.log_prob(
-                    action,
-                    pre_tanh_value=pre_tanh_value
-                )
+                action, pre_tanh_value = tanh_normal.sample(return_pretanh_value=True)
+                log_prob = tanh_normal.log_prob(action, pre_tanh_value=pre_tanh_value)
             else:
                 action = tanh_normal.sample()
 
         # doing it like this for now for backwards compatibility
         if return_tanh_normal:
             return (
-                action, mean, log_std, log_prob, expected_log_prob, std,
-                mean_action_log_prob, pre_tanh_value, tanh_normal,
+                action,
+                mean,
+                log_std,
+                log_prob,
+                expected_log_prob,
+                std,
+                mean_action_log_prob,
+                pre_tanh_value,
+                tanh_normal,
             )
         return (
-            action, mean, log_std, log_prob, expected_log_prob, std,
-            mean_action_log_prob, pre_tanh_value,
+            action,
+            mean,
+            log_std,
+            log_prob,
+            expected_log_prob,
+            std,
+            mean_action_log_prob,
+            pre_tanh_value,
         )
 
     def get_log_prob(self, obs, acts, return_normal_params=False):
@@ -346,7 +324,7 @@ class ReparamTanhMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
         else:
             std = self.std
             log_std = self.log_std
-        
+
         tanh_normal = ReparamTanhMultivariateNormal(mean, log_std)
         log_prob = tanh_normal.log_prob(acts)
 
@@ -360,16 +338,9 @@ class ReparamTanhMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
         return log_prob
 
 
-
 class ReparamMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
     def __init__(
-            self,
-            hidden_sizes,
-            obs_dim,
-            action_dim,
-            std=None,
-            init_w=1e-3,
-            **kwargs
+        self, hidden_sizes, obs_dim, action_dim, std=None, init_w=1e-3, **kwargs
     ):
         self.save_init_params(locals())
         super().__init__(
@@ -390,7 +361,7 @@ class ReparamMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
             self.last_fc_log_std.bias.data.uniform_(-init_w, init_w)
         else:
             assert LOG_SIG_MIN <= np.log(std) <= LOG_SIG_MAX
-            std = std*np.ones((1,action_dim))
+            std = std * np.ones((1, action_dim))
             self.log_std = ptu.from_numpy(np.log(std), requires_grad=False)
 
     def get_action(self, obs_np, deterministic=False):
@@ -401,11 +372,7 @@ class ReparamMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
         return self.eval_np(obs_np, deterministic=deterministic)[0]
 
     def forward(
-            self,
-            obs,
-            deterministic=False,
-            return_log_prob=False,
-            return_normal=False
+        self, obs, deterministic=False, return_log_prob=False, return_normal=False
     ):
         """
         :param obs: Observation
@@ -426,10 +393,10 @@ class ReparamMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
         # print(mean)
         if self.std is None:
             log_std = self.last_fc_log_std(h)
-            
+
             # log_std = torch.clamp(log_std, LOG_SIG_MIN, LOG_SIG_MAX)
             log_std = torch.clamp(log_std, LOG_SIG_MIN, np.log(0.2))
-            
+
             std = torch.exp(log_std)
 
         else:
@@ -450,12 +417,23 @@ class ReparamMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
         # I'm doing it like this for now for backwards compatibility, sorry!
         if return_normal:
             return (
-                action, mean, log_std, log_prob, expected_log_prob, std,
-                mean_action_log_prob, normal
+                action,
+                mean,
+                log_std,
+                log_prob,
+                expected_log_prob,
+                std,
+                mean_action_log_prob,
+                normal,
             )
         return (
-            action, mean, log_std, log_prob, expected_log_prob, std,
-            mean_action_log_prob
+            action,
+            mean,
+            log_std,
+            log_prob,
+            expected_log_prob,
+            std,
+            mean_action_log_prob,
         )
 
     def get_log_prob(self, obs, acts, return_normal_params=False):
@@ -470,7 +448,7 @@ class ReparamMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
         else:
             std = self.std
             log_std = self.log_std
-        
+
         normal = ReparamMultivariateNormalDiag(mean, log_std)
         log_prob = normal.log_prob(acts)
 
@@ -479,75 +457,70 @@ class ReparamMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
         return log_prob
 
 
-
-class AntRandGoalCustomReparamTanhMultivariateGaussianPolicy(ReparamTanhMultivariateGaussianPolicy):
+class AntRandGoalCustomReparamTanhMultivariateGaussianPolicy(
+    ReparamTanhMultivariateGaussianPolicy
+):
     """
     Custom for Ant Rand Goal
     The only difference is that it linearly embeds the goal into a higher dimension
     """
+
     def __init__(
-            self,
-            goal_dim,
-            goal_embed_dim,
-            hidden_sizes,
-            obs_dim,
-            action_dim,
-            std=None,
-            init_w=1e-3,
-            **kwargs
+        self,
+        goal_dim,
+        goal_embed_dim,
+        hidden_sizes,
+        obs_dim,
+        action_dim,
+        std=None,
+        init_w=1e-3,
+        **kwargs
     ):
         self.save_init_params(locals())
         super().__init__(
-            hidden_sizes,
-            obs_dim + goal_embed_dim,
-            action_dim,
-            init_w=init_w,
-            **kwargs
+            hidden_sizes, obs_dim + goal_embed_dim, action_dim, init_w=init_w, **kwargs
         )
 
         self.goal_embed_fc = nn.Linear(goal_dim, goal_embed_dim)
         self.goal_dim = goal_dim
-    
+
     def forward(
-        self,
-        obs,
-        deterministic=False,
-        return_log_prob=False,
-        return_tanh_normal=False
+        self, obs, deterministic=False, return_log_prob=False, return_tanh_normal=False
     ):
         # obs will actuall be concat of [obs, goal]
-        goal = obs[:,-self.goal_dim:]
+        goal = obs[:, -self.goal_dim :]
         goal_embed = self.goal_embed_fc(goal)
-        obs = torch.cat([obs[:,:-self.goal_dim], goal_embed], dim=-1)
+        obs = torch.cat([obs[:, : -self.goal_dim], goal_embed], dim=-1)
         return super().forward(
             obs,
             deterministic=deterministic,
             return_log_prob=return_log_prob,
-            return_tanh_normal=return_tanh_normal
+            return_tanh_normal=return_tanh_normal,
         )
 
 
-class ObsPreprocessedReparamTanhMultivariateGaussianPolicy(ReparamTanhMultivariateGaussianPolicy):
-    '''
-        This is a weird thing and I didn't know what to call.
-        Basically I wanted this so that if you need to preprocess
-        your inputs somehow (attention, gating, etc.) with an external module
-        before passing to the policy you could do so.
-        Assumption is that you do not want to update the parameters of the preprocessing
-        module so its output is always detached.
-    '''
+class ObsPreprocessedReparamTanhMultivariateGaussianPolicy(
+    ReparamTanhMultivariateGaussianPolicy
+):
+    """
+    This is a weird thing and I didn't know what to call.
+    Basically I wanted this so that if you need to preprocess
+    your inputs somehow (attention, gating, etc.) with an external module
+    before passing to the policy you could do so.
+    Assumption is that you do not want to update the parameters of the preprocessing
+    module so its output is always detached.
+    """
+
     def __init__(self, preprocess_model, *args, **kwargs):
         self.save_init_params(locals())
         super().__init__(*args, **kwargs)
         # this is a hack so that it is not added as a submodule
         self.preprocess_model_list = [preprocess_model]
-    
 
     @property
     def preprocess_model(self):
         # this is a hack so that it is not added as a submodule
         return self.preprocess_model_list[0]
-
 
     def preprocess_fn(self, obs_batch):
         mode = self.preprocess_model.training
@@ -555,39 +528,38 @@ class ObsPreprocessedReparamTanhMultivariateGaussianPolicy(ReparamTanhMultivaria
         processed_obs_batch = self.preprocess_model(obs_batch, False).detach()
         self.preprocess_model.train(mode)
         return processed_obs_batch
-    
 
     def forward(
-        self,
-        obs,
-        deterministic=False,
-        return_log_prob=False,
-        return_tanh_normal=False
+        self, obs, deterministic=False, return_log_prob=False, return_tanh_normal=False
     ):
         obs = self.preprocess_fn(obs).detach()
         return super().forward(
             obs,
             deterministic=deterministic,
             return_log_prob=return_log_prob,
-            return_tanh_normal=return_tanh_normal
+            return_tanh_normal=return_tanh_normal,
         )
-
 
     def get_log_prob(self, obs, acts):
         obs = self.preprocess_fn(obs).detach()
         return super().get_log_prob(obs, acts)
 
 
-class WithZObsPreprocessedReparamTanhMultivariateGaussianPolicy(ReparamTanhMultivariateGaussianPolicy):
-    '''
-        This is a weird thing and I didn't know what to call.
-        Basically I wanted this so that if you need to preprocess
-        your inputs somehow (attention, gating, etc.) with an external module
-        before passing to the policy you could do so.
-        Assumption is that you do not want to update the parameters of the preprocessing
-        module so its output is always detached.
-    '''
-    def __init__(self, preprocess_model, z_dim, *args, train_preprocess_model=False, **kwargs):
+class WithZObsPreprocessedReparamTanhMultivariateGaussianPolicy(
+    ReparamTanhMultivariateGaussianPolicy
+):
+    """
+    This is a weird thing and I didn't know what to call.
+    Basically I wanted this so that if you need to preprocess
+    your inputs somehow (attention, gating, etc.) with an external module
+    before passing to the policy you could do so.
+    Assumption is that you do not want to update the parameters of the preprocessing
+    module so its output is always detached.
+    """
+
+    def __init__(
+        self, preprocess_model, z_dim, *args, train_preprocess_model=False, **kwargs
+    ):
         self.save_init_params(locals())
         super().__init__(*args, **kwargs)
         # this is a hack so that it is not added as a submodule
@@ -598,7 +570,6 @@ class WithZObsPreprocessedReparamTanhMultivariateGaussianPolicy(ReparamTanhMulti
             self.preprocess_model_list = [preprocess_model]
         self.z_dim = z_dim
         self.train_preprocess_model = train_preprocess_model
-    
 
     @property
     def preprocess_model(self):
@@ -608,32 +579,22 @@ class WithZObsPreprocessedReparamTanhMultivariateGaussianPolicy(ReparamTanhMulti
             # this is a hack so that it is not added as a submodule
             return self.preprocess_model_list[0]
 
-
     def preprocess_fn(self, obs_batch):
         if self.train_preprocess_model:
             processed_obs_batch = self.preprocess_model(
-                obs_batch[:,:-self.z_dim],
-                False,
-                obs_batch[:,-self.z_dim:]
+                obs_batch[:, : -self.z_dim], False, obs_batch[:, -self.z_dim :]
             )
         else:
             mode = self.preprocess_model.training
             self.preprocess_model.eval()
             processed_obs_batch = self.preprocess_model(
-                obs_batch[:,:-self.z_dim],
-                False,
-                obs_batch[:,-self.z_dim:]
+                obs_batch[:, : -self.z_dim], False, obs_batch[:, -self.z_dim :]
             ).detach()
             self.preprocess_model.train(mode)
         return processed_obs_batch
-    
 
     def forward(
-        self,
-        obs,
-        deterministic=False,
-        return_log_prob=False,
-        return_tanh_normal=False
+        self, obs, deterministic=False, return_log_prob=False, return_tanh_normal=False
     ):
         if self.train_preprocess_model:
             obs = self.preprocess_fn(obs)
@@ -643,9 +604,8 @@ class WithZObsPreprocessedReparamTanhMultivariateGaussianPolicy(ReparamTanhMulti
             obs,
             deterministic=deterministic,
             return_log_prob=return_log_prob,
-            return_tanh_normal=return_tanh_normal
+            return_tanh_normal=return_tanh_normal,
         )
-
 
     def get_log_prob(self, obs, acts):
         if self.train_preprocess_model:
@@ -656,13 +616,10 @@ class WithZObsPreprocessedReparamTanhMultivariateGaussianPolicy(ReparamTanhMulti
 
 
 class BaselineContextualPolicy(PyTorchModule):
-    def __init__(
-        self,
-        action_dim
-    ):
+    def __init__(self, action_dim):
         self.save_init_params(locals())
         super().__init__()
-        
+
         # # YUKE ARCH : 17x17 out
         self.conv_part = nn.Sequential(
             nn.Conv2d(6, 32, 8, stride=4, padding=4),
@@ -717,11 +674,10 @@ class BaselineContextualPolicy(PyTorchModule):
         #     nn.Linear(256, action_dim),
         # )
         print(self)
-    
 
     def forward(self, obs):
-        image = obs['image']
-        context_image = obs['z']
+        image = obs["image"]
+        context_image = obs["z"]
 
         policy_input = torch.cat([image, context_image], dim=1)
         conv_out = self.conv_part(policy_input)
@@ -737,7 +693,9 @@ class CondBaselineContextualPolicy(ExplorationPolicy):
         self.z = z
 
     def get_action(self, obs_np):
-        new_dict = {k: ptu.from_numpy(obs_np[k][None], requires_grad=False) for k in obs_np}
-        new_dict['z'] = self.z
+        new_dict = {
+            k: ptu.from_numpy(obs_np[k][None], requires_grad=False) for k in obs_np
+        }
+        new_dict["z"] = self.z
         action = ptu.get_numpy(self.policy.forward(new_dict)[0])
         return action, {}

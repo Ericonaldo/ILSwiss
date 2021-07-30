@@ -17,13 +17,13 @@ class OUStrategy(RawExplorationStrategy, Serializable):
     """
 
     def __init__(
-            self,
-            action_space,
-            mu=0,
-            theta=0.15,
-            max_sigma=0.3,
-            min_sigma=0.3,
-            decay_period=100000,
+        self,
+        action_space,
+        mu=0,
+        theta=0.15,
+        max_sigma=0.3,
+        min_sigma=0.3,
+        decay_period=100000,
     ):
         assert len(action_space.shape) == 1
         Serializable.quick_init(self, locals())
@@ -54,16 +54,15 @@ class OUStrategy(RawExplorationStrategy, Serializable):
 
     def get_action_from_raw_action(self, action, t=0, **kwargs):
         ou_state = self.evolve_state()
-        self.sigma = (
-            self._max_sigma
-            - (self._max_sigma - self._min_sigma)
-            * min(1.0, t * 1.0 / self._decay_period)
+        self.sigma = self._max_sigma - (self._max_sigma - self._min_sigma) * min(
+            1.0, t * 1.0 / self._decay_period
         )
         return np.clip(action + ou_state, self.low, self.high)
 
     def get_actions_from_raw_actions(self, actions, t=0, **kwargs):
         noise = (
-            self.state + self.theta * (self.mu - self.state)
+            self.state
+            + self.theta * (self.mu - self.state)
             + self.sigma * nr.randn(*actions.shape)
         )
         return np.clip(actions + noise, self.low, self.high)
