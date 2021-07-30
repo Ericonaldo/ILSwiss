@@ -149,7 +149,6 @@ def get_log_tboard():
     return _log_tboard
 
 def record_tboard(key, x, y, **kwargs) -> None:
-    print('record_tboard')
     _summary_writer.add_scalar(key, y, global_step=x)
 
 def log(s, with_prefix=True, with_timestamp=True):
