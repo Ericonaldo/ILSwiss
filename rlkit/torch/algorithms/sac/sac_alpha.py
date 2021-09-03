@@ -16,10 +16,8 @@ class SoftActorCritic(Trainer):
     """
     version that:
         - uses reparameterization trick
-        - has two Q functions and a V function
-    TODO: Recently in rlkit there is a version which only uses two Q functions
-    as well as an implementation of entropy tuning but I have not implemented
-    those
+        - has two Q functions
+        - has auto-tuned alpha
     """
 
     def __init__(
