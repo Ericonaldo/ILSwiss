@@ -1,4 +1,5 @@
 import torch
+from numbers import Number
 from numpy import log as np_log
 from numpy import pi
 
@@ -41,11 +42,12 @@ class ReparamMultivariateNormalDiag:
         return eps * expanded_sig + expanded_mean
 
     def log_prob(self, value):
-        assert value.dim() == 2, "Where is the batch dimension?"
+        assert value.dim() >= 2, "Where is the batch dimension?"
+
         log_prob = -0.5 * torch.sum(
-            (self.mean - value) ** 2 / self.cov, 1, keepdim=True
+            (self.mean - value) ** 2 / self.cov, -1, keepdim=True
         )
-        rest = torch.sum(self.log_sig_diag, 1, keepdim=True) + 0.5 * log_2pi
+        rest = torch.sum(self.log_sig_diag, -1, keepdim=True) + 0.5 * log_2pi
         log_prob -= rest
         return log_prob
 
@@ -80,7 +82,7 @@ class ReparamTanhMultivariateNormal:
         if pre_tanh_value is None:
             # assert False, 'Not handling this'
             # pre_tanh_value = torch.log(
-            #     (1+value) / (1-value)
+            #     (1 + value) / (1 - value)
             # ) / 2
             pre_tanh_value = 0.5 * (
                 torch.log(1.0 + value + self.epsilon)
@@ -89,7 +91,7 @@ class ReparamTanhMultivariateNormal:
         normal_log_prob = self.normal.log_prob(pre_tanh_value)
         # print(torch.max(normal_log_prob))
         jacobi_term = torch.sum(
-            torch.log(1 - value ** 2 + self.epsilon), 1, keepdim=True
+            torch.log(1 - value ** 2 + self.epsilon), -1, keepdim=True
         )
         # print(torch.min(jacobi_term))
         log_prob = normal_log_prob - jacobi_term

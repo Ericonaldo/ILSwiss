@@ -47,8 +47,10 @@ constants:
     
 
   env_specs:
+    env_creator: "mujoco"
     env_name: 'humanoid'
     env_kwargs: {}
-    env_num: 5
+    training_env_num: 5
+    eval_env_num: 5
     eval_env_seed: 78236
     training_env_seed: 24495

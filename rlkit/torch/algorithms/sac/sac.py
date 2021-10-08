@@ -2,10 +2,7 @@ from collections import OrderedDict
 
 import numpy as np
 import torch
-from torch import nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
-import itertools
 
 import rlkit.torch.utils.pytorch_util as ptu
 from rlkit.core.trainer import Trainer
@@ -99,7 +96,7 @@ class SoftActorCritic(Trainer):
         )  # do not need grad || it's the shared part of two calculation
         q_target = (
             rewards + (1.0 - terminals) * self.discount * target_v_values
-        )  ## original implementation has detach
+        )  # original implementation has detach
         q_target = q_target.detach()
         qf1_loss = 0.5 * torch.mean((q1_pred - q_target) ** 2)
         qf2_loss = 0.5 * torch.mean((q2_pred - q_target) ** 2)
@@ -125,7 +122,7 @@ class SoftActorCritic(Trainer):
         # in this part, we only need new_actions and log_pi with no grad
         new_actions, policy_mean, policy_log_std, log_pi = policy_outputs[:4]
         q1_new_acts = self.qf1(obs, new_actions)
-        q2_new_acts = self.qf2(obs, new_actions)  ## error
+        q2_new_acts = self.qf2(obs, new_actions)  # error
         q_new_actions = torch.min(q1_new_acts, q2_new_acts)
         v_target = q_new_actions - self.alpha * log_pi
         v_target = v_target.detach()
@@ -151,11 +148,11 @@ class SoftActorCritic(Trainer):
         #     p.requires_grad = True
         new_actions, policy_mean, policy_log_std, log_pi = policy_outputs[:4]
         q1_new_acts = self.qf1(obs, new_actions)
-        q2_new_acts = self.qf2(obs, new_actions)  ## error
+        q2_new_acts = self.qf2(obs, new_actions)  # error
         q_new_actions = torch.min(q1_new_acts, q2_new_acts)
 
         self.policy_optimizer.zero_grad()
-        policy_loss = torch.mean(self.alpha * log_pi - q_new_actions)  ##
+        policy_loss = torch.mean(self.alpha * log_pi - q_new_actions)
         mean_reg_loss = self.policy_mean_reg_weight * (policy_mean ** 2).mean()
         std_reg_loss = self.policy_std_reg_weight * (policy_log_std ** 2).mean()
         policy_reg_loss = mean_reg_loss + std_reg_loss

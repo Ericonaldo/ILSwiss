@@ -5,7 +5,9 @@ The implementation of the vecenv is based on [tianshou](https://github.com/thu-m
 import gym
 from gym import Env
 import numpy as np
-from typing import Any, List, Tuple, Optional, Union, Callable
+from typing import Any, List, Tuple, Optional, Union, Callable, Dict
+
+from rlkit.core import list_dict_to_dict_list
 from rlkit.envs.worker import EnvWorker, DummyEnvWorker, SubprocEnvWorker
 from rlkit.data_management.normalizer import RunningMeanStd
 
@@ -67,7 +69,7 @@ class BaseVectorEnv(Env):
         wait_num: Optional[int] = None,
         timeout: Optional[float] = None,
         norm_obs: bool = False,
-        obs_rms: Optional[RunningMeanStd] = None,
+        obs_rms_n: Optional[Dict[str, RunningMeanStd]] = None,
         update_obs_rms: bool = True,
     ) -> None:
         self._env_fns = env_fns
@@ -77,6 +79,8 @@ class BaseVectorEnv(Env):
         self.worker_class = type(self.workers[0])
         assert issubclass(self.worker_class, EnvWorker)
         assert all([isinstance(w, self.worker_class) for w in self.workers])
+        self.agent_ids = self.workers[0].agent_ids
+        self.n_agents = self.workers[0].n_agents
 
         self.env_num = len(env_fns)
         self.wait_num = wait_num or len(env_fns)
@@ -101,7 +105,12 @@ class BaseVectorEnv(Env):
         # initialize observation running mean/std
         self.norm_obs = norm_obs
         self.update_obs_rms = update_obs_rms
-        self.obs_rms = RunningMeanStd() if obs_rms is None and norm_obs else obs_rms
+        # by default, use distinct rms for different agents
+        self.obs_rms_n = (
+            dict(zip(self.agent_ids, [RunningMeanStd() for _ in range(self.n_agents)]))
+            if obs_rms_n is None and norm_obs
+            else obs_rms_n
+        )
         self.__eps = np.finfo(np.float32).eps.item()
 
     def _assert_is_not_closed(self) -> None:
@@ -155,7 +164,7 @@ class BaseVectorEnv(Env):
 
     def reset(
         self, id: Optional[Union[int, List[int], np.ndarray]] = None
-    ) -> np.ndarray:
+    ) -> Dict[str, np.ndarray]:
         """Reset the state of some envs and return initial observations.
         If id is None, reset the state of all the environments and return
         initial observations, otherwise reset the specific environments with
@@ -165,18 +174,31 @@ class BaseVectorEnv(Env):
         id = self._wrap_id(id)
         if self.is_async:
             self._assert_id(id)
-        obs_list = [self.workers[i].reset() for i in id]
-        try:
-            obs = np.stack(obs_list)
-        except ValueError:  # different len(obs)
-            obs = np.array(obs_list, dtype=object)
-        if self.obs_rms and self.update_obs_rms:
-            self.obs_rms.update(obs)
-        return self.normalize_obs(obs)
+        obs_list = [self.workers[i].reset() for i in id]  # list of dict
+        obs_dict = list_dict_to_dict_list(obs_list)  # dict of list
+        for a_id in obs_dict.keys():
+            try:
+                obs_dict[a_id] = np.stack(obs_dict[a_id])
+            except ValueError:  # different len(obs)
+                obs_dict[a_id] = np.array(obs_dict[a_id], dtype=object)
+            if self.obs_rms_n and self.update_obs_rms:
+                self.obs_rms_n[a_id].update(obs_dict[a_id])
+        # in case different agents share the same noramlizer, one should normlize obs
+        # after all normalizers are updated.
+        for a_id in obs_dict.keys():
+            obs_dict[a_id] = self.normalize_obs(obs_dict[a_id], a_id)
+        return dict(obs_dict)
 
     def step(
-        self, action: np.ndarray, id: Optional[Union[int, List[int], np.ndarray]] = None
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        self,
+        action_n: Dict[str, np.ndarray],
+        id: Optional[Union[int, List[int], np.ndarray]] = None,
+    ) -> Tuple[
+        Dict[str, np.ndarray],
+        Dict[str, np.ndarray],
+        Dict[str, np.ndarray],
+        Dict[str, np.ndarray],
+    ]:
         """Run one timestep of some environments' dynamics.
         If id is None, run one timestep of all the environments’ dynamics;
         otherwise run one timestep for some environments with given id, either
@@ -203,22 +225,30 @@ class BaseVectorEnv(Env):
         self._assert_is_not_closed()
         id = self._wrap_id(id)
         if not self.is_async:
-            assert len(action) == len(id)
+            for action in action_n.values():
+                assert len(action) == len(id)
             for i, j in enumerate(id):
-                self.workers[j].send_action(action[i])
+                # self.workers[j].send_action(action[i])
+                self.workers[j].send_action(
+                    {_agent: action[i] for _agent, action in action_n.items()}
+                )
             result = []
             for j in id:
                 obs, rew, done, info = self.workers[j].get_result()
-                info["env_id"] = j
+                for a_id in self.agent_ids:
+                    info[a_id]["env_id"] = j
                 result.append((obs, rew, done, info))
         else:
-            if action is not None:
+            if action_n is not None:
                 self._assert_id(id)
-                assert len(action) == len(id)
-                for i, (act, env_id) in enumerate(zip(action, id)):
-                    self.workers[env_id].send_action(act)
-                    self.waiting_conn.append(self.workers[env_id])
-                    self.waiting_id.append(env_id)
+                for action in action_n.values():
+                    assert len(action) == len(id)
+                for i, j in enumerate(id):
+                    self.workers[j].send_action(
+                        {_agent: action[i] for _agent, action in action_n.items()}
+                    )
+                    self.waiting_conn.append(self.workers[j])
+                    self.waiting_id.append(j)
                 self.ready_id = [x for x in self.ready_id if x not in id]
             ready_conns: List[EnvWorker] = []
             while not ready_conns:
@@ -231,20 +261,29 @@ class BaseVectorEnv(Env):
                 self.waiting_conn.pop(waiting_index)
                 env_id = self.waiting_id.pop(waiting_index)
                 obs, rew, done, info = conn.get_result()
-                info["env_id"] = env_id
+                for a_id in self.agent_ids:
+                    info[a_id]["env_id"] = j
                 result.append((obs, rew, done, info))
                 self.ready_id.append(env_id)
         obs_list, rew_list, done_list, info_list = zip(*result)
-        try:
-            obs_stack = np.stack(obs_list)
-        except ValueError:  # different len(obs)
-            obs_stack = np.array(obs_list, dtype=object)
-        rew_stack, done_stack, info_stack = map(
-            np.stack, [rew_list, done_list, info_list]
+        obs_dict, rew_dict, done_dict, info_dict = map(
+            list_dict_to_dict_list, [obs_list, rew_list, done_list, info_list]
         )
-        if self.obs_rms and self.update_obs_rms:
-            self.obs_rms.update(obs_stack)
-        return self.normalize_obs(obs_stack), rew_stack, done_stack, info_stack
+        for a_id in obs_dict.keys():
+            try:
+                obs_dict[a_id] = np.stack(obs_dict[a_id])
+            except ValueError:  # different len(obs)
+                obs_dict[a_id] = np.array(obs_dict[a_id], dtype=object)
+            rew_dict[a_id], done_dict[a_id], info_dict[a_id] = map(
+                np.stack, [rew_dict[a_id], done_dict[a_id], info_dict[a_id]]
+            )
+            if self.obs_rms_n and self.update_obs_rms:
+                self.obs_rms_n[a_id].update(obs_dict[a_id])
+        # in case different agents share the same noramlizer, one should normlize obs
+        # after all normalizers are updated.
+        for a_id in obs_dict.keys():
+            obs_dict[a_id] = self.normalize_obs(obs_dict[a_id], a_id)
+        return obs_dict, rew_dict, done_dict, info_dict
 
     def seed(
         self, seed: Optional[Union[int, List[int]]] = None
@@ -286,12 +325,14 @@ class BaseVectorEnv(Env):
             w.close()
         self.is_closed = True
 
-    def normalize_obs(self, obs: np.ndarray) -> np.ndarray:
+    def normalize_obs(self, obs: np.ndarray, agent_id: str) -> np.ndarray:
         """Normalize observations by statistics in obs_rms."""
-        if self.obs_rms and self.norm_obs:
+        if self.obs_rms_n and self.norm_obs:
             clip_max = 10.0  # this magic number is from openai baselines
             # see baselines/common/vec_env/vec_normalize.py#L10
-            obs = (obs - self.obs_rms.mean) / np.sqrt(self.obs_rms.var + self.__eps)
+            obs = (obs - self.obs_rms_n[agent_id].mean) / np.sqrt(
+                self.obs_rms_n[agent_id].var + self.__eps
+            )
             obs = np.clip(obs, -clip_max, clip_max)
         return obs
 

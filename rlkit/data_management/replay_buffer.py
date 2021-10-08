@@ -1,7 +1,7 @@
 import abc
 
 
-class ReplayBuffer(object, metaclass=abc.ABCMeta):
+class AgentReplayBuffer(object, metaclass=abc.ABCMeta):
     """
     A class used to save and replay data.
     """

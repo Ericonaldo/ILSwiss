@@ -11,7 +11,7 @@ class EnvWorker(ABC):
         self._env_fn = env_fn
         self.is_closed = False
         self.result: Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
-        self.action_space = getattr(self, "action_space")
+        self.action_space_n = getattr(self, "action_space_n")
 
     @abstractmethod
     def __getattr__(self, key: str) -> Any:
@@ -48,7 +48,11 @@ class EnvWorker(ABC):
         raise NotImplementedError
 
     def seed(self, seed: Optional[int] = None) -> Optional[List[int]]:
-        return self.action_space.seed(seed)  # issue 299
+        result = dict()
+        for agent_id, action_space in self.action_space_n.items():
+            action_space.seed(seed)
+            result[agent_id] = action_space.seed(seed)
+        return result
 
     @abstractmethod
     def render(self, **kwargs: Any) -> Any:

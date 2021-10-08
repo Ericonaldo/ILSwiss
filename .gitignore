@@ -1,10 +1,7 @@
 *logs/
-demos/
 videos/*
 config.py
 @eaDir
-.idea
-*.yaml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -132,3 +129,8 @@ old_hc_rand_vel.py
 demos/
 old_logs/*
 figs/*
+
+# Workspaces
+.vscode/
+.DS_Store
+.idea/

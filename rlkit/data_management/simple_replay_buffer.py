@@ -1,17 +1,13 @@
-from collections import defaultdict
 import random as python_random
-from random import sample
 from itertools import starmap
-from functools import partial
 
 import numpy as np
 import pickle
 
-import torch
-from rlkit.data_management.replay_buffer import ReplayBuffer
+from rlkit.data_management.replay_buffer import AgentReplayBuffer
 
 
-class SimpleReplayBuffer(ReplayBuffer):
+class AgentSimpleReplayBuffer(AgentReplayBuffer):
     """
     THE MAX LENGTH OF AN EPISODE SHOULD BE STRICTLY SMALLER THAN THE max_replay_buffer_size
     OTHERWISE THERE IS A BUG IN TERMINATE_EPISODE
@@ -52,7 +48,6 @@ class SimpleReplayBuffer(ReplayBuffer):
             # else observation_dim is an integer
             self._observations = np.zeros((max_replay_buffer_size, observation_dim))
             self._next_obs = np.zeros((max_replay_buffer_size, observation_dim))
-            self._pred_obs = np.zeros((max_replay_buffer_size, observation_dim))
 
         self._actions = np.zeros((max_replay_buffer_size, action_dim))
 
@@ -81,6 +76,53 @@ class SimpleReplayBuffer(ReplayBuffer):
         rets = self._np_rand_state.choice(*args, **kwargs)
         return rets
 
+    def clear(self):
+        if isinstance(self._observation_dim, tuple):
+            dims = [d for d in self._observation_dim]
+            dims = [self._max_replay_buffer_size] + dims
+            dims = tuple(dims)
+            self._observations = np.zeros(dims)
+            self._next_obs = np.zeros(dims)
+        elif isinstance(self._observation_dim, dict):
+            # assuming that this is a one-level dictionary
+            self._observations = {}
+            self._next_obs = {}
+
+            for key, dims in self._observation_dim.items():
+                if isinstance(dims, tuple):
+                    dims = tuple([self._max_replay_buffer_size] + list(dims))
+                else:
+                    dims = (self._max_replay_buffer_size, dims)
+                self._observations[key] = np.zeros(dims)
+                self._next_obs[key] = np.zeros(dims)
+        else:
+            # else observation_dim is an integer
+            self._observations = np.zeros(
+                (self._max_replay_buffer_size, self._observation_dim)
+            )
+            self._next_obs = np.zeros(
+                (self._max_replay_buffer_size, self._observation_dim)
+            )
+
+        self._actions = np.zeros((self._max_replay_buffer_size, self._action_dim))
+
+        # Make everything a 2D np array to make it easier for other code to
+        # reason about the shape of the data
+        self._rewards = np.zeros((self._max_replay_buffer_size, 1))
+        # self._terminals[i] = a terminal was received at time i
+        self._terminals = np.zeros((self._max_replay_buffer_size, 1), dtype="uint8")
+        self._timeouts = np.zeros((self._max_replay_buffer_size, 1), dtype="uint8")
+        # absorbing[0] is if obs was absorbing, absorbing[1] is if next_obs was absorbing
+        self._absorbing = np.zeros((self._max_replay_buffer_size, 2))
+        self._top = 0
+        self._size = 0
+        self._trajs = 0
+
+        # keeping track of trajectory boundaries
+        # assumption is trajectory lengths are AT MOST the length of the entire replay buffer
+        self._cur_start = 0
+        self._traj_endpoints = {}  # start->end means [start, end)
+
     def add_sample(
         self,
         observation,
@@ -88,9 +130,8 @@ class SimpleReplayBuffer(ReplayBuffer):
         reward,
         terminal,
         next_observation,
-        pred_obs=None,
         timeout=False,
-        **kwargs
+        **kwargs,
     ):
         self._actions[self._top] = action
         self._rewards[self._top] = reward
@@ -109,13 +150,9 @@ class SimpleReplayBuffer(ReplayBuffer):
                 self._observations[key][self._top] = obs
             for key, obs in next_observation.items():
                 self._next_obs[key][self._top] = obs
-            if pred_obs is not None:
-                self._pred_obs[key][self._top] = pred_obs
         else:
             self._observations[self._top] = observation
             self._next_obs[self._top] = next_observation
-            if pred_obs is not None:
-                self._pred_obs[self._top] = pred_obs
         self._advance()
 
     def save_data(self, save_name):
@@ -123,7 +160,6 @@ class SimpleReplayBuffer(ReplayBuffer):
             "observations": self._observations[: self._top],
             "actions": self._actions[: self._top],
             "next_observations": self._next_obs[: self._top],
-            "pred_observations": self._pred_obs[: self._top],
             "terminals": self._terminals[: self._top],
             "timeouts": self._timeouts[: self._top],
             "rewards": self._rewards[: self._top],
@@ -241,6 +277,29 @@ class SimpleReplayBuffer(ReplayBuffer):
         if self._size < self._max_replay_buffer_size:
             self._size += 1
 
+    def sample_all_trajs(
+        self,
+        keys=None,
+        samples_per_traj=None,
+    ):
+        # samples_per_traj of None mean use all of the samples
+        starts = list(self._traj_endpoints.keys())
+        ends = map(lambda k: self._traj_endpoints[k], starts)
+
+        if samples_per_traj is None:
+            return list(
+                starmap(lambda s, e: self._get_segment(s, e, keys), zip(starts, ends))
+            )
+        else:
+            return list(
+                starmap(
+                    lambda s, e: self._get_samples_from_traj(
+                        s, e, samples_per_traj, keys
+                    ),
+                    zip(starts, ends),
+                )
+            )
+
     def random_batch(
         self, batch_size, keys=None, multi_step=False, step_num=1, **kwargs
     ):
@@ -268,25 +327,20 @@ class SimpleReplayBuffer(ReplayBuffer):
                     "rewards",
                     "terminals",
                     "next_observations",
-                    "pred_observations",
                     "absorbing",
                 ]
             )
         if isinstance(self._observations, dict):
             obs_to_return = {}
             next_obs_to_return = {}
-            pred_obs_to_return = {}
             for k in self._observations:
                 if "observations" in keys:
                     obs_to_return[k] = self._observations[k][indices]
                 if "next_observations" in keys:
                     next_obs_to_return[k] = self._next_obs[k][indices]
-                if "pred_observations" in keys:
-                    pred_obs_to_return[k] = self._pred_obs[k][indices]
         else:
             obs_to_return = self._observations[indices]
             next_obs_to_return = self._next_obs[indices]
-            pred_obs_to_return = self._pred_obs[indices]
 
         ret_dict = {}
         if "observations" in keys:
@@ -299,8 +353,6 @@ class SimpleReplayBuffer(ReplayBuffer):
             ret_dict["terminals"] = self._terminals[indices]
         if "next_observations" in keys:
             ret_dict["next_observations"] = next_obs_to_return
-        if "pred_observations" in keys:
-            ret_dict["pred_observations"] = pred_obs_to_return
         if "absorbing" in keys:
             ret_dict["absorbing"] = self._absorbing[indices]
 
@@ -394,13 +446,13 @@ class SimpleReplayBufferDict(dict):
 
     def __missing__(self, k):
         rand_seed = self._py_rand_state.randint(0, 10000)
-        self[k] = SimpleReplayBuffer(
+        self[k] = AgentSimpleReplayBuffer(
             self.max_size, self.obs_dim, self.act_dim, rand_seed
         )
         return self[k]
 
 
-class MetaSimpleReplayBuffer:
+class AgentMetaSimpleReplayBuffer:
     def __init__(
         self, max_rb_size_per_task, observation_dim, action_dim, random_seed=2001
     ):
@@ -427,7 +479,7 @@ class MetaSimpleReplayBuffer:
         terminal,
         next_observation,
         task_identifier,
-        **kwargs
+        **kwargs,
     ):
         self.task_replay_buffers[task_identifier].add_sample(
             observation, action, reward, terminal, next_observation, **kwargs
@@ -490,7 +542,7 @@ def concat_nested_dicts(d1, d2):
     }
 
 
-class LRUMetaSimpleReplayBuffer:
+class AgentLRUMetaSimpleReplayBuffer:
     def __init__(self, *args, max_tasks=-1, **kwargs):
         super().__init__(*args, **kwargs)
         raise NotImplementedError()

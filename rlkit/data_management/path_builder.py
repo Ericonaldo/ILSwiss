@@ -1,7 +1,23 @@
 import numpy as np
 
 
-class PathBuilder(dict):
+class PathBuilder:
+    def __init__(self, agent_ids):
+        self.agent_ids = agent_ids
+        self.n_agents = len(agent_ids)
+        self.agent_path_builders = {a_id: AgentPathBuilder() for a_id in agent_ids}
+
+    def __len__(self):
+        return len(list(self.agent_path_builders.values())[0])
+
+    def __getitem__(self, agent_id):
+        return self.agent_path_builders[agent_id]
+
+    def get_all_agent_dict(self, key):
+        return {a_id: self.agent_path_builders[a_id][key] for a_id in self.agent_ids}
+
+
+class AgentPathBuilder(dict):
     """
     Usage:
     ```

@@ -34,7 +34,8 @@ def experiment(variant):
 
     obs_space = env.observation_space
     act_space = env.action_space
-    assert not isinstance(obs_space, gym.spaces.Dict)
+    assert isinstance(obs_space, gym.spaces.Box)
+    assert isinstance(act_space, gym.spaces.Box)
     assert len(obs_space.shape) == 1
     assert len(act_space.shape) == 1
 
@@ -78,7 +79,6 @@ def experiment(variant):
         qf1=qf1,
         qf2=qf2,
         vf=vf,
-        env=env,
         **variant["sac_params"],
     )
     algorithm = TorchRLAlgorithm(

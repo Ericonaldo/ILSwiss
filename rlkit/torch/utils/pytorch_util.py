@@ -3,6 +3,7 @@ Replaced using new version of rlkit
 2e8097f2a2c4d4d5079f12b8210f8ac8f250aee0
 """
 import torch
+from torch import nn
 import numpy as np
 
 
@@ -129,3 +130,14 @@ def tensor(*args, torch_device=None, **kwargs):
 
 def normal(*args, **kwargs):
     return torch.normal(*args, **kwargs).to(device)
+
+
+def make_module(in_size, out_size, hidden, activation):
+    n_in = in_size
+    l_hidden = []
+    for h in hidden:
+        l_hidden.append(init_layer(torch.nn.Linear(n_in, h)))
+        l_hidden.append(activation())
+        n_in = h
+    l_hidden.append(init_layer(torch.nn.Linear(n_in, out_size), gain=0.1))
+    return torch.nn.Sequential(*l_hidden)

@@ -1,20 +1,17 @@
 import abc
-import pickle
 import time
 from collections import OrderedDict
-from copy import deepcopy
+from typing import Dict
 
 import gtimer as gt
 import numpy as np
 
-from rlkit.core import logger, eval_util
+from rlkit.core import logger, eval_util, dict_list_to_list_dict
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.data_management.path_builder import PathBuilder
 from rlkit.policies.base import ExplorationPolicy
 from rlkit.torch.common.policies import MakeDeterministic
 from rlkit.samplers import PathSampler
-
-from gym.spaces import Dict
 
 
 class BaseAlgorithm(metaclass=abc.ABCMeta):
@@ -26,10 +23,13 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
     def __init__(
         self,
         env,
-        exploration_policy: ExplorationPolicy,
+        exploration_policy_n: Dict[str, ExplorationPolicy],
         training_env=None,
-        eval_policy=None,
-        eval_sampler=None,  ##
+        eval_env=None,
+        eval_policy_n=None,
+        eval_sampler=None,
+        eval_sampler_func=PathSampler,
+        policy_mapping_dict=None,
         num_epochs=100,
         num_steps_per_epoch=10000,
         num_steps_between_train_calls=1000,
@@ -45,7 +45,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         save_best=False,
         save_epoch=False,
         save_best_starting_from_epoch=0,
-        best_key="AverageReturn",  # higher is better
+        best_key="AgentMeanAverageReturn",  # higher is better
         no_terminal=False,
         eval_no_terminal=False,
         wrap_absorbing=False,
@@ -55,13 +55,16 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         eval_deterministic=False,
     ):
         self.env = env
-        self.env_num = 1
-        try:
-            self.env_num = len(training_env)
-        except BaseException:
-            pass
+        self.env_num = len(training_env)
         self.training_env = training_env
-        self.exploration_policy = exploration_policy
+        self.eval_env = eval_env
+        self.exploration_policy_n = exploration_policy_n
+        self.n_agents = env.n_agents
+        self.agent_ids = env.agent_ids
+        self.policy_ids = list(exploration_policy_n.keys())
+        assert policy_mapping_dict is not None, "Require specifing agent-policy mapping"
+        self.policy_mapping_dict = policy_mapping_dict
+        self.agent_ids = list(policy_mapping_dict.keys())
 
         self.num_epochs = num_epochs
         self.num_env_steps_per_epoch = num_steps_per_epoch
@@ -82,23 +85,28 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         self.best_statistic_so_far = float("-Inf")
 
         if eval_sampler is None:
-            if eval_policy is None:
-                eval_policy = exploration_policy
-            eval_policy = MakeDeterministic(eval_policy)
-            eval_sampler = PathSampler(
+            if eval_policy_n is None:
+                eval_policy_n = exploration_policy_n
+            eval_policy_n = {
+                pid: MakeDeterministic(policy) for pid, policy in eval_policy_n.items()
+            }
+            assert eval_env is not None, "must specify evaluation environment"
+            eval_sampler = eval_sampler_func(
                 env,
-                eval_policy,
+                eval_env,
+                eval_policy_n,
+                policy_mapping_dict,
                 num_steps_per_eval,
                 max_path_length,
                 no_terminal=eval_no_terminal,
                 render=render,
                 render_kwargs=render_kwargs,
             )
-        self.eval_policy = eval_policy
+        self.eval_policy_n = eval_policy_n
         self.eval_sampler = eval_sampler
 
-        self.action_space = env.action_space
-        self.obs_space = env.observation_space
+        self.action_space_n = env.action_space_n
+        self.obs_space_n = env.observation_space_n
         self.replay_buffer_size = replay_buffer_size
         if replay_buffer is None:
             assert max_path_length < replay_buffer_size
@@ -112,12 +120,14 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         self._n_env_steps_total = 0
         self._n_train_steps_total = 0
         self._n_rollouts_total = 0
+        self._n_prev_train_env_steps = 0
         self._do_train_time = 0
         self._epoch_start_time = None
         self._algo_start_time = None
         self._old_table_keys = None
-        # self._current_path_builder = PathBuilder()
-        self._current_path_builder = [PathBuilder() for _ in range(self.env_num)]
+        self._current_path_builder = [
+            PathBuilder(self.agent_ids) for _ in range(self.env_num)
+        ]
         self._exploration_paths = []
 
         if wrap_absorbing:
@@ -150,14 +160,13 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         pass
 
     def start_training(self, start_epoch=0, flag=False):
-        # self._current_path_builder = PathBuilder()
         self.ready_env_ids = np.arange(self.env_num)
-        observations = self._start_new_rollout(
+        observations_n = self._start_new_rollout(
             self.ready_env_ids
         )  # Do it for support vec env
 
         self._current_path_builder = [
-            PathBuilder() for _ in range(len(self.ready_env_ids))
+            PathBuilder(self.agent_ids) for _ in range(len(self.ready_env_ids))
         ]
 
         for epoch in gt.timed_for(
@@ -165,45 +174,70 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
             save_itrs=True,
         ):
             self._start_epoch(epoch)
-            total_rews = np.array([0.0 for _ in range(len(self.ready_env_ids))])
+            total_rews_n = dict(
+                zip(
+                    self.agent_ids,
+                    [
+                        np.array([0.0 for _ in range(len(self.ready_env_ids))])
+                        for _ in range(self.n_agents)
+                    ],
+                )
+            )
             for steps_this_epoch in range(self.num_env_steps_per_epoch // self.env_num):
-                actions = self._get_action_and_info(observations)
+                actions_n = self._get_action_and_info(observations_n)
 
-                if type(actions) is tuple:
-                    actions = actions[0]
+                for a_id in self.agent_ids:
+                    if type(actions_n[a_id]) is tuple:
+                        actions_n[a_id] = actions_n[a_id][0]
 
                 if self.render:
                     self.training_env.render()
 
-                next_obs, raw_rewards, terminals, env_infos = self.training_env.step(
-                    actions, self.ready_env_ids
-                )
+                (
+                    next_obs_n,
+                    raw_rewards_n,
+                    terminals_n,
+                    env_infos_n,
+                ) = self.training_env.step(actions_n, self.ready_env_ids)
                 if self.no_terminal:
-                    terminals = [False for _ in range(len(self.ready_env_ids))]
-                # self._n_env_steps_total += 1
+                    terminals_n = dict(
+                        zip(
+                            self.agent_ids,
+                            [
+                                [False for _ in range(len(self.ready_env_ids))]
+                                for _ in range(self.n_agents)
+                            ],
+                        )
+                    )
                 self._n_env_steps_total += len(self.ready_env_ids)
 
-                rewards = raw_rewards
-                total_rews += raw_rewards
+                rewards_n = raw_rewards_n
+                for a_id in self.agent_ids:
+                    total_rews_n[a_id] += raw_rewards_n[a_id]
 
                 self._handle_vec_step(
-                    observations,
-                    actions,
-                    rewards,
-                    next_obs,
-                    np.array([False for _ in range(len(self.ready_env_ids))])
-                    if self.no_terminal
-                    else terminals,
-                    absorbings=[
-                        np.array([0.0, 0.0]) for _ in range(len(self.ready_env_ids))
-                    ],
-                    env_infos=env_infos,
+                    observations_n,
+                    actions_n,
+                    rewards_n,
+                    next_obs_n,
+                    terminals_n,
+                    absorbings_n={
+                        a_id: [
+                            np.array([0.0, 0.0]) for _ in range(len(self.ready_env_ids))
+                        ]
+                        for a_id in self.agent_ids
+                    },
+                    env_infos_n=env_infos_n,
                 )
-                if np.any(terminals):
-                    env_ind_local = np.where(terminals)[0]
+                terminals_all = np.ones_like(list(terminals_n.values())[0])
+                for terminals in terminals_n.values():
+                    terminals_all = np.logical_and(terminals_all, terminals)
+                if np.any(terminals_all):
+                    env_ind_local = np.where(terminals_all)[0]
                     if flag:
                         pass
-                    total_rews[env_ind_local] = 0.0
+                    for a_id in self.agent_ids:
+                        total_rews_n[a_id][env_ind_local] = 0.0
                     if self.wrap_absorbing:
                         # raise NotImplementedError()
                         """
@@ -219,36 +253,57 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
                         # next_ob is the absorbing state
                         # for now just taking the previous action
                         self._handle_vec_step(
-                            next_obs,
-                            actions,
+                            next_obs_n,
+                            actions_n,
                             # env.action_space.sample(),
                             # the reward doesn't matter
-                            rewards,
-                            next_obs,
-                            np.array([False for _ in range(len(self.ready_env_ids))]),
-                            absorbings=[
-                                np.array([0.0, 1.0])
-                                for _ in range(len(self.ready_env_ids))
-                            ],
-                            env_infos=env_infos,
+                            rewards_n,
+                            next_obs_n,
+                            {
+                                a_id: [
+                                    np.array(
+                                        [False for _ in range(len(self.ready_env_ids))]
+                                    )
+                                ]
+                                for a_id in self.agent_ids
+                            },
+                            absorbings_n={
+                                a_id: [
+                                    np.array([0.0, 1.0])
+                                    for _ in range(len(self.ready_env_ids))
+                                ]
+                                for a_id in self.agent_ids
+                            },
+                            env_infos_n=env_infos_n,
                         )
                         self._handle_vec_step(
-                            next_obs,
-                            actions,
+                            next_obs_n,
+                            actions_n,
                             # env.action_space.sample(),
                             # the reward doesn't matter
-                            rewards,
-                            next_obs,
-                            np.array([False for _ in range(len(self.ready_env_ids))]),
-                            absorbings=[
-                                np.array([1.0, 1.0])
-                                for _ in range(len(self.ready_env_ids))
-                            ],
-                            env_infos=env_infos,
+                            rewards_n,
+                            next_obs_n,
+                            {
+                                a_id: [
+                                    np.array(
+                                        [False for _ in range(len(self.ready_env_ids))]
+                                    )
+                                ]
+                                for a_id in self.agent_ids
+                            },
+                            absorbings_n={
+                                a_id: [
+                                    np.array([1.0, 1.0])
+                                    for _ in range(len(self.ready_env_ids))
+                                ]
+                                for a_id in self.agent_ids
+                            },
+                            env_infos_n=env_infos_n,
                         )
                     self._handle_vec_rollout_ending(env_ind_local)
-                    reset_observations = self._start_new_rollout(env_ind_local)
-                    next_obs[env_ind_local] = reset_observations
+                    reset_observations_n = self._start_new_rollout(env_ind_local)
+                    for a_id in self.agent_ids:
+                        next_obs_n[a_id][env_ind_local] = reset_observations_n[a_id]
                 elif np.any(
                     np.array(
                         [
@@ -268,12 +323,15 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
                         >= self.max_path_length
                     )[0]
                     self._handle_vec_rollout_ending(env_ind_local)
-                    reset_observations = self._start_new_rollout(env_ind_local)
-                    next_obs[env_ind_local] = reset_observations
+                    reset_observations_n = self._start_new_rollout(env_ind_local)
+                    for a_id in self.agent_ids:
+                        next_obs_n[a_id][env_ind_local] = reset_observations_n[a_id]
 
-                observations = next_obs
+                observations_n = next_obs_n
 
-                if self._n_env_steps_total % self.num_steps_between_train_calls == 0:
+                if (
+                    self._n_env_steps_total - self._n_prev_train_env_steps
+                ) >= self.num_steps_between_train_calls:
                     gt.stamp("sample")
                     self._try_to_train(epoch)
                     gt.stamp("train")
@@ -285,6 +343,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
 
     def _try_to_train(self, epoch):
         if self._can_train():
+            self._n_prev_train_env_steps = self._n_env_steps_total
             self.training_mode(True)
             self._do_training(epoch)
             self._n_train_steps_total += 1
@@ -346,27 +405,29 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
 
         :return:
         """
-        return (
-            len(self._exploration_paths) > 0
-            and self.replay_buffer.num_steps_can_sample()
-            >= self.min_steps_before_training
-        )
+        return len(self._exploration_paths) > 0 and self._n_prev_train_env_steps > 0
 
     def _can_train(self):
         return (
             self.replay_buffer.num_steps_can_sample() >= self.min_steps_before_training
         )
 
-    def _get_action_and_info(self, observation):
+    def _get_action_and_info(self, observation_n):
         """
         Get an action to take in the environment.
-        :param observation:
+        :param observation_n:
         :return:
         """
-        self.exploration_policy.set_num_steps_total(self._n_env_steps_total)
-        return self.exploration_policy.get_actions(
-            observation,
-        )
+        action_n = {}
+        for agent_id, observation in observation_n.items():
+            policy_id = self.policy_mapping_dict[agent_id]
+            self.exploration_policy_n[policy_id].set_num_steps_total(
+                self._n_env_steps_total
+            )
+            action_n[agent_id] = self.exploration_policy_n[policy_id].get_actions(
+                observation
+            )
+        return action_n
 
     def _start_epoch(self, epoch):
         self._epoch_start_time = time.time()
@@ -377,7 +438,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
     def _end_epoch(self):
         self.eval_statistics = None
         logger.log("Epoch Duration: {0}".format(time.time() - self._epoch_start_time))
-        logger.log("Started Training: {0}".format(self._can_train()))
+        logger.log("Started Training: {0}".format(self._can_evaluate()))
         logger.pop_prefix()
 
     def _start_new_rollout(self, env_ind_local):
@@ -391,82 +452,99 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         :param path:
         :return:
         """
-        for (ob, action, reward, next_ob, terminal, absorbing, env_info) in zip(
-            path["observations"],
-            path["actions"],
-            path["rewards"],
-            path["next_observations"],
-            path["terminals"],
-            path["absorbings"],
-            path["env_infos"],
+        for (
+            ob_n,
+            action_n,
+            reward_n,
+            next_ob_n,
+            terminal_n,
+            absorbing_n,
+            env_info_n,
+        ) in zip(
+            *map(
+                dict_list_to_list_dict,
+                [
+                    path.get_all_agent_dict("observations"),
+                    path.get_all_agent_dict("actions"),
+                    path.get_all_agent_dict("rewards"),
+                    path.get_all_agent_dict("next_observations"),
+                    path.get_all_agent_dict("terminals"),
+                    path.get_all_agent_dict("absorbings"),
+                    path.get_all_agent_dict("env_infos"),
+                ],
+            )
         ):
             self._handle_step(
-                ob,
-                action,
-                reward,
-                next_ob,
-                terminal,
-                absorbing,
-                env_info=env_info,
+                ob_n,
+                action_n,
+                reward_n,
+                next_ob_n,
+                terminal_n,
+                absorbing_n,
+                env_info_n=env_info_n,
                 path_builder=False,
             )
-        # self._handle_rollout_ending()
 
     def _handle_vec_step(
         self,
-        observations,
-        actions,
-        rewards,
-        next_observations,
-        terminals,
-        absorbings,
-        env_infos,
+        observations_n: Dict,
+        actions_n: Dict,
+        rewards_n: Dict,
+        next_observations_n: Dict,
+        terminals_n: Dict,
+        absorbings_n: Dict,
+        env_infos_n: Dict,
     ):
         """
         Implement anything that needs to happen after every step under vec envs
         :return:
         """
-        for idx, (
-            ob,
-            action,
-            reward,
-            next_ob,
-            terminal,
-            absorbing,
-            env_info,
+        for env_idx, (
+            ob_n,
+            action_n,
+            reward_n,
+            next_ob_n,
+            terminal_n,
+            absorbing_n,
+            env_info_n,
         ) in enumerate(
             zip(
-                observations,
-                actions,
-                rewards,
-                next_observations,
-                terminals,
-                absorbings,
-                env_infos,
+                *map(
+                    dict_list_to_list_dict,
+                    [
+                        observations_n,
+                        actions_n,
+                        rewards_n,
+                        next_observations_n,
+                        terminals_n,
+                        absorbings_n,
+                        env_infos_n,
+                    ],
+                )
             )
         ):
             self._handle_step(
-                ob,
-                action,
-                reward,
-                next_ob,
-                terminal,
-                absorbing=absorbing,
-                env_info=env_info,
-                idx=idx,
+                ob_n,
+                action_n,
+                reward_n,
+                next_ob_n,
+                terminal_n,
+                absorbing_n=absorbing_n,
+                env_info_n=env_info_n,
+                env_idx=env_idx,
                 add_buf=False,
             )
 
     def _handle_step(
         self,
-        observation,
-        action,
-        reward,
-        next_observation,
-        terminal,
-        absorbing,
-        env_info,
-        idx=0,
+        observation_n,
+        action_n,
+        reward_n,
+        next_observation_n,
+        terminal_n,
+        absorbing_n,
+        env_info_n,
+        env_idx=0,
         add_buf=True,
         path_builder=True,
     ):
@@ -475,24 +553,25 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         :return:
         """
         if path_builder:
-            self._current_path_builder[idx].add_all(
-                observations=observation,
-                actions=action,
-                rewards=reward,
-                next_observations=next_observation,
-                terminals=terminal,
-                absorbings=absorbing,
-                env_infos=env_info,
-            )
+            for a_id in self.agent_ids:
+                self._current_path_builder[env_idx][a_id].add_all(
+                    observations=observation_n[a_id],
+                    actions=action_n[a_id],
+                    rewards=reward_n[a_id],
+                    next_observations=next_observation_n[a_id],
+                    terminals=terminal_n[a_id],
+                    absorbings=absorbing_n[a_id],
+                    env_infos=env_info_n[a_id],
+                )
         if add_buf:
             self.replay_buffer.add_sample(
-                observation=observation,
-                action=action,
-                reward=reward,
-                terminal=terminal,
-                next_observation=next_observation,
-                absorbing=absorbing,
-                env_info=env_info,
+                observation_n=observation_n,
+                action_n=action_n,
+                reward_n=reward_n,
+                terminal_n=terminal_n,
+                next_observation_n=next_observation_n,
+                absorbing_n=absorbing_n,
+                env_info_n=env_info_n,
             )
 
     def _handle_vec_rollout_ending(self, end_idx):
@@ -505,7 +584,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
             self._n_rollouts_total += 1
             if len(self._current_path_builder[idx]) > 0:
                 self._exploration_paths.append(self._current_path_builder[idx])
-                self._current_path_builder[idx] = PathBuilder()
+                self._current_path_builder[idx] = PathBuilder(self.agent_ids)
 
     def _handle_rollout_ending(self):
         """
@@ -612,8 +691,8 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
             if hasattr(self.env, "log_visuals"):
                 self.env.log_visuals(test_paths, epoch, logger.get_snapshot_dir())
 
-        average_returns = eval_util.get_average_returns(test_paths)
-        statistics["AverageReturn"] = average_returns
+        agent_mean_avg_returns = eval_util.get_agent_mean_avg_returns(test_paths)
+        statistics["AgentMeanAverageReturn"] = agent_mean_avg_returns
         for key, value in statistics.items():
             logger.record_tabular(key, np.mean(value))
 

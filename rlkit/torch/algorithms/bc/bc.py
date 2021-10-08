@@ -31,28 +31,38 @@ class BC(TorchBaseAlgorithm):
 
         self.batch_size = batch_size
 
-        self.optimizer = optimizer_class(
-            self.exploration_policy.parameters(), lr=lr, betas=(momentum, 0.999)
-        )
+        self.optimizer_n = {
+            p_id: optimizer_class(
+                self.exploration_policy[p_id].parameters(),
+                lr=lr,
+                betas=(momentum, 0.999)
+            )
+            for p_id in self.policy_ids
+        }
 
         self.num_updates_per_train_call = num_updates_per_train_call
 
-    def get_batch(self, batch_size, keys=None, use_expert_buffer=True):
+    def get_batch(self, batch_size, agent_id, keys=None, use_expert_buffer=True):
         if use_expert_buffer:
             rb = self.expert_replay_buffer
         else:
             rb = self.replay_buffer
-        batch = rb.random_batch(batch_size, keys=keys)
+        batch = rb.random_batch(batch_size, agent_id, keys=keys)
         batch = np_to_pytorch_batch(batch)
         return batch
 
     def _do_training(self, epoch):
         for t in range(self.num_updates_per_train_call):
-            self._do_update_step(epoch, use_expert_buffer=True)
+            for a_id in self.agent_ids:
+                self._do_update_step(epoch, a_id, use_expert_buffer=True)
 
-    def _do_update_step(self, epoch, use_expert_buffer=True):
+    def _do_update_step(self, epoch, agent_id, use_expert_buffer=True):
+
+        policy_id = self.policy_mapping_dict[agent_id]
+
         batch = self.get_batch(
             self.batch_size,
+            agent_id,
             keys=["observations", "actions"],
             use_expert_buffer=use_expert_buffer,
         )
@@ -60,23 +70,23 @@ class BC(TorchBaseAlgorithm):
         obs = batch["observations"]
         acts = batch["actions"]
 
-        self.optimizer.zero_grad()
+        self.optimizer_n[policy_id].zero_grad()
         if self.mode == "MLE":
-            log_prob = self.exploration_policy.get_log_prob(obs, acts)
+            log_prob = self.exploration_policy_n[policy_id].get_log_prob(obs, acts)
             loss = -1.0 * log_prob.mean()
             if self.eval_statistics is None:
                 self.eval_statistics = OrderedDict()
-                self.eval_statistics["Log-Likelihood"] = ptu.get_numpy(-1.0 * loss)
+                self.eval_statistics[f"{policy_id} Log-Likelihood"] = ptu.get_numpy(-1.0 * loss)
         else:
-            pred_acts = self.exploration_policy(obs)[0]
+            pred_acts = self.exploration_policy_n[policy_id](obs)[0]
             squared_diff = (pred_acts - acts) ** 2
             loss = torch.sum(squared_diff, dim=-1).mean()
             if self.eval_statistics is None:
                 self.eval_statistics = OrderedDict()
-                self.eval_statistics["MSE"] = ptu.get_numpy(loss)
+                self.eval_statistics[f"{policy_id} MSE"] = ptu.get_numpy(loss)
         loss.backward()
-        self.optimizer.step()
+        self.optimizer_n[policy_id].step()
 
     @property
-    def networks(self):
-        return [self.exploration_policy]
+    def networks_n(self):
+        return {p_id: self.exploration_policy_n[p_id] for p_id in self.policy_ids}

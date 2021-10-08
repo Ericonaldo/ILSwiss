@@ -1,0 +1,58 @@
+meta_data:
+  script_path: run_scripts/ppo_exp_script.py
+  exp_name: ppo_hopper_tanh_policy
+  description: Train an agent using Proximal Policy Optimization
+  num_workers: 1
+  using_gpus: true
+# -----------------------------------------------------------------------------
+variables:
+  seed: [7294]
+
+# -----------------------------------------------------------------------------
+constants:
+  net_size: 256
+  num_hidden_layers: 2
+
+  rl_alg_params:
+    num_epochs: 300
+    num_steps_per_epoch: 10000
+    num_steps_between_train_calls: 4096
+    num_train_steps_per_train_call: 1
+    num_steps_per_eval: 10000
+    max_path_length: 1000
+    min_steps_before_training: 4096
+
+    eval_deterministic: true
+
+    # Not used, since PPO use all on-policy data for training
+    batch_size: 256
+    replay_buffer_size: 50000
+    no_terminal: false
+    wrap_absorbing: false
+
+    save_best: false
+    freq_saving: 10
+    save_replay_buffer: false
+    save_environment: false
+    save_algorithm: false
+
+  ppo_params:
+    clip_eps: 0.2
+    reward_scale: 1.0
+    discount: 0.99
+    policy_lr: 0.0003
+    value_lr: 0.0003
+    lambda_entropy_policy: 0.0
+    gae_tau: 0.95
+    value_l2_reg: 0.001
+    mini_batch_size: 64
+    update_epoch: 10
+
+  env_specs:
+    env_creator: "mujoco"
+    env_name: "hopper"
+    env_kwargs: {}
+    training_env_num: 1
+    eval_env_num: 1
+    training_env_seed: 24495
+    eval_env_seed: 78236

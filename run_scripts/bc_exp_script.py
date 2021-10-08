@@ -47,18 +47,6 @@ def experiment(variant):
         traj_list = pickle.load(f)
     traj_list = random.sample(traj_list, variant["traj_num"])
 
-    obs = np.vstack([traj_list[i]["observations"] for i in range(len(traj_list))])
-    acts = np.vstack([traj_list[i]["actions"] for i in range(len(traj_list))])
-    obs_mean, obs_std = np.mean(obs, axis=0), np.std(obs, axis=0)
-    # acts_mean, acts_std = np.mean(acts, axis=0), np.std(acts, axis=0)
-    acts_mean, acts_std = None, None
-    obs_min, obs_max = np.min(obs, axis=0), np.max(obs, axis=0)
-
-    # print("obs:mean:{}".format(obs_mean))
-    # print("obs_std:{}".format(obs_std))
-    # print("acts_mean:{}".format(acts_mean))
-    # print("acts_std:{}".format(acts_std))
-
     env_specs = variant["env_specs"]
     env = get_env(env_specs)
     env.seed(env_specs["eval_env_seed"])
@@ -81,20 +69,6 @@ def experiment(variant):
 
     env_wrapper = ProxyEnv  # Identical wrapper
     kwargs = {}
-
-    if variant["scale_env_with_demo_stats"]:
-        print("\nWARNING: Using scale env wrapper")
-        tmp_env_wrapper = env_wrapper = ScaledEnv
-        kwargs = dict(
-            obs_mean=obs_mean,
-            obs_std=obs_std,
-            acts_mean=acts_mean,
-            acts_std=acts_std,
-        )
-    elif variant["minmax_env_with_demo_stats"]:
-        print("\nWARNING: Using min max env wrapper")
-        tmp_env_wrapper = env_wrapper = MinmaxEnv
-        kwargs = dict(obs_min=obs_min, obs_max=obs_max)
 
     obs_space = env.observation_space
     act_space = env.action_space
@@ -137,7 +111,7 @@ def experiment(variant):
         training_env=training_env,
         exploration_policy=policy,
         expert_replay_buffer=expert_replay_buffer,
-        **variant["bc_params"]
+        **variant["bc_params"],
     )
 
     if ptu.gpu_enabled():

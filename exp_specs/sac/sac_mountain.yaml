@@ -47,7 +47,9 @@ constants:
     policy_std_reg_weight: 0.001
 
   env_specs:
-    env_name: 'mountaincarcont'
+    env_creator: "gym"
+    env_name: 'MountainCarContinuous-v0'
     env_kwargs: {}
+    env_num: 1
     eval_env_seed: 78236
     training_env_seed: 24495

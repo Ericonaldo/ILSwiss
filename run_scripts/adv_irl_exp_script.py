@@ -24,7 +24,7 @@ from rlkit.torch.algorithms.sac.sac_alpha import (
 )  # SAC Auto alpha version
 from rlkit.torch.algorithms.adv_irl.disc_models.simple_disc_models import MLPDisc
 from rlkit.torch.algorithms.adv_irl.adv_irl import AdvIRL
-from rlkit.envs.wrappers import ProxyEnv, ScaledEnv, MinmaxEnv, NormalizedBoxEnv
+from rlkit.envs.wrappers import ProxyEnv, NormalizedBoxActEnv
 
 
 def experiment(variant):
@@ -52,26 +52,14 @@ def experiment(variant):
         traj_list = pickle.load(f)
     traj_list = random.sample(traj_list, variant["traj_num"])
 
-    obs = np.vstack([traj_list[i]["observations"] for i in range(len(traj_list))])
-    acts = np.vstack([traj_list[i]["actions"] for i in range(len(traj_list))])
-    obs_mean, obs_std = np.mean(obs, axis=0), np.std(obs, axis=0)
-    # acts_mean, acts_std = np.mean(acts, axis=0), np.std(acts, axis=0)
-    acts_mean, acts_std = None, None
-    obs_min, obs_max = np.min(obs, axis=0), np.max(obs, axis=0)
-
-    # print("obs:mean:{}".format(obs_mean))
-    # print("obs_std:{}".format(obs_std))
-    # print("acts_mean:{}".format(acts_mean))
-    # print("acts_std:{}".format(acts_std))
-
     env_specs = variant["env_specs"]
     env = get_env(env_specs)
     env.seed(env_specs["eval_env_seed"])
 
-    print("\n\nEnv: {}".format(env_specs["env_name"]))
+    print("\n\nEnv: {}:{}".format(env_specs["env_creator"], env_specs["env_name"]))
     print("kwargs: {}".format(env_specs["env_kwargs"]))
-    print("Obs Space: {}".format(env.observation_space))
-    print("Act Space: {}\n\n".format(env.action_space))
+    print("Obs Space: {}".format(env.observation_space_n))
+    print("Act Space: {}\n\n".format(env.action_space_n))
 
     expert_replay_buffer = EnvReplayBuffer(
         variant["adv_irl_params"]["replay_buffer_size"],
@@ -84,92 +72,104 @@ def experiment(variant):
             traj_list[i], absorbing=variant["adv_irl_params"]["wrap_absorbing"], env=env
         )
 
-    tmp_env_wrapper = env_wrapper = ProxyEnv  # Identical wrapper
+    obs_space_n = env.observation_space_n
+    act_space_n = env.action_space_n
+
+    policy_mapping_dict = dict(
+        zip(env.agent_ids, ["policy_0" for _ in range(env.n_agents)])
+    )
+
+    policy_trainer_n = {}
+    policy_n = {}
+    disc_model_n = {}
+
+    for agent_id in env.agent_ids:
+        policy_id = policy_mapping_dict.get(agent_id)
+        if policy_id not in policy_trainer_n:
+            print(f"Create {policy_id} for {agent_id} ...")
+            obs_space = obs_space_n[agent_id]
+            act_space = act_space_n[agent_id]
+            assert isinstance(obs_space, gym.spaces.Box)
+            assert isinstance(act_space, gym.spaces.Box)
+            assert len(obs_space.shape) == 1
+            assert len(act_space.shape) == 1
+
+            obs_dim = obs_space.shape[0]
+            action_dim = act_space.shape[0]
+
+            # build the policy models
+            net_size = variant["policy_net_size"]
+            num_hidden = variant["policy_num_hidden_layers"]
+            qf1 = FlattenMlp(
+                hidden_sizes=num_hidden * [net_size],
+                input_size=obs_dim + action_dim,
+                output_size=1,
+            )
+            qf2 = FlattenMlp(
+                hidden_sizes=num_hidden * [net_size],
+                input_size=obs_dim + action_dim,
+                output_size=1,
+            )
+            vf = FlattenMlp(
+                hidden_sizes=num_hidden * [net_size],
+                input_size=obs_dim,
+                output_size=1,
+            )
+            policy = ReparamTanhMultivariateGaussianPolicy(
+                hidden_sizes=num_hidden * [net_size],
+                obs_dim=obs_dim,
+                action_dim=action_dim,
+            )
+
+            # build the discriminator model
+            disc_model = MLPDisc(
+                obs_dim + action_dim
+                if not variant["adv_irl_params"]["state_only"]
+                else 2 * obs_dim,
+                num_layer_blocks=variant["disc_num_blocks"],
+                hid_dim=variant["disc_hid_dim"],
+                hid_act=variant["disc_hid_act"],
+                use_bn=variant["disc_use_bn"],
+                clamp_magnitude=variant["disc_clamp_magnitude"],
+            )
+
+            # set up the algorithm
+            trainer = SoftActorCritic(
+                policy=policy, qf1=qf1, qf2=qf2, vf=vf, env=env, **variant["sac_params"]
+            )
+
+            policy_trainer_n[policy_id] = trainer
+            policy_n[policy_id] = policy
+            disc_model_n[policy_id] = disc_model
+        else:
+            print(f"Use existing {policy_id} for {agent_id} ...")
+
+    env_wrapper = ProxyEnv  # Identical wrapper
     kwargs = {}
-
-    if variant["scale_env_with_demo_stats"]:
-        print("\nWARNING: Using scale env wrapper")
-        tmp_env_wrapper = env_wrapper = ScaledEnv
-        kwargs = dict(
-            obs_mean=obs_mean,
-            obs_std=obs_std,
-            acts_mean=acts_mean,
-            acts_std=acts_std,
-        )
-    elif variant["minmax_env_with_demo_stats"]:
-        print("\nWARNING: Using min max env wrapper")
-        tmp_env_wrapper = env_wrapper = MinmaxEnv
-        kwargs = dict(obs_min=obs_min, obs_max=obs_max)
-
-    obs_space = env.observation_space
-    act_space = env.action_space
-    assert not isinstance(obs_space, gym.spaces.Dict)
-    assert len(obs_space.shape) == 1
-    assert len(act_space.shape) == 1
-
-    if isinstance(act_space, gym.spaces.Box) and (
-        (acts_mean is None) and (acts_std is None)
-    ):
-        print("\nWARNING: Using Normalized Box Env wrapper")
-        env_wrapper = lambda *args, **kwargs: NormalizedBoxEnv(
-            tmp_env_wrapper(*args, **kwargs)
-        )
+    for act_space in act_space_n.values():
+        if isinstance(act_space, gym.spaces.Box):
+            env_wrapper = NormalizedBoxActEnv
+            break
 
     env = env_wrapper(env, **kwargs)
-    training_env = get_envs(env_specs, env_wrapper, **kwargs)
+    print("Creating {} training environments ...".format(env_specs["training_env_num"]))
+    training_env = get_envs(env_specs, env_wrapper, env_num=env_specs["training_env_num"])
     training_env.seed(env_specs["training_env_seed"])
 
-    obs_dim = obs_space.shape[0]
-    action_dim = act_space.shape[0]
+    print("Creating {} evaluation environments ...".format(env_specs["eval_env_num"]))
+    eval_env = get_envs(env_specs, env_wrapper, env_num=env_specs["eval_env_num"])
+    eval_env.seed(env_specs["eval_env_seed"])
 
-    # build the policy models
-    net_size = variant["policy_net_size"]
-    num_hidden = variant["policy_num_hidden_layers"]
-    qf1 = FlattenMlp(
-        hidden_sizes=num_hidden * [net_size],
-        input_size=obs_dim + action_dim,
-        output_size=1,
-    )
-    qf2 = FlattenMlp(
-        hidden_sizes=num_hidden * [net_size],
-        input_size=obs_dim + action_dim,
-        output_size=1,
-    )
-    vf = FlattenMlp(
-        hidden_sizes=num_hidden * [net_size],
-        input_size=obs_dim,
-        output_size=1,
-    )
-    policy = ReparamTanhMultivariateGaussianPolicy(
-        hidden_sizes=num_hidden * [net_size],
-        obs_dim=obs_dim,
-        action_dim=action_dim,
-    )
-
-    # build the discriminator model
-    disc_model = MLPDisc(
-        obs_dim + action_dim
-        if not variant["adv_irl_params"]["state_only"]
-        else 2 * obs_dim,
-        num_layer_blocks=variant["disc_num_blocks"],
-        hid_dim=variant["disc_hid_dim"],
-        hid_act=variant["disc_hid_act"],
-        use_bn=variant["disc_use_bn"],
-        clamp_magnitude=variant["disc_clamp_magnitude"],
-    )
-
-    # set up the algorithm
-    trainer = SoftActorCritic(
-        policy=policy, qf1=qf1, qf2=qf2, vf=vf, env=env, **variant["sac_params"]
-    )
     algorithm = AdvIRL(
         env=env,
         training_env=training_env,
-        exploration_policy=policy,
-        discriminator=disc_model,
-        policy_trainer=trainer,
+        eval_env=eval_env,
+        exploration_policy_n=policy_n,
+        policy_mapping_dict=policy_mapping_dict,
+        discriminator_n=disc_model_n,
+        trainer_n=policy_trainer_n,
         expert_replay_buffer=expert_replay_buffer,
-        **variant["adv_irl_params"]
+        **variant["adv_irl_params"],
     )
 
     if ptu.gpu_enabled():

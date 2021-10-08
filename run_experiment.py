@@ -1,7 +1,6 @@
 import yaml
 import argparse
 import os
-from os import path as osp
 from time import sleep
 from subprocess import Popen
 import datetime

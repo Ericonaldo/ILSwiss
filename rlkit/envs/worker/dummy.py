@@ -1,6 +1,6 @@
 import gym
 import numpy as np
-from typing import Any, List, Callable, Optional
+from typing import Any, List, Callable, Optional, Dict
 
 from rlkit.envs.worker import EnvWorker
 
@@ -25,8 +25,8 @@ class DummyEnvWorker(EnvWorker):
         # Sequential EnvWorker objects are always ready
         return workers
 
-    def send_action(self, action: np.ndarray) -> None:
-        self.result = self.env.step(action)
+    def send_action(self, action_n: Dict[str, np.ndarray]) -> None:
+        self.result = self.env.step(action_n)
 
     def seed(self, seed: Optional[int] = None) -> List[int]:
         super().seed(seed)

@@ -9,41 +9,67 @@ import json
 
 import numpy as np
 
-from rlkit.core.vistools import plot_returns_on_same_plot, save_plot
+from rlkit.core.vistools import plot_returns_on_same_plot
 
 
 def get_generic_path_information(paths, stat_prefix=""):
     """
     Get an OrderedDict with a bunch of statistic names and values.
     """
-    statistics = OrderedDict()
-    returns = [sum(path["rewards"]) for path in paths]
+    # XXX(zbzhu): maybe consider a better way to get `agent_ids`
+    agent_ids = paths[0].agent_ids
+
+    """ Bunch of deprecated codes and comments. Will be removed soon.
+    # returns = [sum(path["rewards"]) for path in paths]
     # rewards = np.vstack([path["rewards"] for path in paths])
-    rewards = np.concatenate([path["rewards"] for path in paths])
-    statistics.update(
-        create_stats_ordered_dict(
-            "Rewards", rewards, stat_prefix=stat_prefix, always_show_all_stats=True
-        )
-    )
-    statistics.update(
-        create_stats_ordered_dict(
-            "Returns", returns, stat_prefix=stat_prefix, always_show_all_stats=True
-        )
-    )
-    actions = [path["actions"] for path in paths]
+    # rewards = np.concatenate([path["rewards"] for path in paths])
     # if isinstance(actions[0][0], np.ndarray):
     #     actions = np.vstack([path["actions"] for path in paths])
     # else:
     #     actions = np.hstack([path["actions"] for path in paths])
-    statistics.update(
-        create_stats_ordered_dict(
-            "Actions", actions, stat_prefix=stat_prefix, always_show_all_stats=True
+    """
+
+    statistics = OrderedDict()
+
+    returns_n = {
+        a_id: [sum(path[a_id]["rewards"]) for path in paths] for a_id in agent_ids
+    }
+    rewards_n = {
+        a_id: np.concatenate([path[a_id]["rewards"] for path in paths])
+        for a_id in agent_ids
+    }
+    actions_n = {a_id: [path[a_id]["actions"] for path in paths] for a_id in agent_ids}
+
+    for a_id in agent_ids:
+        statistics.update(
+            create_stats_ordered_dict(
+                f"{a_id} Rewards",
+                rewards_n[a_id],
+                stat_prefix=stat_prefix,
+                always_show_all_stats=True,
+            )
         )
-    )
+        statistics.update(
+            create_stats_ordered_dict(
+                f"{a_id} Returns",
+                returns_n[a_id],
+                stat_prefix=stat_prefix,
+                always_show_all_stats=True,
+            )
+        )
+        statistics.update(
+            create_stats_ordered_dict(
+                f"{a_id} Actions",
+                actions_n[a_id],
+                stat_prefix=stat_prefix,
+                always_show_all_stats=True,
+            )
+        )
+
     statistics.update(
         create_stats_ordered_dict(
             "Ep. Len.",
-            np.array([len(path["terminals"]) for path in paths]),
+            np.array([len(path[agent_ids[0]]["terminals"]) for path in paths]),
             stat_prefix=stat_prefix,
             always_show_all_stats=True,
         )
@@ -53,12 +79,15 @@ def get_generic_path_information(paths, stat_prefix=""):
     return statistics
 
 
-def get_average_returns(paths, std=False):
-    returns = [sum(path["rewards"]) for path in paths]
+def get_agent_mean_avg_returns(paths, std=False):
+    agent_ids = paths[0].agent_ids
+    n_agents = len(agent_ids)
+    returns = [sum(path[a_id]["rewards"]) for path in paths for a_id in agent_ids]
     if std:
-        return np.mean(returns), np.std(returns)
+        return np.mean(returns) / n_agents, np.std(returns) / n_agents
 
-    return np.mean(returns)
+    # take mean over multiple agents
+    return np.mean(returns) / n_agents
 
 
 def create_stats_ordered_dict(
@@ -196,7 +225,6 @@ def plot_experiment_returns(
         returns = np.stack(arr_list)
         mean = np.mean(returns, 0)
         std = np.std(returns, 0)
-        x = np.arange(min_len)
         # save_plot(x, mean, title, save_path, color='cyan', x_axis_lims=x_axis_lims, y_axis_lims=y_axis_lims)
         plot_returns_on_same_plot(
             [mean, mean + std, mean - std],

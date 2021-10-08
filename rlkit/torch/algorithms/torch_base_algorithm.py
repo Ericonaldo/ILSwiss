@@ -1,5 +1,4 @@
 import abc
-import numpy as np
 
 from rlkit.core.base_algorithm import BaseAlgorithm
 
@@ -7,16 +6,18 @@ from rlkit.core.base_algorithm import BaseAlgorithm
 class TorchBaseAlgorithm(BaseAlgorithm, metaclass=abc.ABCMeta):
     @property
     @abc.abstractmethod
-    def networks(self):
+    def networks_n(self):
         """
         Used in many settings such as moving to devices
         """
         pass
 
     def training_mode(self, mode):
-        for net in self.networks:
-            net.train(mode)
+        for networks in self.networks_n.values():
+            for net in networks:
+                net.train(mode)
 
     def to(self, device):
-        for net in self.networks:
-            net.to(device)
+        for networks in self.networks_n.values():
+            for net in networks:
+                net.to(device)

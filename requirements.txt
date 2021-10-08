@@ -30,10 +30,6 @@ lockfile==0.12.2
 lxml==4.6.2
 Markdown==3.3.4
 matplotlib==3.3.2
-mjrl @ git+git://github.com/aravindr93/mjrl@64f89f5c908a7abb5d3b8d1f62ce7a74989ef25c
-mkl-fft==1.2.0
-mkl-random==1.1.1
-mkl-service==2.3.0
 mujoco-py==1.50.1.68
 numpy==1.19.3
 oauthlib==3.1.1
@@ -73,3 +69,4 @@ tqdm==4.51.0
 typechecks==0.1.0
 typing-extensions
 urllib3==1.26.2
+pettingzoo
