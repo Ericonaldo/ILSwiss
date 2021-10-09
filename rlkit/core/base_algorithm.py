@@ -350,8 +350,8 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         """
         return (
             len(self._exploration_paths) > 0
-            and self.replay_buffer.num_steps_can_sample()
-            >= self.min_steps_before_training
+            and self._n_train_steps_total
+            >= 0
         )
 
     def _can_train(self):
