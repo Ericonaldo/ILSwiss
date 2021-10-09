@@ -1,9 +1,8 @@
 import yaml
 import argparse
-import joblib
-import numpy as np
-import os, sys, inspect
-import pickle
+import os
+import sys
+import inspect
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
@@ -11,14 +10,17 @@ sys.path.insert(0, parentdir)
 print(sys.path)
 
 import gym
+import torch
+
 from rlkit.envs import get_env, get_envs
 from rlkit.envs.wrappers import NormalizedBoxEnv, ProxyEnv
 
 import rlkit.torch.utils.pytorch_util as ptu
 from rlkit.launchers.launcher_util import setup_logger, set_seed
 from rlkit.torch.common.networks import FlattenMlp
+from rlkit.torch.common.policies import ReparamMultivariateGaussianPolicy
 from rlkit.torch.common.policies import ReparamTanhMultivariateGaussianPolicy
-from rlkit.torch.algorithms.sac.sac_alpha import SoftActorCritic
+from rlkit.torch.algorithms.ppo.ppo import PPO
 from rlkit.torch.algorithms.torch_rl_algorithm import TorchRLAlgorithm
 
 
@@ -52,29 +54,27 @@ def experiment(variant):
 
     net_size = variant["net_size"]
     num_hidden = variant["num_hidden_layers"]
-    qf1 = FlattenMlp(
+    vf = FlattenMlp(
         hidden_sizes=num_hidden * [net_size],
-        input_size=obs_dim + action_dim,
+        input_size=obs_dim,
         output_size=1,
+        hidden_activation=torch.tanh,
     )
-    qf2 = FlattenMlp(
-        hidden_sizes=num_hidden * [net_size],
-        input_size=obs_dim + action_dim,
-        output_size=1,
-    )
-    policy = ReparamTanhMultivariateGaussianPolicy(
+    #  policy = ReparamTanhMultivariateGaussianPolicy(
+    policy = ReparamMultivariateGaussianPolicy(
         hidden_sizes=num_hidden * [net_size],
         obs_dim=obs_dim,
         action_dim=action_dim,
+        conditioned_std=False,
+        hidden_activation=torch.tanh,
     )
 
-    trainer = SoftActorCritic(
+    trainer = PPO(
         policy=policy,
-        qf1=qf1,
-        qf2=qf2,
-        env=env,
-        **variant["sac_params"],
+        vf=vf,
+        **variant["ppo_params"],
     )
+
     algorithm = TorchRLAlgorithm(
         trainer=trainer,
         env=env,
@@ -105,7 +105,7 @@ if __name__ == "__main__":
         "training_env_seed"
     ] = exp_specs["seed"]
 
-    if exp_specs["num_gpu_per_worker"] > 0:
+    if exp_specs["using_gpus"] > 0:
         print("\n\nUSING GPU\n\n")
         ptu.set_gpu_mode(True, args.gpu)
     exp_id = exp_specs["exp_id"]

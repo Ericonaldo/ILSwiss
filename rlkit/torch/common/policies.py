@@ -1,5 +1,6 @@
 import numpy as np
 from numpy.random import choice
+import math
 
 import torch
 from torch import nn as nn
@@ -213,9 +214,9 @@ class ReparamTanhMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
         hidden_sizes,
         obs_dim,
         action_dim,
-        std=None,
         init_w=1e-3,
         max_act=1.0,
+        conditioned_std: bool = False,
         **kwargs
     ):
         self.save_init_params(locals())
@@ -226,10 +227,10 @@ class ReparamTanhMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
             init_w=init_w,
             **kwargs
         )
-        self.log_std = None
-        self.std = std
         self.max_act = max_act
-        if std is None:
+        self.conditioned_std = conditioned_std
+
+        if self.conditioned_std:
             last_hidden_size = obs_dim
             if len(hidden_sizes) > 0:
                 last_hidden_size = hidden_sizes[-1]
@@ -237,8 +238,7 @@ class ReparamTanhMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
             self.last_fc_log_std.weight.data.uniform_(-init_w, init_w)
             self.last_fc_log_std.bias.data.uniform_(-init_w, init_w)
         else:
-            self.log_std = np.log(std)
-            assert LOG_SIG_MIN <= self.log_std <= LOG_SIG_MAX
+            self.action_log_std = nn.Parameter(torch.zeros(1, action_dim))
 
     def get_action(self, obs_np, deterministic=False):
         actions = self.get_actions(obs_np[None], deterministic=deterministic)
@@ -260,16 +260,14 @@ class ReparamTanhMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
         for i, fc in enumerate(self.fcs):
             h = self.hidden_activation(fc(h))
 
-        # print(h)
         mean = self.last_fc(h)
-        # print(mean)
-        if self.std is None:
+
+        if self.conditioned_std:
             log_std = self.last_fc_log_std(h)
             log_std = torch.clamp(log_std, LOG_SIG_MIN, LOG_SIG_MAX)
-            std = torch.exp(log_std)
         else:
-            std = self.std
-            log_std = self.log_std
+            log_std = self.action_log_std.expand_as(mean)
+        std = torch.exp(log_std)
 
         log_prob = None
         expected_log_prob = None
@@ -279,9 +277,7 @@ class ReparamTanhMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
             action = torch.tanh(mean)
         else:
             tanh_normal = ReparamTanhMultivariateNormal(mean, log_std)
-            # print('mean, std')
-            # print(mean)
-            # print(log_std)
+
             if return_log_prob:
                 action, pre_tanh_value = tanh_normal.sample(return_pretanh_value=True)
                 log_prob = tanh_normal.log_prob(action, pre_tanh_value=pre_tanh_value)
@@ -312,26 +308,39 @@ class ReparamTanhMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
             pre_tanh_value,
         )
 
+    def get_log_prob_entropy(self, obs, acts):
+        h = obs
+        for i, fc in enumerate(self.fcs):
+            h = self.hidden_activation(fc(h))
+        mean = self.last_fc(h)
+        if self.conditioned_std:
+            log_std = self.last_fc_log_std(h)
+            log_std = torch.clamp(log_std, LOG_SIG_MIN, LOG_SIG_MAX)
+        else:
+            log_std = self.action_log_std.expand_as(mean)
+
+        tanh_normal = ReparamTanhMultivariateNormal(mean, log_std)
+        log_prob = tanh_normal.log_prob(acts)
+
+        entropy = (0.5 + 0.5 * math.log(2 * math.pi) + log_std).sum(
+            dim=-1, keepdim=True
+        )
+
+        return log_prob, entropy
+
     def get_log_prob(self, obs, acts, return_normal_params=False):
         h = obs
         for i, fc in enumerate(self.fcs):
             h = self.hidden_activation(fc(h))
         mean = self.last_fc(h)
-        if self.std is None:
+        if self.conditioned_std:
             log_std = self.last_fc_log_std(h)
             log_std = torch.clamp(log_std, LOG_SIG_MIN, LOG_SIG_MAX)
-            std = torch.exp(log_std)
         else:
-            std = self.std
-            log_std = self.log_std
+            log_std = self.action_log_std.expand_as(mean)
 
         tanh_normal = ReparamTanhMultivariateNormal(mean, log_std)
         log_prob = tanh_normal.log_prob(acts)
-
-        # print('\n\n\n\n\nGet log prob')
-        # print(log_prob)
-        # print(mean)
-        # print(log_std)
 
         if return_normal_params:
             return log_prob, mean, log_std
@@ -340,7 +349,13 @@ class ReparamTanhMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
 
 class ReparamMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
     def __init__(
-        self, hidden_sizes, obs_dim, action_dim, std=None, init_w=1e-3, **kwargs
+        self,
+        hidden_sizes,
+        obs_dim,
+        action_dim,
+        conditioned_std=False,
+        init_w=1e-3,
+        **kwargs,
     ):
         self.save_init_params(locals())
         super().__init__(
@@ -350,9 +365,9 @@ class ReparamMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
             init_w=init_w,
             **kwargs
         )
-        self.log_std = None
-        self.std = std
-        if std is None:
+        self.conditioned_std = conditioned_std
+
+        if self.conditioned_std:
             last_hidden_size = obs_dim
             if len(hidden_sizes) > 0:
                 last_hidden_size = hidden_sizes[-1]
@@ -360,9 +375,10 @@ class ReparamMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
             self.last_fc_log_std.weight.data.uniform_(-init_w, init_w)
             self.last_fc_log_std.bias.data.uniform_(-init_w, init_w)
         else:
-            assert LOG_SIG_MIN <= np.log(std) <= LOG_SIG_MAX
-            std = std * np.ones((1, action_dim))
-            self.log_std = ptu.from_numpy(np.log(std), requires_grad=False)
+            self.action_log_std = nn.Parameter(torch.zeros(1, action_dim))
+
+        self.last_fc.weight.data.mul_(0.1)
+        self.last_fc.bias.data.mul_(0.0)
 
     def get_action(self, obs_np, deterministic=False):
         actions = self.get_actions(obs_np[None], deterministic=deterministic)
@@ -379,29 +395,17 @@ class ReparamMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
         :param deterministic: If True, do not sample
         :param return_log_prob: If True, return a sample and its log probability
         """
-        # print('forward')
-        # print(obs)
         h = obs
         for i, fc in enumerate(self.fcs):
             h = self.hidden_activation(fc(h))
-        # print('fuck')
-        # print(h)
         mean = self.last_fc(h)
 
-        mean = torch.clamp(mean, min=-1.0, max=1.0)
-
-        # print(mean)
-        if self.std is None:
+        if self.conditioned_std:
             log_std = self.last_fc_log_std(h)
-
-            # log_std = torch.clamp(log_std, LOG_SIG_MIN, LOG_SIG_MAX)
-            log_std = torch.clamp(log_std, LOG_SIG_MIN, np.log(0.2))
-
-            std = torch.exp(log_std)
-
+            log_std = torch.clamp(log_std, LOG_SIG_MIN, LOG_SIG_MAX)
         else:
-            std = self.std
-            log_std = self.log_std
+            log_std = self.action_log_std.expand_as(mean)
+        std = torch.exp(log_std)
 
         log_prob = None
         expected_log_prob = None
@@ -436,18 +440,37 @@ class ReparamMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
             mean_action_log_prob,
         )
 
+    def get_log_prob_entropy(self, obs, acts):
+        h = obs
+        for i, fc in enumerate(self.fcs):
+            h = self.hidden_activation(fc(h))
+        mean = self.last_fc(h)
+
+        if self.conditioned_std:
+            log_std = self.last_fc_log_std(h)
+            log_std = torch.clamp(log_std, LOG_SIG_MIN, LOG_SIG_MAX)
+        else:
+            log_std = self.action_log_std.expand_as(mean)
+
+        normal = ReparamMultivariateNormalDiag(mean, log_std)
+        log_prob = normal.log_prob(acts)
+
+        entropy = (0.5 + 0.5 * math.log(2 * math.pi) + log_std).sum(
+            dim=-1, keepdim=True
+        )
+        return log_prob, entropy
+
     def get_log_prob(self, obs, acts, return_normal_params=False):
         h = obs
         for i, fc in enumerate(self.fcs):
             h = self.hidden_activation(fc(h))
         mean = self.last_fc(h)
-        if self.std is None:
+
+        if self.conditioned_std:
             log_std = self.last_fc_log_std(h)
             log_std = torch.clamp(log_std, LOG_SIG_MIN, LOG_SIG_MAX)
-            std = torch.exp(log_std)
         else:
-            std = self.std
-            log_std = self.log_std
+            log_std = self.action_log_std.expand_as(mean)
 
         normal = ReparamMultivariateNormalDiag(mean, log_std)
         log_prob = normal.log_prob(acts)
@@ -455,6 +478,7 @@ class ReparamMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
         if return_normal_params:
             return log_prob, mean, log_std
         return log_prob
+
 
 
 class AntRandGoalCustomReparamTanhMultivariateGaussianPolicy(

@@ -39,6 +39,8 @@ NOTE: all experiments, including the evaluation tasks (see `\run_scripts\evaluat
 
 RL algorithms do not need demonstrations. Therefore, all you need is to write an experiment yaml file (see an example in `\exp_specs\sac\sac_hopper.yaml`) and run with the above suggestions.
 
+For on-policy algorithms (e.g., PPO), we clean the buffer after every training step.
+
 ## Running IL algorithms
 
 IL algorithms need to be assigned with demonstrations. A input-format-matching standard mujoco demonstrations can be download in [here](https://github.com/apexrl/Baseline_Pool/tree/master/imitation_learning/sac/expert_trajs_50). If you want to sample your own data, train an expert agent using RL algorithms and sample using `\run_scripts\gen_expert_demo.py` or `\run_scripts\evaluate_policy.py`, and do not forget to modify your IO format.

@@ -81,6 +81,4 @@ constants:
   env_specs:
     env_name: 'humanoid'
     env_kwargs: {}
-    env_num: 10
-    eval_env_seed: 78236
-    training_env_seed: 24495
+    env_num: 10 # This parameter define how many vec envs are created

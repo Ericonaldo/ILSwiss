@@ -126,18 +126,9 @@ if __name__ == "__main__":
     # setup_logger(exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs)
 
     train_file = (
-        exp_specs["method"] + "-" + exp_specs["env_specs"]["env_name"] + "-STANDARD-EXP"
+        exp_specs["method"] + "-" + exp_specs["env_specs"]["env_name"]
     )
     pkl_name = "/best.pkl"
-
-    if "invdoublependulum" in exp_specs["env_specs"]["env_name"]:
-        pkl_name = "/params.pkl"
-
-    if "gail" in exp_specs["method"]:
-        if "hopper" in exp_specs["env_specs"]["env_name"]:
-            train_file = "gail-hopper--rs-2.0"
-        elif "walker" in exp_specs["env_specs"]["env_name"]:
-            train_file = "gail-walker--rs-2.0"
 
     train_files = [train_file]
     save_path = "./final_performance/"

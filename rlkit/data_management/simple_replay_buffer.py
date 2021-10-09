@@ -383,6 +383,77 @@ class SimpleReplayBuffer(ReplayBuffer):
     def num_steps_can_sample(self):
         return self._size
 
+    def sample_all_trajs(
+        self,
+        keys=None,
+        samples_per_traj=None,
+    ):
+        # samples_per_traj of None mean use all of the samples
+        starts = list(self._traj_endpoints.keys())
+        ends = map(lambda k: self._traj_endpoints[k], starts)
+
+        if samples_per_traj is None:
+            return list(
+                starmap(lambda s, e: self._get_segment(s, e, keys), zip(starts, ends))
+            )
+        else:
+            return list(
+                starmap(
+                    lambda s, e: self._get_samples_from_traj(
+                        s, e, samples_per_traj, keys
+                    ),
+                    zip(starts, ends),
+                )
+            )
+
+    def clear(self):
+        if isinstance(self._observation_dim, tuple):
+            dims = [d for d in self._observation_dim]
+            dims = [self._max_replay_buffer_size] + dims
+            dims = tuple(dims)
+            self._observations = np.zeros(dims)
+            self._next_obs = np.zeros(dims)
+        elif isinstance(self._observation_dim, dict):
+            # assuming that this is a one-level dictionary
+            self._observations = {}
+            self._next_obs = {}
+
+            for key, dims in self._observation_dim.items():
+                if isinstance(dims, tuple):
+                    dims = tuple([self._max_replay_buffer_size] + list(dims))
+                else:
+                    dims = (self._max_replay_buffer_size, dims)
+                self._observations[key] = np.zeros(dims)
+                self._next_obs[key] = np.zeros(dims)
+        else:
+            # else observation_dim is an integer
+            self._observations = np.zeros(
+                (self._max_replay_buffer_size, self._observation_dim)
+            )
+            self._next_obs = np.zeros(
+                (self._max_replay_buffer_size, self._observation_dim)
+            )
+
+        self._actions = np.zeros((self._max_replay_buffer_size, self._action_dim))
+
+        # Make everything a 2D np array to make it easier for other code to
+        # reason about the shape of the data
+        self._rewards = np.zeros((self._max_replay_buffer_size, 1))
+        # self._terminals[i] = a terminal was received at time i
+        self._terminals = np.zeros((self._max_replay_buffer_size, 1), dtype="uint8")
+        self._timeouts = np.zeros((self._max_replay_buffer_size, 1), dtype="uint8")
+        # absorbing[0] is if obs was absorbing, absorbing[1] is if next_obs was absorbing
+        self._absorbing = np.zeros((self._max_replay_buffer_size, 2))
+        self._top = 0
+        self._size = 0
+        self._trajs = 0
+
+        # keeping track of trajectory boundaries
+        # assumption is trajectory lengths are AT MOST the length of the entire replay buffer
+        self._cur_start = 0
+        self._traj_endpoints = {}  # start->end means [start, end)
+
+
 
 class SimpleReplayBufferDict(dict):
     def __init__(self, max_size, obs_dim, act_dim, seed):

@@ -83,5 +83,3 @@ constants:
     env_name: 'walker'
     env_kwargs: {}
     env_num: 10
-    eval_env_seed: 78236
-    training_env_seed: 24495

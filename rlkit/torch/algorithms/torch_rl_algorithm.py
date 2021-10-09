@@ -28,7 +28,11 @@ class TorchRLAlgorithm(TorchBaseAlgorithm):
 
     def _do_training(self, epoch):
         for _ in range(self.num_train_steps_per_train_call):
-            self.trainer.train_step(self.get_batch())
+            if hasattr(self.trainer, 'on_policy') and self.trainer.on_policy:
+                self.trainer.train_step(self.get_all_trajs())
+                self.clear_buffer()
+            else:
+                self.trainer.train_step(self.get_batch())
 
     def get_epoch_snapshot(self, epoch):
         data_to_save = dict(epoch=epoch)
@@ -42,3 +46,11 @@ class TorchRLAlgorithm(TorchBaseAlgorithm):
     def _end_epoch(self):
         self.trainer.end_epoch()
         super()._end_epoch()
+
+    def get_all_trajs(self):
+        batch = self.replay_buffer.sample_all_trajs()
+        batch = [np_to_pytorch_batch(b) for b in batch]
+        return batch
+
+    def clear_buffer(self):
+        self.replay_buffer.clear()

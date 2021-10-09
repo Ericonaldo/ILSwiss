@@ -112,6 +112,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         self._n_env_steps_total = 0
         self._n_train_steps_total = 0
         self._n_rollouts_total = 0
+        self._n_prev_train_env_steps = 0
         self._do_train_time = 0
         self._epoch_start_time = None
         self._algo_start_time = None
@@ -273,7 +274,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
 
                 observations = next_obs
 
-                if self._n_env_steps_total % self.num_steps_between_train_calls == 0:
+                if (self._n_env_steps_total - self._n_prev_train_env_steps) >= self.num_steps_between_train_calls:
                     gt.stamp("sample")
                     self._try_to_train(epoch)
                     gt.stamp("train")
@@ -285,6 +286,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
 
     def _try_to_train(self, epoch):
         if self._can_train():
+            self._n_prev_train_env_steps = self._n_env_steps_total
             self.training_mode(True)
             self._do_training(epoch)
             self._n_train_steps_total += 1

@@ -1,9 +1,8 @@
+import os
+import sys
 import yaml
+import inspect
 import argparse
-import joblib
-import numpy as np
-import os, sys, inspect
-import pickle
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
@@ -17,8 +16,8 @@ from rlkit.envs.wrappers import NormalizedBoxEnv, ProxyEnv
 import rlkit.torch.utils.pytorch_util as ptu
 from rlkit.launchers.launcher_util import setup_logger, set_seed
 from rlkit.torch.common.networks import FlattenMlp
-from rlkit.torch.common.policies import ReparamTanhMultivariateGaussianPolicy
-from rlkit.torch.algorithms.sac.sac_alpha import SoftActorCritic
+from rlkit.torch.common.policies import DiscretePolicy
+from rlkit.torch.algorithms.discrete_sac.discrete_sac import DiscreteSoftActorCritic
 from rlkit.torch.algorithms.torch_rl_algorithm import TorchRLAlgorithm
 
 
@@ -32,8 +31,8 @@ def experiment(variant):
     print("Obs Space: {}".format(env.observation_space))
     print("Act Space: {}\n\n".format(env.action_space))
 
-    obs_space = env.observation_space
-    act_space = env.action_space
+    obs_space = env.observation_space_n
+    act_space = env.action_space_n
     assert not isinstance(obs_space, gym.spaces.Dict)
     assert len(obs_space.shape) == 1
     assert len(act_space.shape) == 1
@@ -54,32 +53,32 @@ def experiment(variant):
     num_hidden = variant["num_hidden_layers"]
     qf1 = FlattenMlp(
         hidden_sizes=num_hidden * [net_size],
-        input_size=obs_dim + action_dim,
-        output_size=1,
+        input_size=obs_dim,
+        output_size=action_dim,
     )
     qf2 = FlattenMlp(
         hidden_sizes=num_hidden * [net_size],
-        input_size=obs_dim + action_dim,
-        output_size=1,
+        input_size=obs_dim,
+        output_size=action_dim,
     )
-    policy = ReparamTanhMultivariateGaussianPolicy(
+    policy = DiscretePolicy(
         hidden_sizes=num_hidden * [net_size],
         obs_dim=obs_dim,
         action_dim=action_dim,
     )
 
-    trainer = SoftActorCritic(
-        policy=policy,
-        qf1=qf1,
-        qf2=qf2,
-        env=env,
-        **variant["sac_params"],
+    trainer = DiscreteSoftActorCritic(
+        policy=policy, 
+        qf1=qf1, 
+        qf2=qf2, 
+        **variant["sac_params"]
     )
+
     algorithm = TorchRLAlgorithm(
         trainer=trainer,
         env=env,
         training_env=training_env,
-        exploration_policy=policy,
+        exploration_policy_n=policy,
         **variant["rl_alg_params"],
     )
 
@@ -105,7 +104,7 @@ if __name__ == "__main__":
         "training_env_seed"
     ] = exp_specs["seed"]
 
-    if exp_specs["num_gpu_per_worker"] > 0:
+    if exp_specs["using_gpus"] > 0:
         print("\n\nUSING GPU\n\n")
         ptu.set_gpu_mode(True, args.gpu)
     exp_id = exp_specs["exp_id"]

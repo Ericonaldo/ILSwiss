@@ -48,5 +48,3 @@ constants:
   env_specs:
     env_name: 'inverteddoublependulum'
     env_kwargs: {}
-    eval_env_seed: 78236
-    training_env_seed: 24495
