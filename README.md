@@ -13,6 +13,7 @@ You can easily build experiment codes under this framework in your research. We 
 - Soft Q Learning (SQL)
 - TD3
 - DDPG
+- PPO
 
 ## Implemented IL algorithms:
 
