@@ -62,12 +62,17 @@ class HindsightReplayBuffer(SimpleReplayBuffer):
         indices = []
         indices_relabel = []
         for i in traj_indice:
-            step = (self._np_randint(0, abs(ends[i]-starts[i]), 1)[0] + starts[i]) % self._size
+            traj_len = abs(ends[i]-starts[i]) % self._size
+            step = (self._np_randint(0, traj_len, 1)[0] + starts[i]) % self._size
             
-            step_her = {
-                'final': ends[i],
-                'future': np.random.randint(step+1, ends[i]+1)
-            }[self.relabel_type]
+            try:
+                step_her = {
+                    'final': ends[i],
+                    'future': np.random.randint(step+1, (traj_len + starts[i]) + 1) % self._size
+                }[self.relabel_type]
+            except BaseException:
+                print(starts[i], ends[i], step+1, ends[i]+1)
+                exit(0)
 
             indices.append(step)
             indices_relabel.append(step_her)
