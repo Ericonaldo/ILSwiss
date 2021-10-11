@@ -480,9 +480,8 @@ class ReparamMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
         return log_prob
 
 
-
-class AntRandGoalCustomReparamTanhMultivariateGaussianPolicy(
-    ReparamTanhMultivariateGaussianPolicy
+class MlpGaussianNoiseConditionPolicy(
+    MlpGaussianNoisePolicy
 ):
     """
     Custom for Ant Rand Goal
@@ -491,235 +490,66 @@ class AntRandGoalCustomReparamTanhMultivariateGaussianPolicy(
 
     def __init__(
         self,
-        goal_dim,
-        goal_embed_dim,
         hidden_sizes,
         obs_dim,
+        condition_dim,
         action_dim,
-        std=None,
-        init_w=1e-3,
         **kwargs
     ):
         self.save_init_params(locals())
         super().__init__(
-            hidden_sizes, obs_dim + goal_embed_dim, action_dim, init_w=init_w, **kwargs
+            hidden_sizes, obs_dim+condition_dim, action_dim, **kwargs
         )
 
-        self.goal_embed_fc = nn.Linear(goal_dim, goal_embed_dim)
-        self.goal_dim = goal_dim
+        self.condition_dim = condition_dim
+        self.obs_dim = obs_dim
 
-    def forward(
-        self, obs, deterministic=False, return_log_prob=False, return_tanh_normal=False
-    ):
-        # obs will actuall be concat of [obs, goal]
-        goal = obs[:, -self.goal_dim :]
-        goal_embed = self.goal_embed_fc(goal)
-        obs = torch.cat([obs[:, : -self.goal_dim], goal_embed], dim=-1)
-        return super().forward(
-            obs,
-            deterministic=deterministic,
-            return_log_prob=return_log_prob,
-            return_tanh_normal=return_tanh_normal,
-        )
+    def get_action(self, obs_condition_np, deterministic=False):
+        """
+        deterministic=False makes no diff, just doing this for
+        consistency in interface for now
+        """
+        if isinstance(obs_condition_np, dict):
+            obs_condition_np = np.concatenate([obs_condition_np[key] for key in obs_condition_np.keys() if key != "achieved_goal"], axis=-1)
+        elif isinstance(obs_condition_np[0], dict):
+            obs_condition_np = [{k: v for k, v in x.items() if k != "achieved_goal"} for x in obs_condition_np]
+            obs_condition_np = np.array([np.concatenate([x[key] for key in x.keys()], axis=-1) for x in obs_condition_np])
 
+        actions = self.get_actions(obs_condition_np[None], deterministic=deterministic)
+        # actions = actions[None]
+        # print(actions, actions.shape)
+        return actions[0, :], {}
 
-class ObsPreprocessedReparamTanhMultivariateGaussianPolicy(
-    ReparamTanhMultivariateGaussianPolicy
-):
-    """
-    This is a weird thing and I didn't know what to call.
-    Basically I wanted this so that if you need to preprocess
-    your inputs somehow (attention, gating, etc.) with an external module
-    before passing to the policy you could do so.
-    Assumption is that you do not want to update the parameters of the preprocessing
-    module so its output is always detached.
-    """
+    def get_actions(self, obs_condition_np, deterministic=False):
+        
+        if isinstance(obs_condition_np, dict):
+            obs_condition_np = np.concatenate([obs_condition_np[key] for key in obs_condition_np.keys() if key != "achieved_goal"], axis=-1)
+        elif isinstance(obs_condition_np[0], dict):
+            obs_condition_np = [{k: v for k, v in x.items() if k != "achieved_goal"} for x in obs_condition_np]
+            obs_condition_np = np.array([np.concatenate([x[key] for key in x.keys()], axis=-1) for x in obs_condition_np])
+        
+        return self.eval_np(obs_condition_np, deterministic=deterministic)[0]
 
-    def __init__(self, preprocess_model, *args, **kwargs):
-        self.save_init_params(locals())
-        super().__init__(*args, **kwargs)
-        # this is a hack so that it is not added as a submodule
-        self.preprocess_model_list = [preprocess_model]
-
-    @property
-    def preprocess_model(self):
-        # this is a hack so that it is not added as a submodule
-        return self.preprocess_model_list[0]
-
-    def preprocess_fn(self, obs_batch):
-        mode = self.preprocess_model.training
-        self.preprocess_model.eval()
-        processed_obs_batch = self.preprocess_model(obs_batch, False).detach()
-        self.preprocess_model.train(mode)
-        return processed_obs_batch
-
-    def forward(
-        self, obs, deterministic=False, return_log_prob=False, return_tanh_normal=False
-    ):
-        obs = self.preprocess_fn(obs).detach()
-        return super().forward(
-            obs,
-            deterministic=deterministic,
-            return_log_prob=return_log_prob,
-            return_tanh_normal=return_tanh_normal,
-        )
-
-    def get_log_prob(self, obs, acts):
-        obs = self.preprocess_fn(obs).detach()
-        return super().get_log_prob(obs, acts)
-
-
-class WithZObsPreprocessedReparamTanhMultivariateGaussianPolicy(
-    ReparamTanhMultivariateGaussianPolicy
-):
-    """
-    This is a weird thing and I didn't know what to call.
-    Basically I wanted this so that if you need to preprocess
-    your inputs somehow (attention, gating, etc.) with an external module
-    before passing to the policy you could do so.
-    Assumption is that you do not want to update the parameters of the preprocessing
-    module so its output is always detached.
-    """
-
-    def __init__(
-        self, preprocess_model, z_dim, *args, train_preprocess_model=False, **kwargs
-    ):
-        self.save_init_params(locals())
-        super().__init__(*args, **kwargs)
-        # this is a hack so that it is not added as a submodule
-        if train_preprocess_model:
-            self._preprocess_model = preprocess_model
+    def forward(self, obs_condition, deterministic=False):
+        h = obs_condition
+        for i, fc in enumerate(self.fcs):
+            h = fc(h)
+            if self.layer_norm:
+                h = self.layer_norms[i](h)
+            if self.batch_norm:
+                h = self.batch_norms[i](h)
+            h = self.hidden_activation(h)
+        preactivation = self.last_fc(h)
+        if self.batch_norm_before_output_activation:
+            preactivation = self.batch_norms[-1](preactivation)
+        action = self.max_act * self.output_activation(preactivation)
+        if deterministic:
+            pass
         else:
-            # this is a hack so that it is not added as a submodule
-            self.preprocess_model_list = [preprocess_model]
-        self.z_dim = z_dim
-        self.train_preprocess_model = train_preprocess_model
-
-    @property
-    def preprocess_model(self):
-        if self.train_preprocess_model:
-            return self._preprocess_model
-        else:
-            # this is a hack so that it is not added as a submodule
-            return self.preprocess_model_list[0]
-
-    def preprocess_fn(self, obs_batch):
-        if self.train_preprocess_model:
-            processed_obs_batch = self.preprocess_model(
-                obs_batch[:, : -self.z_dim], False, obs_batch[:, -self.z_dim :]
+            noise = self.noise * torch.normal(
+                torch.zeros_like(action),
             )
-        else:
-            mode = self.preprocess_model.training
-            self.preprocess_model.eval()
-            processed_obs_batch = self.preprocess_model(
-                obs_batch[:, : -self.z_dim], False, obs_batch[:, -self.z_dim :]
-            ).detach()
-            self.preprocess_model.train(mode)
-        return processed_obs_batch
+            noise = torch.clamp(noise, -self.noise_clip, self.noise_clip)
+            action += noise
 
-    def forward(
-        self, obs, deterministic=False, return_log_prob=False, return_tanh_normal=False
-    ):
-        if self.train_preprocess_model:
-            obs = self.preprocess_fn(obs)
-        else:
-            obs = self.preprocess_fn(obs).detach()
-        return super().forward(
-            obs,
-            deterministic=deterministic,
-            return_log_prob=return_log_prob,
-            return_tanh_normal=return_tanh_normal,
-        )
-
-    def get_log_prob(self, obs, acts):
-        if self.train_preprocess_model:
-            obs = self.preprocess_fn(obs)
-        else:
-            obs = self.preprocess_fn(obs).detach()
-        return super().get_log_prob(obs, acts)
-
-
-class BaselineContextualPolicy(PyTorchModule):
-    def __init__(self, action_dim):
-        self.save_init_params(locals())
-        super().__init__()
-
-        # # YUKE ARCH : 17x17 out
-        self.conv_part = nn.Sequential(
-            nn.Conv2d(6, 32, 8, stride=4, padding=4),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.Conv2d(32, 32, 4, stride=2, padding=2),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            # nn.Conv2d(32, 32, 4, stride=2, padding=p),
-            # nn.ReLU(),
-        )
-        self.fc_part = nn.Sequential(
-            nn.Linear(9248, 1024),
-            nn.BatchNorm1d(1024),
-            nn.ReLU(),
-            nn.Linear(1024, 256),
-            nn.BatchNorm1d(256),
-            nn.ReLU(),
-            nn.Linear(256, 256),
-            nn.BatchNorm1d(256),
-            nn.ReLU(),
-            nn.Linear(256, action_dim),
-        )
-
-        # FINN ARCH: 8x8 out
-        # self.conv_part = nn.Sequential(
-        #     nn.Conv2d(6, 32, 5, stride=2, padding=2),
-        #     nn.BatchNorm2d(32),
-        #     nn.ReLU(),
-        #     nn.Conv2d(32, 32, 5, stride=2, padding=2),
-        #     nn.BatchNorm2d(32),
-        #     nn.ReLU(),
-        #     nn.Conv2d(32, 32, 5, stride=2, padding=2),
-        #     nn.BatchNorm2d(32),
-        #     nn.ReLU(),
-        #     nn.Conv2d(32, 32, 5, stride=2, padding=2),
-        #     nn.BatchNorm2d(32),
-        #     nn.ReLU(),
-        #     # nn.Conv2d(32, 32, 4, stride=2, padding=p),
-        #     # nn.ReLU(),
-        # )
-        # self.fc_part = nn.Sequential(
-        #     nn.Linear(2048, 1024),
-        #     nn.BatchNorm1d(1024),
-        #     nn.ReLU(),
-        #     nn.Linear(1024, 256),
-        #     nn.BatchNorm1d(256),
-        #     nn.ReLU(),
-        #     nn.Linear(256, 256),
-        #     nn.BatchNorm1d(256),
-        #     nn.ReLU(),
-        #     nn.Linear(256, action_dim),
-        # )
-        print(self)
-
-    def forward(self, obs):
-        image = obs["image"]
-        context_image = obs["z"]
-
-        policy_input = torch.cat([image, context_image], dim=1)
-        conv_out = self.conv_part(policy_input)
-        conv_out = conv_out.view(conv_out.size(0), -1)
-        fc_out = self.fc_part(conv_out)
-        return fc_out
-
-
-class CondBaselineContextualPolicy(ExplorationPolicy):
-    def __init__(self, policy, z):
-        super().__init__()
-        self.policy = policy
-        self.z = z
-
-    def get_action(self, obs_np):
-        new_dict = {
-            k: ptu.from_numpy(obs_np[k][None], requires_grad=False) for k in obs_np
-        }
-        new_dict["z"] = self.z
-        action = ptu.get_numpy(self.policy.forward(new_dict)[0])
-        return action, {}
+        return (action, preactivation)

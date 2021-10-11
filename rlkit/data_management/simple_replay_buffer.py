@@ -40,6 +40,7 @@ class SimpleReplayBuffer(ReplayBuffer):
             # assuming that this is a one-level dictionary
             self._observations = {}
             self._next_obs = {}
+            self._pred_obs = {}
 
             for key, dims in observation_dim.items():
                 if isinstance(dims, tuple):
@@ -48,6 +49,7 @@ class SimpleReplayBuffer(ReplayBuffer):
                     dims = (max_replay_buffer_size, dims)
                 self._observations[key] = np.zeros(dims)
                 self._next_obs[key] = np.zeros(dims)
+                self._pred_obs[key] = np.zeros(dims)
         else:
             # else observation_dim is an integer
             self._observations = np.zeros((max_replay_buffer_size, observation_dim))
@@ -123,7 +125,7 @@ class SimpleReplayBuffer(ReplayBuffer):
             "observations": self._observations[: self._top],
             "actions": self._actions[: self._top],
             "next_observations": self._next_obs[: self._top],
-            "pred_observations": self._pred_obs[: self._top],
+            "pred_observations": self._pred_obs[: self._top], 
             "terminals": self._terminals[: self._top],
             "timeouts": self._timeouts[: self._top],
             "rewards": self._rewards[: self._top],

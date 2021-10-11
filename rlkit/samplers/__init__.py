@@ -28,9 +28,9 @@ def rollout(
             rewards=np.array([reward]),
             next_observations=next_ob,
             terminals=np.array([terminal]),
-            absorbing=np.array([0.0, 0.0]),
-            agent_info=agent_info,
-            env_info=env_info,
+            absorbings=np.array([0.0, 0.0]),
+            agent_infos=agent_info,
+            env_infos=env_info,
         )
 
         observation = next_ob

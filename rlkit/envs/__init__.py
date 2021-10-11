@@ -25,6 +25,7 @@ env_overwrite = {}  # {'Ant': AntEnv, 'Humanoid': HumanoidEnv, 'Swimmer':Swimmer
 
 def load(name):
     # taken from OpenAI gym registration.py
+    print(name)
     mod_name, attr_name = name.split(":")
     mod = importlib.import_module(mod_name)
     fn = getattr(mod, attr_name)
