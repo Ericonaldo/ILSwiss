@@ -24,13 +24,13 @@ constants:
     num_steps_between_train_calls: 1
     num_train_steps_per_train_call: 1
     num_steps_per_eval: 10000
-    max_path_length: 1000
+    max_path_length: 50
     min_steps_before_training: 2500
 
     eval_deterministic: true
 
     batch_size: 256
-    replay_buffer_size: 1000000
+    replay_buffer_size: 100000
     no_terminal: false
     wrap_absorbing: false
 
