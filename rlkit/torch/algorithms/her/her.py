@@ -37,6 +37,20 @@ class HER(TorchRLAlgorithm):
         batch = np_to_pytorch_batch(batch)
         return batch
 
+    def _get_action_and_info(self, observation):
+        """
+        Get an action to take in the environment.
+        :param observation:
+        :return:
+        """
+        # print(self._can_train())
+        if not self._can_train():
+            return [np.random.uniform(-1, 1, size=self.exploration_policy.action_dim) for _ in range(len(self.ready_env_ids))]
+        self.exploration_policy.set_num_steps_total(self._n_env_steps_total)
+        return self.exploration_policy.get_actions(
+            observation,
+        )
+
     # def start_training(self, start_epoch=0, flag=False):
     #     # self._current_path_builder = PathBuilder()
     #     self.ready_env_ids = np.arange(self.env_num)

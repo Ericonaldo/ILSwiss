@@ -112,7 +112,8 @@ class SimpleReplayBuffer(ReplayBuffer):
             for key, obs in next_observation.items():
                 self._next_obs[key][self._top] = obs
             if pred_obs is not None:
-                self._pred_obs[key][self._top] = pred_obs
+                for key, obs in pred_obs.items():
+                    self._pred_obs[key][self._top] = obs
         else:
             self._observations[self._top] = observation
             self._next_obs[self._top] = next_observation

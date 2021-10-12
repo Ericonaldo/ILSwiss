@@ -35,6 +35,7 @@ class TD3(Trainer):
         qf_lr=1e-3,
         policy_and_target_update_period=2,
         soft_target_tau=0.005,
+        clip_return=True,
         qf_criterion=None,
         optimizer_class=optim.Adam,
         **kwargs
@@ -47,6 +48,7 @@ class TD3(Trainer):
 
         self.reward_scale = reward_scale
         self.discount = discount
+        self.clip_return = clip_return
 
         self.target_policy_noise = target_policy_noise
         self.target_policy_noise_clip = target_policy_noise_clip
@@ -89,12 +91,17 @@ class TD3(Trainer):
         Critic operations.
         """
         target_input = torch.cat([next_obs, next_goals], axis=-1)
-        policy_outputs = self.target_policy(target_input)
+        policy_outputs = self.target_policy(target_input, deterministic=True)
         noisy_next_actions = policy_outputs[0]
 
         target_q1_values = self.target_qf1(target_input, noisy_next_actions)
         target_q2_values = self.target_qf2(target_input, noisy_next_actions)
-        target_q_values = torch.min(target_q1_values, target_q2_values)
+        target_q_values = target_q1_values # torch.min(target_q1_values, target_q2_values)
+        if self.clip_return:
+            target_q_values = torch.clamp(target_q_values, min=-1.0 / (1-self.discount), max=0)
+        else:
+            target_q_values = target_q_values
+        
         q_target = rewards + (1.0 - terminals) * self.discount * target_q_values
         q_target = q_target.detach()
 
@@ -121,17 +128,20 @@ class TD3(Trainer):
 
         policy_actions = policy_loss = None
 
+        policy_outputs = self.policy(concat_input, deterministic=True)
+        policy_actions = policy_outputs[0]
+        q_output = self.qf1(concat_input, policy_actions)
+        pi_l2_loss = torch.square(policy_actions).mean()
+        policy_loss = -q_output.mean() + pi_l2_loss
+
+        self.policy_optimizer.zero_grad()
+        policy_loss.backward()
+        # for para in list(self.policy.parameters())[:-5]:
+        #     print("concat_input", concat_input, "loss", policy_loss, "\n paras", para, "\n grad", para.grad)
+        self.policy_optimizer.step()
+        
+
         if self._n_train_steps_total % self.policy_and_target_update_period == 0:
-
-            policy_outputs = self.policy(concat_input, deterministic=True)
-            policy_actions = policy_outputs[0]
-            q_output = self.qf1(concat_input, policy_actions)
-            policy_loss = -q_output.mean()
-
-            self.policy_optimizer.zero_grad()
-            policy_loss.backward()
-            self.policy_optimizer.step()
-
             self._update_target_network()
 
         if self.eval_statistics is None:

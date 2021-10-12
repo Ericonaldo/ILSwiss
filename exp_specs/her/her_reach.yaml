@@ -11,7 +11,7 @@ variables:
 # -----------------------------------------------------------------------------
 constants:
   net_size: 256
-  num_hidden_layers: 2
+  num_hidden_layers: 3
   policy_noise: 0.1
   policy_noise_clip: 0.5
   
@@ -20,12 +20,12 @@ constants:
 
   rl_alg_params:
     num_epochs: 282
-    num_steps_per_epoch: 5000
+    num_steps_per_epoch: 2500
     num_steps_between_train_calls: 50
-    num_train_steps_per_train_call: 1
+    num_train_steps_per_train_call: 20
     num_steps_per_eval: 5000
     max_path_length: 50
-    min_steps_before_training: 100
+    min_steps_before_training: 10000
 
     eval_deterministic: true
 
@@ -41,12 +41,13 @@ constants:
     save_algorithm: false
 
   td3_params:
-    policy_and_target_update_period: 2
+    policy_and_target_update_period: 20
     reward_scale: 1.0
-    discount: 0.99
+    discount: 0.98
     soft_target_tau: 0.005
-    policy_lr: 0.0003
-    qf_lr: 0.0003
+    policy_lr: 0.001
+    qf_lr: 0.001
+    clip_return: true
 
   env_specs:
     env_name: 'fetch-reach'

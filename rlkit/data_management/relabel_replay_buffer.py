@@ -65,7 +65,7 @@ class HindsightReplayBuffer(SimpleReplayBuffer):
             )
         keys_list = list(self._traj_endpoints.keys())
         starts = self._np_choice(
-            keys_list, size=batch_size, replace=len(keys_list) < batch_size
+            keys_list, size=len(keys_list), replace=False
         )
         ends = list(map(lambda k: self._traj_endpoints[k], starts))
         
@@ -78,7 +78,7 @@ class HindsightReplayBuffer(SimpleReplayBuffer):
             
             try:
                 step_her = {
-                    'final': ends[i],
+                    'final': ends[i]-1,
                     'future': np.random.randint(step+1, (traj_len + starts[i]) + 1) % self._size
                 }[self.relabel_type]
             except BaseException:
@@ -87,6 +87,7 @@ class HindsightReplayBuffer(SimpleReplayBuffer):
 
             indices.append(step)
             indices_relabel.append(step_her)
+        # indices = self._np_randint(0, self._size, batch_size)
         batch_to_return = self._get_batch_using_indices(indices, keys=keys)
         
         # relabel
@@ -101,7 +102,8 @@ class HindsightReplayBuffer(SimpleReplayBuffer):
         batch_to_return["next_desired_goals"] = batch_to_return["next_observations"]["desired_goal"]
         batch_to_return["observations"] = batch_to_return["observations"]["observation"]
         batch_to_return["next_observations"] = batch_to_return["next_observations"]["observation"]
-        batch_to_return["rewards"] = self.compute_reward(batch_to_return["next_achieved_goals"], batch_to_return["desired_goals"], info=None)
+        if relabel:
+            batch_to_return["rewards"] = self.compute_reward(batch_to_return["next_achieved_goals"], batch_to_return["desired_goals"], info=None)
 
         return batch_to_return
 

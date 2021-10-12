@@ -503,6 +503,7 @@ class MlpGaussianNoiseConditionPolicy(
 
         self.condition_dim = condition_dim
         self.obs_dim = obs_dim
+        self.action_dim = action_dim
 
     def get_action(self, obs_condition_np, deterministic=False):
         """
@@ -514,14 +515,13 @@ class MlpGaussianNoiseConditionPolicy(
         elif isinstance(obs_condition_np[0], dict):
             obs_condition_np = [{k: v for k, v in x.items() if k != "achieved_goal"} for x in obs_condition_np]
             obs_condition_np = np.array([np.concatenate([x[key] for key in x.keys()], axis=-1) for x in obs_condition_np])
-
+        
         actions = self.get_actions(obs_condition_np[None], deterministic=deterministic)
         # actions = actions[None]
-        # print(actions, actions.shape)
+        # print(actions, actions.shape, actions[0, :], actions[0, :].shape)
         return actions[0, :], {}
 
     def get_actions(self, obs_condition_np, deterministic=False):
-        
         if isinstance(obs_condition_np, dict):
             obs_condition_np = np.concatenate([obs_condition_np[key] for key in obs_condition_np.keys() if key != "achieved_goal"], axis=-1)
         elif isinstance(obs_condition_np[0], dict):
@@ -547,9 +547,10 @@ class MlpGaussianNoiseConditionPolicy(
             pass
         else:
             noise = self.noise * torch.normal(
-                torch.zeros_like(action),
+                torch.zeros_like(action), std=0.2
             )
-            noise = torch.clamp(noise, -self.noise_clip, self.noise_clip)
+            # noise = torch.clamp(noise, -self.noise_clip, self.noise_clip)
             action += noise
+            action = torch.clamp(action, min=-1.0, max=1.0)
 
         return (action, preactivation)

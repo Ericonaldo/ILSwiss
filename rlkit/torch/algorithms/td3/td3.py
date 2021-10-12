@@ -117,7 +117,7 @@ class TD3(Trainer):
             policy_actions = policy_outputs[0]
             q_output = self.qf1(obs, policy_actions)
             policy_loss = -q_output.mean()
-
+           
             self.policy_optimizer.zero_grad()
             policy_loss.backward()
             self.policy_optimizer.step()

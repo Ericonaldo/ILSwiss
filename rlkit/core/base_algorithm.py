@@ -306,7 +306,6 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
             self.training_mode(False)
 
     def _try_to_eval(self, epoch):
-
         if self._can_evaluate():
             # save if it's time to save
             if (int(epoch) % self.freq_saving == 0) or (epoch + 1 >= self.num_epochs):
@@ -362,9 +361,8 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         :return:
         """
         return (
-            len(self._exploration_paths) > 0
-            and self._n_train_steps_total
-            >= 0
+            (len(self._exploration_paths) > 0)
+            and (self._n_train_steps_total >= 0)
         )
 
     def _can_train(self):
@@ -600,8 +598,8 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         try:
             statistics.update(self.eval_statistics)
             self.eval_statistics = None
-        except:
-            print("No Stats to Eval")
+        except BaseException as e:
+            print("No Stats to Eval", str(e))
 
         logger.log("Collecting samples for evaluation")
         test_paths = self.eval_sampler.obtain_samples()
