@@ -1,12 +1,15 @@
+from inspect import Attribute
 import numpy as np
 from rlkit.data_management.simple_replay_buffer import (
     SimpleReplayBuffer
 )
 from rlkit.data_management.env_replay_buffer import get_dim
+from rlkit.envs.goal_env_utils import compute_reward, compute_distance
 from gym.spaces import Box, Discrete, Tuple, Dict
 
 import pickle
 import copy
+
 
 class HindsightReplayBuffer(SimpleReplayBuffer):
     def __init__(self, max_replay_buffer_size, env, random_seed=1995, relabel_type='future'):
@@ -16,6 +19,14 @@ class HindsightReplayBuffer(SimpleReplayBuffer):
         """
         self._ob_space = env.observation_space
         self._action_space = env.action_space
+        self.compute_reward = compute_reward
+        self.compute_distance = compute_distance
+
+        if hasattr(env, 'compute_reward'):
+            self.compute_reward = env.compute_reward
+        if hasattr(env, 'compute_distance'):
+            self.compute_distance = env.compute_distance
+        
         super().__init__(
             max_replay_buffer_size=max_replay_buffer_size,
             observation_dim=get_dim(self._ob_space),
@@ -90,6 +101,7 @@ class HindsightReplayBuffer(SimpleReplayBuffer):
         batch_to_return["next_desired_goals"] = batch_to_return["next_observations"]["desired_goal"]
         batch_to_return["observations"] = batch_to_return["observations"]["observation"]
         batch_to_return["next_observations"] = batch_to_return["next_observations"]["observation"]
+        batch_to_return["rewards"] = self.compute_reward(batch_to_return["next_achieved_goals"], batch_to_return["desired_goals"], info=None)
 
         return batch_to_return
 
