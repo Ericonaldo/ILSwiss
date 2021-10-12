@@ -20,12 +20,12 @@ constants:
 
   rl_alg_params:
     num_epochs: 282
-    num_steps_per_epoch: 10000
-    num_steps_between_train_calls: 1
+    num_steps_per_epoch: 1000
+    num_steps_between_train_calls: 50
     num_train_steps_per_train_call: 1
-    num_steps_per_eval: 10000
+    num_steps_per_eval: 1000
     max_path_length: 50
-    min_steps_before_training: 2500
+    min_steps_before_training: 100
 
     eval_deterministic: true
 

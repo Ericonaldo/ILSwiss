@@ -93,7 +93,7 @@ class HindsightReplayBuffer(SimpleReplayBuffer):
         if relabel:
             batch_to_relabel = self._get_batch_using_indices(indices_relabel, keys=["observations", "next_observations"])
             batch_to_return["observations"]["desired_goal"] = copy.deepcopy(batch_to_relabel["observations"]["achieved_goal"])
-            batch_to_return["next_observations"]["desired_goal"] = copy.deepcopy(batch_to_relabel["next_observations"]["achieved_goal"])
+            batch_to_return["next_observations"]["desired_goal"] = copy.deepcopy(batch_to_relabel["observations"]["achieved_goal"])
 
         batch_to_return["achieved_goals"] = batch_to_return["observations"]["achieved_goal"]
         batch_to_return["desired_goals"] = batch_to_return["observations"]["desired_goal"]

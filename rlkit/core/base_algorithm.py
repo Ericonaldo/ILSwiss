@@ -12,7 +12,7 @@ from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.data_management.path_builder import PathBuilder
 from rlkit.policies.base import ExplorationPolicy
 from rlkit.torch.common.policies import MakeDeterministic
-from rlkit.samplers import PathSampler
+from rlkit.samplers import PathSampler, VecPathSampler
 
 from gym.spaces import Dict
 
@@ -28,6 +28,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         env,
         exploration_policy: ExplorationPolicy,
         training_env=None,
+        eval_env=None,
         eval_policy=None,
         eval_sampler=None,  ##
         num_epochs=100,
@@ -85,15 +86,27 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
             if eval_policy is None:
                 eval_policy = exploration_policy
             eval_policy = MakeDeterministic(eval_policy)
-            eval_sampler = PathSampler(
-                env,
-                eval_policy,
-                num_steps_per_eval,
-                max_path_length,
-                no_terminal=eval_no_terminal,
-                render=render,
-                render_kwargs=render_kwargs,
-            )
+            if eval_env is None:
+                eval_env = env
+                eval_sampler = PathSampler(
+                    eval_env,
+                    eval_policy,
+                    num_steps_per_eval,
+                    max_path_length,
+                    no_terminal=eval_no_terminal,
+                    render=render,
+                    render_kwargs=render_kwargs,
+                )
+            else:
+                eval_sampler = VecPathSampler(
+                    eval_env,
+                    eval_policy,
+                    num_steps_per_eval,
+                    max_path_length,
+                    no_terminal=eval_no_terminal,
+                    render=render,
+                    render_kwargs=render_kwargs,
+                )
         self.eval_policy = eval_policy
         self.eval_sampler = eval_sampler
 
