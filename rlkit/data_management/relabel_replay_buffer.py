@@ -4,20 +4,11 @@ from rlkit.data_management.simple_replay_buffer import (
     SimpleReplayBuffer
 )
 from rlkit.data_management.env_replay_buffer import get_dim
-# from rlkit.envs.goal_env_utils import compute_reward, compute_distance
+from rlkit.envs.goal_env_utils import compute_reward, compute_distance
 from gym.spaces import Box, Discrete, Tuple, Dict
 
 import pickle
 import copy
-
-def goal_distance(goal_a, goal_b):
-    return np.linalg.norm(goal_a - goal_b, ord=2, axis=-1)
-
-def compute_reward(achieved, goal):
-    distance_threshold = 0.05
-    dis = goal_distance(achieved[0], goal)
-    return -(dis > distance_threshold).astype(np.float32)
-
 
 class HindsightReplayBuffer(SimpleReplayBuffer):
     def __init__(self, max_replay_buffer_size, env, random_seed=1995, relabel_type='final'):
@@ -27,8 +18,8 @@ class HindsightReplayBuffer(SimpleReplayBuffer):
         """
         self._ob_space = env.observation_space
         self._action_space = env.action_space
-        # self.compute_reward = compute_reward
-        # self.compute_distance = compute_distance
+        self.compute_reward = compute_reward
+        self.compute_distance = compute_distance
 
         if hasattr(env, 'compute_reward'):
             self.compute_reward = env.compute_reward
@@ -113,8 +104,8 @@ class HindsightReplayBuffer(SimpleReplayBuffer):
         batch_to_return["observations"] = batch_to_return["observations"]["observation"]
         batch_to_return["next_observations"] = batch_to_return["next_observations"]["observation"]
         if relabel:
-            # batch_to_return["rewards"] = self.compute_reward(batch_to_return["next_achieved_goals"], batch_to_return["desired_goals"], info=None)
-            batch_to_return["rewards"] = compute_reward(batch_to_return["next_achieved_goals"], batch_to_return["desired_goals"])
+            batch_to_return["rewards"] = self.compute_reward(batch_to_return["next_achieved_goals"], batch_to_return["desired_goals"], info=None)
+            # batch_to_return["rewards"] = compute_reward(batch_to_return["next_achieved_goals"], batch_to_return["desired_goals"])
 
         return batch_to_return
 
