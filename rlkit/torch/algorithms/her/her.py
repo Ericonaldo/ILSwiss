@@ -22,18 +22,19 @@ class HER(TorchRLAlgorithm):
     def __init__(
         self,
         replay_buffer=None,
+        relabel_type=None,
         **kwargs
     ):
         if replay_buffer is None:
             assert kwargs['max_path_length'] < kwargs['replay_buffer_size']
             replay_buffer = HindsightReplayBuffer(
-                kwargs['replay_buffer_size'], kwargs['env'], random_seed=np.random.randint(10000)
+                kwargs['replay_buffer_size'], kwargs['env'], random_seed=np.random.randint(10000), relabel_type=relabel_type
             )
         super().__init__(replay_buffer=replay_buffer, **kwargs)
 
-    def get_batch(self, relabel=True, keys=None):
+    def get_batch(self, keys=None):
         buffer = self.replay_buffer
-        batch = buffer.random_batch(self.batch_size, relabel=relabel, keys=keys)
+        batch = buffer.random_batch(self.batch_size, keys=keys)
         batch = np_to_pytorch_batch(batch)
         return batch
 

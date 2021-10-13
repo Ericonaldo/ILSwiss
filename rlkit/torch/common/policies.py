@@ -510,6 +510,7 @@ class MlpGaussianNoiseConditionPolicy(
         deterministic=False makes no diff, just doing this for
         consistency in interface for now
         """
+        
         if isinstance(obs_condition_np, dict):
             obs_condition_np = np.concatenate([obs_condition_np[key] for key in obs_condition_np.keys() if key != "achieved_goal"], axis=-1)
         elif isinstance(obs_condition_np[0], dict):
@@ -522,6 +523,7 @@ class MlpGaussianNoiseConditionPolicy(
         return actions[0, :], {}
 
     def get_actions(self, obs_condition_np, deterministic=False):
+        
         if isinstance(obs_condition_np, dict):
             obs_condition_np = np.concatenate([obs_condition_np[key] for key in obs_condition_np.keys() if key != "achieved_goal"], axis=-1)
         elif isinstance(obs_condition_np[0], dict):

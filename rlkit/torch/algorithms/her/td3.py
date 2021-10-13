@@ -60,6 +60,10 @@ class TD3(Trainer):
         self.target_policy = self.policy.copy()
         self.target_qf1 = self.qf1.copy()
         self.target_qf2 = self.qf2.copy()
+        self.total_optimizer = optimizer_class(
+            list(self.qf1.parameters())+list(self.policy.parameters()),
+            lr=qf_lr,
+        )
         self.qf1_optimizer = optimizer_class(
             self.qf1.parameters(),
             lr=qf_lr,
@@ -87,10 +91,26 @@ class TD3(Trainer):
         goals = batch['desired_goals']
         next_goals = batch['next_desired_goals']
 
+        concat_input = torch.cat([obs, goals], axis=-1)
+        target_input = torch.cat([next_obs, next_goals], axis=-1)
+
+        policy_actions = policy_loss = None
+
+        policy_outputs = self.policy(concat_input, deterministic=True)
+        policy_actions = policy_outputs[0]
+        q_output = self.qf1(concat_input, policy_actions)
+        pi_l2_loss = torch.square(policy_actions).mean()
+        policy_loss = -q_output.mean() + pi_l2_loss
+
+        # self.policy_optimizer.zero_grad()
+        # policy_loss.backward()
+        # for para in list(self.policy.parameters())[:-5]:
+        #     print("concat_input", concat_input, "loss", policy_loss, "\n paras", para, "\n grad", para.grad)
+        # self.policy_optimizer.step()
+
         """
         Critic operations.
         """
-        target_input = torch.cat([next_obs, next_goals], axis=-1)
         policy_outputs = self.target_policy(target_input, deterministic=True)
         noisy_next_actions = policy_outputs[0]
 
@@ -105,8 +125,6 @@ class TD3(Trainer):
         q_target = rewards + (1.0 - terminals) * self.discount * target_q_values
         q_target = q_target.detach()
 
-        concat_input = torch.cat([obs, goals], axis=-1)
-
         q1_pred = self.qf1(concat_input, actions)
         bellman_errors_1 = (q1_pred - q_target) ** 2
         qf1_loss = bellman_errors_1.mean()
@@ -118,28 +136,17 @@ class TD3(Trainer):
         """
         Update Networks
         """
-        self.qf1_optimizer.zero_grad()
-        qf1_loss.backward()
-        self.qf1_optimizer.step()
+        total_loss = policy_loss + qf1_loss
+        self.total_optimizer.zero_grad()
+        total_loss.backward()
+        self.total_optimizer.step()
+        # self.qf1_optimizer.zero_grad()
+        # qf1_loss.backward()
+        # self.qf1_optimizer.step()
 
-        self.qf2_optimizer.zero_grad()
-        qf2_loss.backward()
-        self.qf2_optimizer.step()
-
-        policy_actions = policy_loss = None
-
-        policy_outputs = self.policy(concat_input, deterministic=True)
-        policy_actions = policy_outputs[0]
-        q_output = self.qf1(concat_input, policy_actions)
-        pi_l2_loss = torch.square(policy_actions).mean()
-        policy_loss = -q_output.mean() + pi_l2_loss
-
-        self.policy_optimizer.zero_grad()
-        policy_loss.backward()
-        # for para in list(self.policy.parameters())[:-5]:
-        #     print("concat_input", concat_input, "loss", policy_loss, "\n paras", para, "\n grad", para.grad)
-        self.policy_optimizer.step()
-        
+        # self.qf2_optimizer.zero_grad()
+        # qf2_loss.backward()
+        # self.qf2_optimizer.step()
 
         if self._n_train_steps_total % self.policy_and_target_update_period == 0:
             self._update_target_network()

@@ -38,6 +38,7 @@ def experiment(variant):
     assert len(act_space.shape) == 1
 
     env_wrapper = ProxyEnv  # Identical wrapper
+    kwargs = {}
     if isinstance(act_space, gym.spaces.Box):
         env_wrapper = NormalizedBoxEnv
         kwargs = {}

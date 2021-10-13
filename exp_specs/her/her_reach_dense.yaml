@@ -6,15 +6,13 @@ meta_data:
   using_gpus: true
 # -----------------------------------------------------------------------------
 variables:
-  seed: [123123]
-  rl_alg_params:
-    relabel_type: ["future"] # "final", 
+  seed: [723894]
 
 # -----------------------------------------------------------------------------
 constants:
   net_size: 256
   num_hidden_layers: 3
-  policy_noise: 1.0
+  policy_noise: 0.1
   policy_noise_clip: 0.5
   
   # method of goal generation
@@ -32,8 +30,8 @@ constants:
     eval_deterministic: true
 
     batch_size: 256
-    replay_buffer_size: 500000
-    no_terminal: true
+    replay_buffer_size: 10000
+    no_terminal: false
     wrap_absorbing: false
 
     save_best: false
@@ -42,15 +40,13 @@ constants:
     save_environment: false
     save_algorithm: false
 
-    # relabel_type: "final"
-
   td3_params:
-    policy_and_target_update_period: 20
+    policy_and_target_update_period: 10
     reward_scale: 1.0
     discount: 0.98
     soft_target_tau: 0.005
-    policy_lr: 0.001
-    qf_lr: 0.001
+    policy_lr: 0.0003
+    qf_lr: 0.0003
     clip_return: true
 
   env_specs:

@@ -17,15 +17,15 @@ from rlkit.envs.wrappers import NormalizedBoxEnv, ProxyEnv
 import rlkit.torch.utils.pytorch_util as ptu
 from rlkit.launchers.launcher_util import setup_logger, set_seed
 from rlkit.torch.common.networks import FlattenMlp
-from rlkit.torch.common.policies import MlpGaussianNoiseConditionPolicy
-from rlkit.torch.algorithms.her.td3 import TD3
-from rlkit.torch.algorithms.her.her import HER
+from rlkit.torch.common.policies import ReparamMultivariateGaussianPolicy
+from rlkit.torch.algorithms.ppo.ppo import PPO
+from rlkit.torch.algorithms.torch_rl_algorithm import TorchRLAlgorithm
 
 
 def experiment(variant):
     env_specs = variant["env_specs"]
     env = get_env(env_specs)
-    # env.seed(env_specs["eval_env_seed"])
+    env.seed(env_specs["eval_env_seed"])
 
     print("\n\nEnv: {}".format(env_specs["env_name"]))
     print("kwargs: {}".format(env_specs["env_kwargs"]))
@@ -40,15 +40,38 @@ def experiment(variant):
 
     env_wrapper = ProxyEnv  # Identical wrapper
     kwargs = {}
-    
-    # if isinstance(act_space, gym.spaces.Box):
-    #     env_wrapper = NormalizedBoxEnv
-    #     kwargs = {}
+    if isinstance(act_space, gym.spaces.Box):
+        env_wrapper = NormalizedBoxEnv
+        kwargs = {}
 
     env = env_wrapper(env, **kwargs)
+    if "env_num" not in env_specs:
+        env_specs["env_num"] = 1
+    
+    if "training_env_num" in env_specs:
+        env_specs["env_num"] = env_specs["training_env_num"]
+    
+    print("Creating {} training environments ...".format(env_specs["env_num"]))
+    training_env = get_envs(
+        env_specs, 
+        env_wrapper, 
+        norm_obs=True,
+        **kwargs
+    )
+    training_env.seed(env_specs["training_env_seed"])
 
-    training_env = get_envs(env_specs, env_wrapper, **kwargs)
-    # training_env.seed(env_specs["training_env_seed"])
+    if "eval_env_num" in env_specs:
+        env_specs["env_num"] = env_specs["eval_env_num"]
+
+    print("Creating {} evaluation environments ...".format(env_specs["env_num"]))
+    eval_env = get_envs(
+        env_specs,
+        env_wrapper,
+        obs_rms=training_env.obs_rms,
+        norm_obs=True,
+        update_obs_rms=False,
+    )
+    eval_env.seed(env_specs["eval_env_seed"])
 
     try:
         obs_dim = obs_space.spaces['observation'].shape[0]
@@ -61,17 +84,22 @@ def experiment(variant):
 
     net_size = variant["net_size"]
     num_hidden = variant["num_hidden_layers"]
-    qf1 = FlattenMlp(
+    vf = FlattenMlp(
         hidden_sizes=num_hidden * [net_size],
-        input_size=obs_dim + goal_dim + action_dim,
+        input_size=obs_dim,
         output_size=1,
+        hidden_activation=torch.tanh,
     )
-    qf2 = FlattenMlp(
+    #  policy = ReparamTanhMultivariateGaussianPolicy(
+    policy = ReparamMultivariateGaussianPolicy(
         hidden_sizes=num_hidden * [net_size],
-        input_size=obs_dim + goal_dim + action_dim,
-        output_size=1,
+        obs_dim=obs_dim,
+        action_dim=action_dim,
+        conditioned_std=False,
+        hidden_activation=torch.tanh,
     )
-    policy = MlpGaussianNoiseConditionPolicy(
+
+    policy = ReparamMultivariateGaussianPolicy(
         hidden_sizes=num_hidden * [net_size],
         obs_dim=obs_dim,
         condition_dim=goal_dim,
@@ -81,13 +109,18 @@ def experiment(variant):
         policy_noise_clip=variant["policy_noise_clip"]
     )
 
-    trainer = TD3(policy=policy, qf1=qf1, qf2=qf2, **variant["td3_params"])
-    algorithm = HER(
+    trainer = PPO(
+        policy=policy,
+        vf=vf,
+        **variant["ppo_params"],
+    )
+
+    algorithm = TorchRLAlgorithm(
         trainer=trainer,
         env=env,
         training_env=training_env,
         exploration_policy=policy,
-        **variant["rl_alg_params"]
+        **variant["rl_alg_params"],
     )
 
     if ptu.gpu_enabled():
