@@ -2,7 +2,7 @@
 
 ILSwiss is an Easy-to-run Imitation Learning (IL, or Learning from Demonstration, LfD) framework (template) in PyTorch based on existing code base. 
 
-The most works are based on [rlswiss](https://github.com/KamyarGh/rl_swiss) and [rlkit](https://github.com/rail-berkeley/rlkit/tree/master/rlkit). Since the original rlswiss contains meta-rl methods and redundant codes, in this repo, we clean and optimize the code architecture, modify and re-implement algorithms for the purpose of easier running imitation learning experiments. We further introduce vec envs to sample data in a parallel style to boost the sampling stage refering to [tianshou](https://github.com/thu-ml/tianshou) and add tensorboard support.
+The most works are based on [rlswiss](https://github.com/KamyarGh/rl_swiss) and [rlkit](https://github.com/rail-berkeley/rlkit/). Since the original rlswiss contains meta-rl methods and redundant codes, in this repo, we clean and optimize the code architecture, modify and re-implement algorithms for the purpose of easier running imitation learning experiments. We further introduce vec envs to sample data in a parallel style to boost the sampling stage refering to [tianshou](https://github.com/thu-ml/tianshou) and add tensorboard support.
 
 You can easily build experiment codes under this framework in your research. We will continue to maintain this repo while keeping it clear and clean.
 
