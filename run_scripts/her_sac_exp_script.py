@@ -17,8 +17,8 @@ from rlkit.envs.wrappers import NormalizedBoxEnv, ProxyEnv
 import rlkit.torch.utils.pytorch_util as ptu
 from rlkit.launchers.launcher_util import setup_logger, set_seed
 from rlkit.torch.common.networks import FlattenMlp
-from rlkit.torch.common.policies import MlpGaussianAndEpsilonConditionPolicy
-from rlkit.torch.algorithms.her.td3 import TD3
+from rlkit.torch.common.policies import ReparamTanhMultivariateGaussianConditionPolicy
+from rlkit.torch.algorithms.her.sac import SAC
 from rlkit.torch.algorithms.her.her import HER
 
 
@@ -71,16 +71,14 @@ def experiment(variant):
         input_size=obs_dim + goal_dim + action_dim,
         output_size=1,
     )
-    policy = MlpGaussianAndEpsilonConditionPolicy(
+    policy = ReparamTanhMultivariateGaussianConditionPolicy(
         hidden_sizes=num_hidden * [net_size],
-        action_space=env.action_space,
         obs_dim=obs_dim,
         condition_dim=goal_dim,
-        action_dim=action_dim,
-        output_activation=tanh
+        action_dim=action_dim
     )
 
-    trainer = TD3(policy=policy, qf1=qf1, qf2=qf2, **variant["td3_params"])
+    trainer = SAC(policy=policy, qf1=qf1, qf2=qf2, env=env, **variant["sac_params"])
     algorithm = HER(
         trainer=trainer,
         env=env,

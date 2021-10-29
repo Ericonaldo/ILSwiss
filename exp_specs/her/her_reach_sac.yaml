@@ -1,19 +1,21 @@
 meta_data:
-  script_path: run_scripts/her_td3_exp_script.py
-  exp_name: her_fetch_reach
-  description: Train an her agent using TD3
-  num_workers: 2
+  script_path: run_scripts/her_sac_exp_script.py
+  exp_name: her_fetch_reach_sac
+  description: Train an her agent using SAC
+  num_workers: 3
   using_gpus: true
 # -----------------------------------------------------------------------------
 variables:
   seed: [0]
-  rl_alg_params:
-    relabel_type: ["future"] # "final", 
+  # rl_alg_params:
+  #   relabel_type: ["future"] # "final", 
 
 # -----------------------------------------------------------------------------
 constants:
   net_size: 300
   num_hidden_layers: 2
+  policy_noise: 1.0
+  policy_noise_clip: 0.5
   
   # method of goal generation
   # goal_gen: 'interval' # ['vanilla', 'fixobj', 'interval', 'reach']
@@ -21,16 +23,16 @@ constants:
   rl_alg_params:
     num_epochs: 282
     num_steps_per_epoch: 1000
-    num_steps_between_train_calls: 1
-    num_train_steps_per_train_call: 1
-    num_steps_per_eval: 1000
+    num_steps_between_train_calls: 1000
+    num_train_steps_per_train_call: 1000
+    num_steps_per_eval: 5000
     max_path_length: 50
     min_steps_before_training: 1000
 
     eval_deterministic: true
 
     batch_size: 128
-    replay_buffer_size: 100000
+    replay_buffer_size: 1000000
     no_terminal: true
     wrap_absorbing: false
 
@@ -43,8 +45,7 @@ constants:
     relabel_type: "final"
     her_ratio: 0.8
 
-  td3_params:
-    policy_and_target_update_period: 2
+  sac_params:
     reward_scale: 1.0
     discount: 0.99
     soft_target_tau: 0.005

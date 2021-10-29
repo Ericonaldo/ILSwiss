@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.random import choice
 import math
+import random
 
 import torch
 from torch import nn as nn
@@ -479,9 +480,93 @@ class ReparamMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
             return log_prob, mean, log_std
         return log_prob
 
+class MlpGaussianAndEpsilonPolicy(Mlp, ExplorationPolicy):
+    def __init__(
+        self,
+        hidden_sizes,
+        obs_dim,
+        action_dim,
+        action_space,
+        init_w=1e-3,
+        epsilon=0.3,
+        max_sigma=0.2,
+        min_sigma=0.2,
+        decay_period=1000000,
+        max_act=1.0,
+        min_act=-1.0,
+        **kwargs,
+    ):
+        self.save_init_params(locals())
+        super().__init__(
+            hidden_sizes,
+            input_size=obs_dim,
+            output_size=action_dim,
+            init_w=init_w,
+            **kwargs,
+        )
+        if min_sigma is None:
+            min_sigma = max_sigma
+        self._max_sigma = max_sigma
+        self._epsilon = epsilon
+        self._min_sigma = min_sigma
+        self._decay_period = decay_period
+        self._action_space = action_space
 
-class MlpGaussianNoiseConditionPolicy(
-    MlpGaussianNoisePolicy
+        self.max_act = max_act
+        self.min_act = min_act
+        self.action_dim = action_dim
+        self.t = 0
+
+    def set_num_steps_total(self, t):
+        self.t = t
+
+    def get_action(self, obs_np, deterministic=False):
+        """
+        deterministic=False makes no diff, just doing this for
+        consistency in interface for now
+        """
+        actions = self.get_actions(obs_np[None], deterministic=deterministic)
+        return actions[0, :], {}
+
+    def get_actions(self, obs_np, deterministic=False):
+        return self.eval_np(obs_np, deterministic=deterministic)[0]
+
+    def forward(self, obs, deterministic=False):
+        h = obs
+        for i, fc in enumerate(self.fcs):
+            h = self.hidden_activation(fc(h))
+
+        preactivation = self.last_fc(h)
+        action = self.max_act * self.output_activation(preactivation)
+
+        batch_size = 0
+        if len(obs.shape) >= 2:
+            batch_size = np.shape(obs)[0]
+        if deterministic:
+            pass
+        else:
+            if random.random() < self._epsilon:
+                action = self._action_space.sample()
+                if batch_size > 0:
+                    action = [self._action_space.sample() for _ in range(batch_size)]
+            else:
+                sigma = self._max_sigma - (self._max_sigma - self._min_sigma) * min(
+                    1.0, self.t * 1.0 / self._decay_period
+                )
+                action = np.clip(
+                    action.detach().cpu().numpy()
+                    + np.random.normal(size=np.shape(action)) * sigma,
+                    self.min_act,
+                    self.max_act,
+                )
+
+        assert np.shape(action)[-1] == self._action_space.shape[-1], "action shape mismatch!"
+            
+        return (action, preactivation)
+
+
+class MlpGaussianAndEpsilonConditionPolicy(
+    MlpGaussianAndEpsilonPolicy
 ):
     """
     Custom for Ant Rand Goal
@@ -505,6 +590,8 @@ class MlpGaussianNoiseConditionPolicy(
         self.obs_dim = obs_dim
         self.action_dim = action_dim
 
+        self.t = 0
+
     def get_action(self, obs_condition_np, deterministic=False):
         """
         deterministic=False makes no diff, just doing this for
@@ -512,47 +599,76 @@ class MlpGaussianNoiseConditionPolicy(
         """
         
         if isinstance(obs_condition_np, dict):
-            obs_condition_np = np.concatenate([obs_condition_np[key] for key in obs_condition_np.keys() if key != "achieved_goal"], axis=-1)
+            obs_condition_np = np.concatenate([obs_condition_np["observation"], obs_condition_np["desired_goal"]], axis=-1)
         elif isinstance(obs_condition_np[0], dict):
             obs_condition_np = [{k: v for k, v in x.items() if k != "achieved_goal"} for x in obs_condition_np]
-            obs_condition_np = np.array([np.concatenate([x[key] for key in x.keys()], axis=-1) for x in obs_condition_np])
+            obs_condition_np = np.array([np.concatenate([x["observation"], x['desired_goal']], axis=-1) for x in obs_condition_np])
         
         actions = self.get_actions(obs_condition_np[None], deterministic=deterministic)
-        # actions = actions[None]
-        # print(actions, actions.shape, actions[0, :], actions[0, :].shape)
         return actions[0, :], {}
 
     def get_actions(self, obs_condition_np, deterministic=False):
         
         if isinstance(obs_condition_np, dict):
-            obs_condition_np = np.concatenate([obs_condition_np[key] for key in obs_condition_np.keys() if key != "achieved_goal"], axis=-1)
+            obs_condition_np = np.concatenate([obs_condition_np["observation"], obs_condition_np["desired_goal"]], axis=-1)
         elif isinstance(obs_condition_np[0], dict):
             obs_condition_np = [{k: v for k, v in x.items() if k != "achieved_goal"} for x in obs_condition_np]
-            obs_condition_np = np.array([np.concatenate([x[key] for key in x.keys()], axis=-1) for x in obs_condition_np])
+            obs_condition_np = np.array([np.concatenate([x["observation"], x['desired_goal']], axis=-1) for x in obs_condition_np])
         
         return self.eval_np(obs_condition_np, deterministic=deterministic)[0]
 
-    def forward(self, obs_condition, deterministic=False):
-        h = obs_condition
-        for i, fc in enumerate(self.fcs):
-            h = fc(h)
-            if self.layer_norm:
-                h = self.layer_norms[i](h)
-            if self.batch_norm:
-                h = self.batch_norms[i](h)
-            h = self.hidden_activation(h)
-        preactivation = self.last_fc(h)
-        if self.batch_norm_before_output_activation:
-            preactivation = self.batch_norms[-1](preactivation)
-        action = self.max_act * self.output_activation(preactivation)
-        if deterministic:
-            pass
-        else:
-            noise = self.noise * torch.normal(
-                torch.zeros_like(action), std=0.2
-            )
-            # noise = torch.clamp(noise, -self.noise_clip, self.noise_clip)
-            action += noise
-            action = torch.clamp(action, min=-1.0, max=1.0)
 
-        return (action, preactivation)
+class ReparamTanhMultivariateGaussianConditionPolicy(
+    ReparamTanhMultivariateGaussianPolicy
+):
+    """
+    Usage:
+
+    ```
+    policy = ReparamTanhMultivariateGaussianPolicy(...)
+    action, mean, log_std, _ = policy(obs)
+    action, mean, log_std, _ = policy(obs, deterministic=True)
+    action, mean, log_std, log_prob = policy(obs, return_log_prob=True)
+    ```
+
+    Here, mean and log_std are the mean and log_std of the Gaussian that is
+    sampled from.
+
+    If deterministic is True, action = tanh(mean).
+    If return_log_prob is False (default), log_prob = None
+        This is done because computing the log_prob can be a bit expensive.
+    """
+
+    def __init__(
+        self,
+        hidden_sizes,
+        obs_dim,
+        condition_dim,
+        action_dim,
+        **kwargs
+    ):
+        self.save_init_params(locals())
+        super().__init__(
+            hidden_sizes, obs_dim+condition_dim, action_dim, **kwargs
+        )
+
+        self.condition_dim = condition_dim
+
+    def get_action(self, obs_condition_np, deterministic=False):
+        if isinstance(obs_condition_np, dict):
+            obs_condition_np = np.concatenate([obs_condition_np["observation"], obs_condition_np["desired_goal"]], axis=-1)
+        elif isinstance(obs_condition_np[0], dict):
+            obs_condition_np = [{k: v for k, v in x.items() if k != "achieved_goal"} for x in obs_condition_np]
+            obs_condition_np = np.array([np.concatenate([x["observation"], x['desired_goal']], axis=-1) for x in obs_condition_np])
+
+        actions = self.get_actions(obs_condition_np[None], deterministic=deterministic)
+        return actions[0, :], {}
+
+    def get_actions(self, obs_condition_np, deterministic=False):
+        if isinstance(obs_condition_np, dict):
+            obs_condition_np = np.concatenate([obs_condition_np["observation"], obs_condition_np["desired_goal"]], axis=-1)
+        elif isinstance(obs_condition_np[0], dict):
+            obs_condition_np = [{k: v for k, v in x.items() if k != "achieved_goal"} for x in obs_condition_np]
+            obs_condition_np = np.array([np.concatenate([x["observation"], x['desired_goal']], axis=-1) for x in obs_condition_np])
+
+        return self.eval_np(obs_condition_np, deterministic=deterministic)[0]

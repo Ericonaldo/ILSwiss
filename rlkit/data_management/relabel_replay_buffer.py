@@ -11,7 +11,15 @@ import pickle
 import copy
 
 class HindsightReplayBuffer(SimpleReplayBuffer):
-    def __init__(self, max_replay_buffer_size, env, random_seed=1995, relabel_type='final'):
+    def __init__(self, 
+    max_replay_buffer_size, 
+    env, 
+    random_seed=1995, 
+    relabel_type='future', 
+    her_ratio=0.8, 
+    observation_key="observation",
+    desired_goal_key="desired_goal",
+    achieved_goal_key="achieved_goal"):
         """
         :param max_replay_buffer_size:
         :param env:
@@ -20,6 +28,10 @@ class HindsightReplayBuffer(SimpleReplayBuffer):
         self._action_space = env.action_space
         self.compute_reward = compute_reward
         self.compute_distance = compute_distance
+        self.her_ratio = her_ratio
+        self.observation_key = observation_key
+        self.desired_goal_key = desired_goal_key
+        self.achieved_goal_key = achieved_goal_key
 
         if hasattr(env, 'compute_reward'):
             self.compute_reward = env.compute_reward
@@ -32,7 +44,7 @@ class HindsightReplayBuffer(SimpleReplayBuffer):
             action_dim=get_dim(self._action_space),
             random_seed=random_seed,
         )
-        self._goal_dim = get_dim(self._ob_space)['desired_goal']
+        self._goal_dim = get_dim(self._ob_space)[desired_goal_key]
         self.relabel_type = relabel_type
 
     def add_sample(
@@ -81,8 +93,8 @@ class HindsightReplayBuffer(SimpleReplayBuffer):
                     'final': ends[i]-1,
                     'future': np.random.randint(step, (traj_len + starts[i])) % self._size
                 }[self.relabel_type]
-            except BaseException:
-                print(starts[i], ends[i], step, ends[i])
+            except BaseException as err:
+                print(err, starts[i], ends[i], step, ends[i])
                 exit(0)
             
             # print("her:", traj_len, starts[i], ends[i], step, step_her)
@@ -93,31 +105,31 @@ class HindsightReplayBuffer(SimpleReplayBuffer):
         
         # relabel
         if relabel:
+            relabel_num = int(self.her_ratio * batch_size)
             batch_to_relabel = self._get_batch_using_indices(indices_relabel, keys=["observations", "next_observations"])
-            batch_to_return["observations"]["desired_goal"] = copy.deepcopy(batch_to_relabel["next_observations"]["achieved_goal"])
-            batch_to_return["next_observations"]["desired_goal"] = copy.deepcopy(batch_to_relabel["next_observations"]["achieved_goal"])
+            batch_to_return["observations"][self.desired_goal_key][:relabel_num] = copy.deepcopy(batch_to_relabel["next_observations"][self.achieved_goal_key][:relabel_num])
+            batch_to_return["next_observations"][self.desired_goal_key][:relabel_num] = copy.deepcopy(batch_to_relabel["next_observations"][self.achieved_goal_key][:relabel_num])
 
-        batch_to_return["achieved_goals"] = batch_to_return["observations"]["achieved_goal"]
-        batch_to_return["desired_goals"] = batch_to_return["observations"]["desired_goal"]
-        batch_to_return["next_achieved_goals"] = batch_to_return["next_observations"]["achieved_goal"]
-        batch_to_return["next_desired_goals"] = batch_to_return["next_observations"]["desired_goal"]
-        batch_to_return["observations"] = batch_to_return["observations"]["observation"]
-        batch_to_return["next_observations"] = batch_to_return["next_observations"]["observation"]
+        batch_to_return["achieved_goals"] = batch_to_return["observations"][self.achieved_goal_key]
+        batch_to_return["desired_goals"] = batch_to_return["observations"][self.desired_goal_key]
+        batch_to_return["next_achieved_goals"] = batch_to_return["next_observations"][self.achieved_goal_key]
+        batch_to_return["next_desired_goals"] = batch_to_return["next_observations"][self.desired_goal_key]
+        batch_to_return["observations"] = batch_to_return["observations"][self.observation_key]
+        batch_to_return["next_observations"] = batch_to_return["next_observations"][self.observation_key]
         if relabel:
-            batch_to_return["rewards"] = self.compute_reward(batch_to_return["next_achieved_goals"], batch_to_return["desired_goals"], info=None)
-            # batch_to_return["rewards"] = compute_reward(batch_to_return["next_achieved_goals"], batch_to_return["desired_goals"])
+            batch_to_return["rewards"] = self.compute_reward(batch_to_return["next_achieved_goals"], batch_to_return["desired_goals"], info=None).reshape(-1, 1)
 
         return batch_to_return
 
     def save_data(self, save_name):
         save_dict = {
-            "observations": self._observations['observation'][: self._top],
-            "achieved_goals": self._observations['achieved_goal'][: self._top],
-            "desired_goals": self._observations['desired_goal'][: self._top],
+            "observations": self._observations[self.observation_key][: self._top],
+            "achieved_goals": self._observations[self.achieved_goal_key][: self._top],
+            "desired_goals": self._observations[self.desired_goal_key][: self._top],
             "actions": self._actions[: self._top],
-            "next_observations": self._next_obs['observation'][: self._top],
-            "next_achieved_goals": self._next_obs['achieved_goal'][: self._top],
-            "next_desired_goals": self._next_obs['desired_goal'][: self._top],
+            "next_observations": self._next_obs[self.observation_key][: self._top],
+            "next_achieved_goals": self._next_obs[self.achieved_goal_key][: self._top],
+            "next_desired_goals": self._next_obs[self.desired_goal_key][: self._top],
             "terminals": self._terminals[: self._top],
             "timeouts": self._timeouts[: self._top],
             "rewards": self._rewards[: self._top],
