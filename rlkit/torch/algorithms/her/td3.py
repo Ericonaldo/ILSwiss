@@ -13,9 +13,13 @@ from rlkit.torch.algorithms.torch_rl_algorithm import TorchRLAlgorithm
 
 class TD3(Trainer):
     """
-    Twin Delayed Deep Deterministic policy gradients
+    Twin Delayed Deep Deterministic policy gradients for goal-conditioned RL
 
     https://arxiv.org/abs/1802.09477
+
+    Using goal-conditioned value / policy function.
+
+    This can be easily achieved using the original TD3 algorithm by set a wrapper of the environment that concat the goal with the observation. However here I rewrite the TD3 to flexibly operate the goals for designing new algorithms.
     """
 
     def __init__(
@@ -54,6 +58,7 @@ class TD3(Trainer):
         self.target_policy = self.policy.copy()
         self.target_qf1 = self.qf1.copy()
         self.target_qf2 = self.qf2.copy()
+        
         self.qf1_optimizer = optimizer_class(
             self.qf1.parameters(),
             lr=qf_lr,
@@ -78,23 +83,31 @@ class TD3(Trainer):
         actions = batch["actions"]
         next_obs = batch["next_observations"]
 
+        goals = batch['desired_goals']
+        next_goals = batch['next_desired_goals']
+
+        concat_input = torch.cat([obs, goals], axis=-1)
+        target_input = torch.cat([next_obs, next_goals], axis=-1)
+ 
+
         """
         Critic operations.
         """
-        policy_outputs = self.target_policy(next_obs)
+        policy_outputs = self.target_policy(target_input, deterministic=True)
         noisy_next_actions = policy_outputs[0]
 
-        target_q1_values = self.target_qf1(next_obs, noisy_next_actions)
-        target_q2_values = self.target_qf2(next_obs, noisy_next_actions)
+        target_q1_values = self.target_qf1(target_input, noisy_next_actions)
+        target_q2_values = self.target_qf2(target_input, noisy_next_actions)
         target_q_values = torch.min(target_q1_values, target_q2_values)
+        
         q_target = rewards + (1.0 - terminals) * self.discount * target_q_values
         q_target = q_target.detach()
 
-        q1_pred = self.qf1(obs, actions)
+        q1_pred = self.qf1(concat_input, actions)
         bellman_errors_1 = (q1_pred - q_target) ** 2
         qf1_loss = bellman_errors_1.mean()
 
-        q2_pred = self.qf2(obs, actions)
+        q2_pred = self.qf2(concat_input, actions)
         bellman_errors_2 = (q2_pred - q_target) ** 2
         qf2_loss = bellman_errors_2.mean()
 
@@ -110,14 +123,13 @@ class TD3(Trainer):
         self.qf2_optimizer.step()
 
         policy_actions = policy_loss = None
-
         if self._n_train_steps_total % self.policy_and_target_update_period == 0:
-
-            policy_outputs = self.policy(obs, deterministic=True)
+            policy_outputs = self.policy(concat_input, deterministic=True)
             policy_actions = policy_outputs[0]
-            q_output = self.qf1(obs, policy_actions)
-            policy_loss = -q_output.mean()
-           
+            q_output = self.qf1(concat_input, policy_actions)
+            pi_l2_loss = torch.square(policy_actions).mean()
+            policy_loss = -q_output.mean() + pi_l2_loss
+
             self.policy_optimizer.zero_grad()
             policy_loss.backward()
             self.policy_optimizer.step()
@@ -131,9 +143,9 @@ class TD3(Trainer):
             """
             if policy_loss is None:
                 # policy_loss = 0
-                policy_outputs = self.policy(obs, deterministic=True)
+                policy_outputs = self.policy(concat_input, deterministic=True)
                 policy_actions = policy_outputs[0]
-                q_output = self.qf1(obs, policy_actions)
+                q_output = self.qf1(concat_input, policy_actions)
                 policy_loss = - q_output.mean()
 
             self.eval_statistics = OrderedDict()

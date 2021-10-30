@@ -30,6 +30,25 @@ def get_generic_path_information(paths, stat_prefix=""):
             "Returns", returns, stat_prefix=stat_prefix, always_show_all_stats=True
         )
     )
+    # print(paths[0]["env_infos"])
+    if "is_success" in paths[0]["env_infos"][0].keys():
+        acc_sum = [(np.sum([x['is_success'] for x in path["env_infos"]])>0).astype(float) for path in paths]
+        acc = np.sum(acc_sum)*1.0 / len(paths)
+        statistics.update(
+            create_stats_ordered_dict(
+                "Success Num", np.sum(acc_sum), stat_prefix=stat_prefix, always_show_all_stats=True
+            )
+        )
+        statistics.update(
+            create_stats_ordered_dict(
+                "Traj Num", len(paths), stat_prefix=stat_prefix, always_show_all_stats=True
+            )
+        )
+        statistics.update(
+            create_stats_ordered_dict(
+                "Success Rate", acc, stat_prefix=stat_prefix, always_show_all_stats=True
+            )
+        )
     actions = [path["actions"] for path in paths]
     # if isinstance(actions[0][0], np.ndarray):
     #     actions = np.vstack([path["actions"] for path in paths])

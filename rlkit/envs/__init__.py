@@ -25,6 +25,7 @@ env_overwrite = {}  # {'Ant': AntEnv, 'Humanoid': HumanoidEnv, 'Swimmer':Swimmer
 
 def load(name):
     # taken from OpenAI gym registration.py
+    print(name)
     mod_name, attr_name = name.split(":")
     mod = importlib.import_module(mod_name)
     fn = getattr(mod, attr_name)
@@ -69,7 +70,7 @@ def get_envs(env_specs, env_wrapper=None, **kwargs):
     env_class = load(domain)
 
     if ("env_num" not in env_specs.keys()) or (env_specs["env_num"] == 1):
-        envs = env_wrapper(env_class(**env_specs["env_kwargs"]), **kwargs)
+        envs = env_wrapper(env_class(**env_specs["env_kwargs"]))
 
         if domain in env_overwrite:
             print(
@@ -80,22 +81,24 @@ def get_envs(env_specs, env_wrapper=None, **kwargs):
             envs = env_overwrite[domain]()
 
         print("\n WARNING: Single environment detected, wrap to DummyVectorEnv.")
-        envs = DummyVectorEnv([lambda: envs])
+        envs = DummyVectorEnv([lambda: envs], **kwargs)
 
     else:
         envs = SubprocVectorEnv(
             [
-                lambda: env_wrapper(env_class(**env_specs["env_kwargs"]), **kwargs)
+                lambda: env_wrapper(env_class(**env_specs["env_kwargs"]))
                 for _ in range(env_specs["env_num"])
             ]
+            , **kwargs
         )
 
         if domain in env_overwrite:
             envs = SubprocVectorEnv(
                 [
-                    lambda: env_wrapper(env_overwrite[domain](), **kwargs)
+                    lambda: env_wrapper(env_overwrite[domain]())
                     for _ in range(env_specs["env_num"])
                 ]
+                , **kwargs
             )
 
     return envs

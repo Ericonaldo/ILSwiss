@@ -12,7 +12,7 @@ from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.data_management.path_builder import PathBuilder
 from rlkit.policies.base import ExplorationPolicy
 from rlkit.torch.common.policies import MakeDeterministic
-from rlkit.samplers import PathSampler
+from rlkit.samplers import PathSampler, VecPathSampler
 
 from gym.spaces import Dict
 
@@ -28,6 +28,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         env,
         exploration_policy: ExplorationPolicy,
         training_env=None,
+        eval_env=None,
         eval_policy=None,
         eval_sampler=None,  ##
         num_epochs=100,
@@ -85,15 +86,27 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
             if eval_policy is None:
                 eval_policy = exploration_policy
             eval_policy = MakeDeterministic(eval_policy)
-            eval_sampler = PathSampler(
-                env,
-                eval_policy,
-                num_steps_per_eval,
-                max_path_length,
-                no_terminal=eval_no_terminal,
-                render=render,
-                render_kwargs=render_kwargs,
-            )
+            if eval_env is None:
+                eval_env = env
+                eval_sampler = PathSampler(
+                    eval_env,
+                    eval_policy,
+                    num_steps_per_eval,
+                    max_path_length,
+                    no_terminal=eval_no_terminal,
+                    render=render,
+                    render_kwargs=render_kwargs,
+                )
+            else:
+                eval_sampler = VecPathSampler(
+                    eval_env,
+                    eval_policy,
+                    num_steps_per_eval,
+                    max_path_length,
+                    no_terminal=eval_no_terminal,
+                    render=render,
+                    render_kwargs=render_kwargs,
+                )
         self.eval_policy = eval_policy
         self.eval_sampler = eval_sampler
 
@@ -175,7 +188,9 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
 
                 if self.render:
                     self.training_env.render()
-
+                
+                assert np.shape(actions)[-1] == self.training_env.action_space[0].shape[-1], "action shape mismatch!" 
+                
                 next_obs, raw_rewards, terminals, env_infos = self.training_env.step(
                     actions, self.ready_env_ids
                 )
@@ -293,7 +308,6 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
             self.training_mode(False)
 
     def _try_to_eval(self, epoch):
-
         if self._can_evaluate():
             # save if it's time to save
             if (int(epoch) % self.freq_saving == 0) or (epoch + 1 >= self.num_epochs):
@@ -349,9 +363,8 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         :return:
         """
         return (
-            len(self._exploration_paths) > 0
-            and self._n_train_steps_total
-            >= 0
+            (len(self._exploration_paths) > 0)
+            and (self._n_train_steps_total >= 0)
         )
 
     def _can_train(self):
@@ -587,8 +600,8 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         try:
             statistics.update(self.eval_statistics)
             self.eval_statistics = None
-        except:
-            print("No Stats to Eval")
+        except BaseException as e:
+            print("No Stats to Eval", str(e))
 
         logger.log("Collecting samples for evaluation")
         test_paths = self.eval_sampler.obtain_samples()
