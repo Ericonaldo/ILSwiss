@@ -565,8 +565,53 @@ class MlpGaussianAndEpsilonPolicy(Mlp, ExplorationPolicy):
         return (action, preactivation)
 
 
+class ConditionPolicy(ExplorationPolicy):
+    def __init__(
+        self,
+        obs_dim,
+        condition_dim,
+        action_dim,
+        observation_key="observation",
+        desired_goal_key="desired_goal",
+        achieved_goal_key="achieved_goal"
+    ):
+        self.condition_dim = condition_dim
+        self.obs_dim = obs_dim
+        self.action_dim = action_dim
+
+        self.observation_key = observation_key
+        self.desired_goal_key = desired_goal_key
+        self.achieved_goal_key = achieved_goal_key
+
+    def get_action(self, obs_condition_np, deterministic=False):
+        """
+        deterministic=False makes no diff, just doing this for
+        consistency in interface for now
+        """
+        
+        if isinstance(obs_condition_np, dict):
+            obs_condition_np = np.concatenate([obs_condition_np[self.observation_key], obs_condition_np[self.desired_goal_key]], axis=-1)
+        elif isinstance(obs_condition_np[0], dict):
+            obs_condition_np = [{k: v for k, v in x.items() if k != self.achieved_goal_key} for x in obs_condition_np]
+            obs_condition_np = np.array([np.concatenate([x[self.observation_key], x[self.desired_goal_key]], axis=-1) for x in obs_condition_np])
+        
+        actions = self.get_actions(obs_condition_np[None], deterministic=deterministic)
+        return actions[0, :], {}
+
+    def get_actions(self, obs_condition_np, deterministic=False):
+        
+        if isinstance(obs_condition_np, dict):
+            obs_condition_np = np.concatenate([obs_condition_np[self.observation_key], obs_condition_np[self.desired_goal_key]], axis=-1)
+        elif isinstance(obs_condition_np[0], dict):
+            obs_condition_np = [{k: v for k, v in x.items() if k != self.achieved_goal_key} for x in obs_condition_np]
+            obs_condition_np = np.array([np.concatenate([x[self.observation_key], x[self.desired_goal_key]], axis=-1) for x in obs_condition_np])
+        
+        return self.eval_np(obs_condition_np, deterministic=deterministic)[0]
+
+
+
 class MlpGaussianAndEpsilonConditionPolicy(
-    MlpGaussianAndEpsilonPolicy
+    ConditionPolicy, MlpGaussianAndEpsilonPolicy
 ):
     """
     Custom for Ant Rand Goal
@@ -579,47 +624,25 @@ class MlpGaussianAndEpsilonConditionPolicy(
         obs_dim,
         condition_dim,
         action_dim,
+        action_space,
+        observation_key="observation",
+        desired_goal_key="desired_goal",
+        achieved_goal_key="achieved_goal",
         **kwargs
     ):
         self.save_init_params(locals())
-        super().__init__(
-            hidden_sizes, obs_dim+condition_dim, action_dim, **kwargs
+        MlpGaussianAndEpsilonPolicy.__init__(
+            self, hidden_sizes, obs_dim+condition_dim, action_dim, action_space, **kwargs
         )
-
-        self.condition_dim = condition_dim
-        self.obs_dim = obs_dim
-        self.action_dim = action_dim
+        ConditionPolicy.__init__(
+            self, obs_dim, condition_dim, action_dim, observation_key, desired_goal_key, achieved_goal_key
+        )
 
         self.t = 0
 
-    def get_action(self, obs_condition_np, deterministic=False):
-        """
-        deterministic=False makes no diff, just doing this for
-        consistency in interface for now
-        """
-        
-        if isinstance(obs_condition_np, dict):
-            obs_condition_np = np.concatenate([obs_condition_np["observation"], obs_condition_np["desired_goal"]], axis=-1)
-        elif isinstance(obs_condition_np[0], dict):
-            obs_condition_np = [{k: v for k, v in x.items() if k != "achieved_goal"} for x in obs_condition_np]
-            obs_condition_np = np.array([np.concatenate([x["observation"], x['desired_goal']], axis=-1) for x in obs_condition_np])
-        
-        actions = self.get_actions(obs_condition_np[None], deterministic=deterministic)
-        return actions[0, :], {}
-
-    def get_actions(self, obs_condition_np, deterministic=False):
-        
-        if isinstance(obs_condition_np, dict):
-            obs_condition_np = np.concatenate([obs_condition_np["observation"], obs_condition_np["desired_goal"]], axis=-1)
-        elif isinstance(obs_condition_np[0], dict):
-            obs_condition_np = [{k: v for k, v in x.items() if k != "achieved_goal"} for x in obs_condition_np]
-            obs_condition_np = np.array([np.concatenate([x["observation"], x['desired_goal']], axis=-1) for x in obs_condition_np])
-        
-        return self.eval_np(obs_condition_np, deterministic=deterministic)[0]
-
 
 class ReparamTanhMultivariateGaussianConditionPolicy(
-    ReparamTanhMultivariateGaussianPolicy
+    ConditionPolicy, ReparamTanhMultivariateGaussianPolicy
 ):
     """
     Usage:
@@ -645,30 +668,15 @@ class ReparamTanhMultivariateGaussianConditionPolicy(
         obs_dim,
         condition_dim,
         action_dim,
+        observation_key="observation",
+        desired_goal_key="desired_goal",
+        achieved_goal_key="achieved_goal",
         **kwargs
     ):
         self.save_init_params(locals())
-        super().__init__(
-            hidden_sizes, obs_dim+condition_dim, action_dim, **kwargs
+        ReparamTanhMultivariateGaussianPolicy.__init__(
+            self, hidden_sizes, obs_dim+condition_dim, action_dim, **kwargs
         )
-
-        self.condition_dim = condition_dim
-
-    def get_action(self, obs_condition_np, deterministic=False):
-        if isinstance(obs_condition_np, dict):
-            obs_condition_np = np.concatenate([obs_condition_np["observation"], obs_condition_np["desired_goal"]], axis=-1)
-        elif isinstance(obs_condition_np[0], dict):
-            obs_condition_np = [{k: v for k, v in x.items() if k != "achieved_goal"} for x in obs_condition_np]
-            obs_condition_np = np.array([np.concatenate([x["observation"], x['desired_goal']], axis=-1) for x in obs_condition_np])
-
-        actions = self.get_actions(obs_condition_np[None], deterministic=deterministic)
-        return actions[0, :], {}
-
-    def get_actions(self, obs_condition_np, deterministic=False):
-        if isinstance(obs_condition_np, dict):
-            obs_condition_np = np.concatenate([obs_condition_np["observation"], obs_condition_np["desired_goal"]], axis=-1)
-        elif isinstance(obs_condition_np[0], dict):
-            obs_condition_np = [{k: v for k, v in x.items() if k != "achieved_goal"} for x in obs_condition_np]
-            obs_condition_np = np.array([np.concatenate([x["observation"], x['desired_goal']], axis=-1) for x in obs_condition_np])
-
-        return self.eval_np(obs_condition_np, deterministic=deterministic)[0]
+        ConditionPolicy.__init__(
+            self, obs_dim, condition_dim, action_dim, observation_key, desired_goal_key, achieved_goal_key
+        )

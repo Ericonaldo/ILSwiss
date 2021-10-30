@@ -25,7 +25,7 @@ from rlkit.torch.algorithms.her.her import HER
 def experiment(variant):
     env_specs = variant["env_specs"]
     env = get_env(env_specs)
-    # env.seed(env_specs["eval_env_seed"])
+    env.seed(env_specs["eval_env_seed"])
 
     print("\n\nEnv: {}".format(env_specs["env_name"]))
     print("kwargs: {}".format(env_specs["env_kwargs"]))
@@ -34,21 +34,15 @@ def experiment(variant):
 
     obs_space = env.observation_space
     act_space = env.action_space
-    # assert not isinstance(obs_space, gym.spaces.Dict)
-    # assert len(obs_space.shape) == 2
-    # assert len(act_space.shape) == 1
+    assert isinstance(obs_space, gym.spaces.Dict), "obs is {}".format(obs_space)
 
     env_wrapper = ProxyEnv  # Identical wrapper
     kwargs = {}
     
-    # if isinstance(act_space, gym.spaces.Box):
-    #     env_wrapper = NormalizedBoxEnv
-    #     kwargs = {}
-
     env = env_wrapper(env, **kwargs)
 
     training_env = get_envs(env_specs, env_wrapper, **kwargs)
-    # training_env.seed(env_specs["training_env_seed"])
+    training_env.seed(env_specs["training_env_seed"])
 
     try:
         obs_dim = obs_space.spaces['observation'].shape[0]

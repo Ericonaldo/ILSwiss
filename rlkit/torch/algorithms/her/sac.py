@@ -166,19 +166,6 @@ class SAC(Trainer):
             self.alpha_optimizer.step()
             self.alpha = self.log_alpha.detach().exp()
 
-        """
-        Update networks
-        """
-        # unfreeze all -> initial states
-        # for p in itertools.chain(self.qf1.parameters(), self.qf2.parameters()):
-        #     p.requires_grad = True
-        # for p in self.policy.parameters():
-        #     p.requires_grad = True
-
-        # unfreeze parameter of Q
-        # for p in itertools.chain(self.qf1.parameters(), self.qf2.parameters()):
-        #     p.requires_grad = True
-
         self._update_target_network()
 
         """

@@ -100,7 +100,6 @@ class HindsightReplayBuffer(SimpleReplayBuffer):
             # print("her:", traj_len, starts[i], ends[i], step, step_her)
             indices.append(step)
             indices_relabel.append(step_her)
-        # indices = self._np_randint(0, self._size, batch_size)
         batch_to_return = self._get_batch_using_indices(indices, keys=keys)
         
         # relabel
