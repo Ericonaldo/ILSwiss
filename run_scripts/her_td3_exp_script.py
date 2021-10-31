@@ -105,7 +105,7 @@ if __name__ == "__main__":
         "training_env_seed"
     ] = exp_specs["seed"]
 
-    if exp_specs["using_gpus"] > 0:
+    if exp_specs["using_gpus"]:
         print("\n\nUSING GPU\n\n")
         ptu.set_gpu_mode(True, args.gpu)
     exp_id = exp_specs["exp_id"]

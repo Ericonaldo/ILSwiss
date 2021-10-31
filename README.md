@@ -14,6 +14,7 @@ You can easily build experiment codes under this framework in your research. We 
 - TD3
 - DDPG
 - PPO
+- HER (Goal-Condtioned RL, with SAC or TD3)
 
 ## Implemented IL algorithms:
 
