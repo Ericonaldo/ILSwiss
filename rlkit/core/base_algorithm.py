@@ -189,8 +189,6 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
                 if self.render:
                     self.training_env.render()
                 
-                assert np.shape(actions)[-1] == self.training_env.action_space[0].shape[-1], "action shape mismatch!" 
-                
                 next_obs, raw_rewards, terminals, env_infos = self.training_env.step(
                     actions, self.ready_env_ids
                 )

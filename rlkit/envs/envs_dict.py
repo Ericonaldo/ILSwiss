@@ -1,4 +1,5 @@
 envs_dict = {
+    "cartpole": "gym.envs.classic_control:CartPoleEnv", 
     # "Standard" Mujoco Envs
     "halfcheetah": "gym.envs.mujoco.half_cheetah:HalfCheetahEnv",
     "ant": "gym.envs.mujoco.ant:AntEnv",

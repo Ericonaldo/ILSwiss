@@ -31,11 +31,12 @@ def experiment(variant):
     print("Obs Space: {}".format(env.observation_space))
     print("Act Space: {}\n\n".format(env.action_space))
 
-    obs_space = env.observation_space_n
-    act_space = env.action_space_n
-    assert not isinstance(obs_space, gym.spaces.Dict)
+    obs_space = env.observation_space
+    act_space = env.action_space
+
+    assert isinstance(obs_space, gym.spaces.Box)
+    assert isinstance(act_space, gym.spaces.Discrete)
     assert len(obs_space.shape) == 1
-    assert len(act_space.shape) == 1
 
     env_wrapper = ProxyEnv  # Identical wrapper
     kwargs = {}
@@ -48,7 +49,7 @@ def experiment(variant):
     training_env.seed(env_specs["training_env_seed"])
 
     obs_dim = obs_space.shape[0]
-    action_dim = act_space.shape[0]
+    action_dim = act_space.n
 
     net_size = variant["net_size"]
     num_hidden = variant["num_hidden_layers"]
@@ -79,7 +80,7 @@ def experiment(variant):
         trainer=trainer,
         env=env,
         training_env=training_env,
-        exploration_policy_n=policy,
+        exploration_policy=policy,
         **variant["rl_alg_params"],
     )
 

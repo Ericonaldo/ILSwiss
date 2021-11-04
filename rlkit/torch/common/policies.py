@@ -62,10 +62,10 @@ class DiscretePolicy(Mlp, ExplorationPolicy):
 
     def get_action(self, obs_np, deterministic=False):
         action = self.get_actions(obs_np[None], deterministic=deterministic)
-        return action, {}
+        return action[0], {}
 
     def get_actions(self, obs_np, deterministic=False):
-        return self.eval_np(obs_np)[0]
+        return self.eval_np(obs_np)[0].reshape(-1)
 
     def forward(
         self,

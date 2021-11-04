@@ -17,8 +17,7 @@ def rollout(
         action, agent_info = policy.get_action(observation)
         if render:
             env.render(**render_kwargs)
-        
-        assert np.shape(action)[-1] == env.action_space.shape[-1], "action shape mismatch!"
+            
         next_ob, reward, terminal, env_info = env.step(action)
         if no_terminal:
             terminal = False
