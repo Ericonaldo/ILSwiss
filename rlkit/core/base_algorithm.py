@@ -188,7 +188,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
 
                 if self.render:
                     self.training_env.render()
-                
+
                 next_obs, raw_rewards, terminals, env_infos = self.training_env.step(
                     actions, self.ready_env_ids
                 )

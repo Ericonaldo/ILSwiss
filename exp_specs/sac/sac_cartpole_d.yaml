@@ -16,11 +16,11 @@ constants:
   rl_alg_params:
     num_epochs: 201
     num_steps_per_epoch: 10000
-    num_steps_between_train_calls: 1000
-    num_train_steps_per_train_call: 1000
-    num_steps_per_eval: 2000
+    num_steps_between_train_calls: 10
+    num_train_steps_per_train_call: 1
+    num_steps_per_eval: 5000
     max_path_length: 200
-    min_steps_before_training: 2000
+    min_steps_before_training: 1000
 
     eval_deterministic: true
 
@@ -38,13 +38,11 @@ constants:
   sac_params:
     alpha: 0.05
     reward_scale: 1.0
-    discount: 0.99
+    discount: 0.95
     soft_target_tau: 0.005
     policy_lr: 0.0001
     qf_lr: 0.001
     vf_lr: 0.001
-    policy_mean_reg_weight: 0.001
-    policy_std_reg_weight: 0.001
 
   env_specs:
     env_name: 'cartpole'

@@ -17,7 +17,7 @@ def rollout(
         action, agent_info = policy.get_action(observation)
         if render:
             env.render(**render_kwargs)
-            
+
         next_ob, reward, terminal, env_info = env.step(action)
         if no_terminal:
             terminal = False

@@ -65,7 +65,8 @@ class DiscretePolicy(Mlp, ExplorationPolicy):
         return action[0], {}
 
     def get_actions(self, obs_np, deterministic=False):
-        return self.eval_np(obs_np)[0].reshape(-1)
+        # return self.eval_np(obs_np)[0].reshape(-1)
+        return self.eval_np(obs_np, deterministic=deterministic)[0]
 
     def forward(
         self,
@@ -84,8 +85,7 @@ class DiscretePolicy(Mlp, ExplorationPolicy):
             gumbel = -torch.log(-torch.log(u))
             _, idx = torch.max(gumbel + pre_act, 1)
 
-            idx = torch.unsqueeze(idx, 1)
-            log_prob = torch.gather(log_probs, 1, idx)
+            log_prob = torch.gather(log_probs, 1, idx.unsqueeze(1))
 
             # # print(log_probs.size(-1))
             # # print(log_probs.data.numpy())

@@ -70,10 +70,10 @@ def experiment(variant):
     )
 
     trainer = DiscreteSoftActorCritic(
-        policy=policy, 
-        qf1=qf1, 
-        qf2=qf2, 
-        **variant["sac_params"]
+        policy=policy,
+        qf1=qf1,
+        qf2=qf2,
+        **variant["sac_params"],
     )
 
     algorithm = TorchRLAlgorithm(

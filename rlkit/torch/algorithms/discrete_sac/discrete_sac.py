@@ -32,8 +32,6 @@ class DiscreteSoftActorCritic(Trainer):
         qf_lr=1e-3,
         vf_lr=1e-3,
         soft_target_tau=1e-2,
-        policy_mean_reg_weight=1e-3,
-        policy_std_reg_weight=1e-3,
         optimizer_class=optim.Adam,
         beta_1=0.9,
         **kwargs,
@@ -44,8 +42,6 @@ class DiscreteSoftActorCritic(Trainer):
         self.reward_scale = reward_scale
         self.discount = discount
         self.soft_target_tau = soft_target_tau
-        self.policy_mean_reg_weight = policy_mean_reg_weight
-        self.policy_std_reg_weight = policy_std_reg_weight
 
         self.target_qf1 = qf1.copy()
         self.target_qf2 = qf2.copy()
@@ -90,7 +86,7 @@ class DiscreteSoftActorCritic(Trainer):
         self.qf2_optimizer.zero_grad()
         q1_pred = self.qf1(obs).gather(1, actions)
         q2_pred = self.qf2(obs).gather(1, actions)
-        _, next_action_log_prob = self.policy(next_obs)
+        next_action_log_prob = self.policy.get_log_pis(next_obs)
         next_action_prob = next_action_log_prob.exp()
         next_action_dist = Categorical(probs=next_action_prob)
         next_q = next_action_dist.probs * torch.min(
@@ -127,7 +123,7 @@ class DiscreteSoftActorCritic(Trainer):
         # q2_new_acts = self.qf2(obs, new_actions)  # error
         # q_new_actions = torch.min(q1_new_acts, q2_new_acts)
 
-        _, action_log_prob = self.policy(obs)
+        action_log_prob = self.policy.get_log_pis(obs)
         action_prob = action_log_prob.exp()
         action_dist = Categorical(probs=action_prob)
         current_q = torch.min(
