@@ -142,8 +142,10 @@ def experiment(specs):
 
     if specs["use_deterministic_expert"]:
         policy = MakeDeterministic(policy)
-    if ptu.gpu_enabled() and exp_specs["num_gpu_per_worker"] > 0:
+    if exp_specs["using_gpus"] > 0:
         policy.to(ptu.device)
+    # make all seeds the same.
+    exp_specs["env_specs"]["env_seed"] = exp_specs["seed"]
 
     env = get_env(specs["env_specs"])
     env.seed(specs["env_specs"]["env_seed"])
