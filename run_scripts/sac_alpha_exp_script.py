@@ -39,9 +39,9 @@ def experiment(variant):
     assert len(act_space.shape) == 1
 
     env_wrapper = ProxyEnv  # Identical wrapper
+    kwargs = {}
     if isinstance(act_space, gym.spaces.Box):
         env_wrapper = NormalizedBoxEnv
-        kwargs = {}
 
     env = env_wrapper(env, **kwargs)
     training_env = get_envs(env_specs, env_wrapper, **kwargs)
@@ -105,7 +105,7 @@ if __name__ == "__main__":
         "training_env_seed"
     ] = exp_specs["seed"]
 
-    if exp_specs["num_gpu_per_worker"] > 0:
+    if exp_specs["using_gpus"] > 0:
         print("\n\nUSING GPU\n\n")
         ptu.set_gpu_mode(True, args.gpu)
     exp_id = exp_specs["exp_id"]

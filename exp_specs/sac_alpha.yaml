@@ -3,11 +3,7 @@ meta_data:
   exp_name: test_sac_alpha_humanoid
   description: Train an agent using Soft-Actor-Critic
   num_workers: 2
-  num_gpu_per_worker: 1
-  num_cpu_per_worker: 8
-  mem_per_worker: 16gb
-  partitions: p100,max12hours
-  node_exclusions: gpu048,gpu024,gpu025,gpu012,gpu027
+  using_gpus: true
 # -----------------------------------------------------------------------------
 variables:
   seed: [723894, 23789]

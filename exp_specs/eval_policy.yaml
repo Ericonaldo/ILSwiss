@@ -3,11 +3,7 @@ meta_data:
   exp_name: test_policy_eval
   description: Evaluate a policy
   num_workers: 4
-  num_gpu_per_worker: 1
-  num_cpu_per_worker: 8
-  mem_per_worker: 16gb
-  partitions: p100,max12hours
-  node_exclusions: gpu048,gpu024,gpu025,gpu012,gpu027
+  using_gpus: true
 # -----------------------------------------------------------------------------
 variables:
   seed: [11992]
@@ -23,14 +19,12 @@ variables:
               ]
 # -----------------------------------------------------------------------------
 constants:
-  ablation_study: false
   # expert_name: 'hopper_sac'
   # expert_idx: 0
   scale_env_with_demo_stats: false
   minmax_env_with_demo_stats: false
-  state_diff: false
 
-  # policy_checkpoint: './logs/gail-lfo-walker-union--gp-8.0--2020_12_27_23_19_11--s-0/best.pkl'
+  # policy_checkpoint: './logs/gail-walker--2020_12_27_23_19_11--s-0/best.pkl'
   eval_deterministic: true
 
   policy_net_size: 256

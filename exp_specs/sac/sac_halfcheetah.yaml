@@ -1,9 +1,10 @@
 meta_data:
-  script_path: run_scripts/sac_exp_script.py
+  script_path: run_scripts/sac_alpha_exp_script.py
   exp_name: test_sac_halfcheetah
   description: Train an agent using Soft-Actor-Critic
   num_workers: 2
   using_gpus: true
+  # num_gpu_workers: 1
 # -----------------------------------------------------------------------------
 variables:
   seed: [723894]
@@ -16,8 +17,8 @@ constants:
   rl_alg_params:
     num_epochs: 282
     num_steps_per_epoch: 10000
-    num_steps_between_train_calls: 1000
-    num_train_steps_per_train_call: 1000
+    num_steps_between_train_calls: 1
+    num_train_steps_per_train_call: 1
     num_steps_per_eval: 10000
     max_path_length: 1000
     min_steps_before_training: 0
@@ -49,4 +50,4 @@ constants:
   env_specs:
     env_name: 'halfcheetah'
     env_kwargs: {}
-    env_num: 10
+    env_num: 1

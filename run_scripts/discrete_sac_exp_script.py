@@ -42,7 +42,6 @@ def experiment(variant):
     kwargs = {}
     if isinstance(act_space, gym.spaces.Box):
         env_wrapper = NormalizedBoxEnv
-        kwargs = {}
 
     env = env_wrapper(env, **kwargs)
     training_env = get_envs(env_specs, env_wrapper, **kwargs)

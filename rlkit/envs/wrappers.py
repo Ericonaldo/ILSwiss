@@ -7,12 +7,12 @@ from rlkit.core.serializable import Serializable
 EPS = np.finfo(np.float32).eps.item()
 
 
-class ProxyEnv(Env, Serializable):
+class ProxyEnv(Serializable, Env):
     def __init__(self, wrapped_env):
-        self._serializable_initialized = False
+        self._wrapped_env = wrapped_env
         Serializable.quick_init(self, locals())
         super(ProxyEnv, self).__init__()
-        self._wrapped_env = wrapped_env
+        
         self.action_space = self._wrapped_env.action_space
         self.observation_space = self._wrapped_env.observation_space
 
