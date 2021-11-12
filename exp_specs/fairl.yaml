@@ -34,19 +34,19 @@ constants:
     state_only: false
 
     num_epochs: 162
-    num_steps_per_epoch: 100000
+    num_steps_per_epoch: 10000
     num_steps_between_train_calls: 1000
     max_path_length: 1000
     min_steps_before_training: 5000
 
     eval_deterministic: true
-    num_steps_per_eval: 20000
+    num_steps_per_eval: 10000
     
     replay_buffer_size: 20000
     no_terminal: false
     wrap_absorbing: false
 
-    num_update_loops_per_train_call: 100
+    num_update_loops_per_train_call: 1000
     num_disc_updates_per_loop_iter: 1
     num_policy_updates_per_loop_iter: 1
 

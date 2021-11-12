@@ -29,7 +29,7 @@ constants: # These are constant hyperparameters without tunning, and the name is
     min_steps_before_training: 0 # Just as it names
 
     eval_deterministic: true
-    num_steps_per_eval: 20000
+    num_steps_per_eval: 10000
     
     replay_buffer_size: 20000
     no_terminal: false
