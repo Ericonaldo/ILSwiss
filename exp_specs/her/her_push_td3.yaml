@@ -1,0 +1,54 @@
+meta_data:
+  script_path: run_scripts/her_td3_exp_script.py
+  exp_name: her_fetch_push_td3
+  description: Train an her agent using TD3
+  num_workers: 2
+  using_gpus: true
+# -----------------------------------------------------------------------------
+variables:
+  seed: [0]
+
+# -----------------------------------------------------------------------------
+constants:
+  net_size: 300
+  num_hidden_layers: 2
+  
+  # method of goal generation
+  # goal_gen: 'interval' # ['vanilla', 'fixobj', 'interval', 'reach']
+
+  rl_alg_params:
+    num_epochs: 100
+    num_steps_per_epoch: 1000
+    num_steps_between_train_calls: 1
+    num_train_steps_per_train_call: 1
+    num_steps_per_eval: 1000
+    max_path_length: 50
+    min_steps_before_training: 1000
+
+    eval_deterministic: true
+
+    batch_size: 2048
+    replay_buffer_size: 1000000
+    no_terminal: true
+    wrap_absorbing: false
+
+    save_best: false
+    freq_saving: 10
+    save_replay_buffer: false
+    save_environment: false
+    save_algorithm: false
+
+    relabel_type: "future"
+    her_ratio: 0.8
+
+  td3_params:
+    policy_and_target_update_period: 2
+    reward_scale: 1.0
+    discount: 0.99
+    soft_target_tau: 0.005
+    policy_lr: 0.0003
+    qf_lr: 0.0003
+
+  env_specs:
+    env_name: 'fetch-reach'
+    env_kwargs: {}
