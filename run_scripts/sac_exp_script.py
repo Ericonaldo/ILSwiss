@@ -13,6 +13,7 @@ from rlkit.envs import get_env, get_envs
 from rlkit.envs.wrappers import NormalizedBoxEnv, ProxyEnv
 
 import rlkit.torch.utils.pytorch_util as ptu
+from rlkit.core.logger import load_from_file
 from rlkit.launchers.launcher_util import setup_logger, set_seed
 from rlkit.torch.common.networks import FlattenMlp
 from rlkit.torch.common.policies import ReparamTanhMultivariateGaussianPolicy
@@ -81,10 +82,15 @@ def experiment(variant):
         exploration_policy=policy,
         **variant["rl_alg_params"]
     )
-
+    
+    epoch = 0
+    if "load_params" in variant:
+        algorithm, epoch = load_from_file(algorithm, **variant["load_params"])
+    
     if ptu.gpu_enabled():
         algorithm.to(ptu.device)
-    algorithm.train()
+    
+    algorithm.train(start_epoch=epoch)
 
     return 1
 
@@ -111,6 +117,13 @@ if __name__ == "__main__":
     exp_prefix = exp_specs["exp_name"]
     seed = exp_specs["seed"]
     set_seed(seed)
-    setup_logger(exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs)
+    
+    log_dir=None
+    if "load_params" in exp_specs:
+        load_path = exp_specs["load_params"]["load_path"]
+        if (load_path is not None) and (len(load_path) > 0):
+            log_dir = load_path
+
+    setup_logger(exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs, log_dir=log_dir)
 
     experiment(exp_specs)

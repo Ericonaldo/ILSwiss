@@ -191,8 +191,21 @@ class TD3(Trainer):
             target_policy=self.target_policy,
             target_qf1=self.target_qf1,
             target_qf2=self.target_qf2,
+            policy_optimizer=self.policy_optimizer,
+            qf1_optimizer=self.qf1_optimizer,
+            qf2_optimizer=self.qf2_optimizer,
         )
         return snapshot
+
+    def load_snapshot(self, snapshot):
+        self.qf1 = snapshot["qf1"]
+        self.qf2 = snapshot["qf2"]
+        self.policy = snapshot["policy"]
+        self.target_qf1 = snapshot["target_qf1"]
+        self.target_qf2 = snapshot["target_qf2"]
+        self.policy_optimizer = snapshot["policy_optimizer"]
+        self.qf1_optimizer = snapshot["qf1_optimizer"]
+        self.qf2_optimizer = snapshot["self.qf2_optimizer"]
 
     @property
     def networks(self):

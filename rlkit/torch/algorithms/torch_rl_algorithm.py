@@ -39,6 +39,13 @@ class TorchRLAlgorithm(TorchBaseAlgorithm):
         data_to_save.update(self.trainer.get_snapshot())
         return data_to_save
 
+    def load_snapshot(self, snapshot):
+        self.trainer.load_snapshot(snapshot)
+        self.exploration_policy = self.trainer.policy
+        from rlkit.torch.common.policies import MakeDeterministic
+        self.eval_policy = MakeDeterministic(self.exploration_policy)
+        self.eval_sampler.policy = self.eval_policy
+
     def evaluate(self, epoch):
         self.eval_statistics = self.trainer.get_eval_statistics()
         super().evaluate(epoch)

@@ -46,8 +46,8 @@ constants: # These are constant hyperparameters without tunning, and the name is
 
     freq_saving: 20
     save_replay_buffer: false
-    save_environment: false
-    save_algorithm: false
+    # save_environment: false
+    # save_environment: false
 
   env_specs:
     env_name: 'hopper'

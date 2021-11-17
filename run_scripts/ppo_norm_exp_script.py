@@ -151,6 +151,13 @@ if __name__ == "__main__":
     exp_prefix = exp_specs["exp_name"]
     seed = exp_specs["seed"]
     set_seed(seed)
-    setup_logger(exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs)
+    
+    log_dir=None
+    if "load_params" in exp_specs:
+        load_path = exp_specs["load_params"]["load_path"]
+        if (load_path is not None) and (len(load_path) > 0):
+            log_dir = load_path
+
+    setup_logger(exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs, log_dir=log_dir)
 
     experiment(exp_specs)

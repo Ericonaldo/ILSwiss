@@ -1,5 +1,5 @@
 meta_data:
-  script_path: run_scripts/sac_exp_script.py
+  script_path: run_scripts/sac_alpha_exp_script.py
   exp_name: test_sac_swimmer
   description: Train an agent using Soft-Actor-Critic
   num_workers: 2
@@ -13,8 +13,13 @@ constants:
   net_size: 256
   num_hidden_layers: 2
 
+  load_params:
+    load_replay_buffer: true
+    load_model: true
+    load_path: './logs/test-sac-swimmer/test_sac_swimmer_2021_11_17_18_11_54_0000--s-0'
+
   rl_alg_params:
-    num_epochs: 282
+    num_epochs: 20
     num_steps_per_epoch: 10000
     num_steps_between_train_calls: 1000
     num_train_steps_per_train_call: 1000
@@ -24,16 +29,14 @@ constants:
 
     eval_deterministic: true
 
-    batch_size: 256
+    batch_size: 512
     replay_buffer_size: 100000
     no_terminal: false
     wrap_absorbing: false
 
     save_best: false
     freq_saving: 10
-    save_replay_buffer: false
-    save_environment: false
-    save_algorithm: false
+    save_replay_buffer: true
 
   sac_params:
     alpha: 0.2
@@ -42,7 +45,6 @@ constants:
     soft_target_tau: 0.005
     policy_lr: 0.0003
     qf_lr: 0.0003
-    vf_lr: 0.0003
     policy_mean_reg_weight: 0.001
     policy_std_reg_weight: 0.001
 

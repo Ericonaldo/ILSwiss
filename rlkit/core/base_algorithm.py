@@ -41,8 +41,8 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         replay_buffer_size=10000,
         freq_saving=1,
         save_replay_buffer=False,
-        save_environment=False,
-        save_algorithm=False,
+        # save_environment=False,
+        # save_algorithm=False,
         save_best=False,
         save_epoch=False,
         save_best_starting_from_epoch=0,
@@ -74,8 +74,8 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         self.render = render
 
         self.save_replay_buffer = save_replay_buffer
-        self.save_algorithm = save_algorithm
-        self.save_environment = save_environment
+        # self.save_algorithm = save_algorithm
+        # self.save_environment = save_environment
         self.save_best = save_best
         self.save_epoch = save_epoch
         self.save_best_starting_from_epoch = save_best_starting_from_epoch
@@ -98,6 +98,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
                     render_kwargs=render_kwargs,
                 )
             else:
+                # make sure eval env is a vec env
                 eval_sampler = VecPathSampler(
                     eval_env,
                     eval_policy,
@@ -333,7 +334,10 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
             times_itrs = gt.get_times().stamps.itrs
             train_time = times_itrs["train"][-1]
             sample_time = times_itrs["sample"][-1]
-            eval_time = times_itrs["eval"][-1] if epoch > 0 else 0
+            if "eval" in times_itrs:
+                eval_time = times_itrs["eval"][-1] if epoch > 0 else 0
+            else:
+                eval_time = 0
             epoch_time = train_time + sample_time + eval_time
             total_time = gt.get_times().total
 
@@ -538,18 +542,21 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
             epoch=epoch,
             exploration_policy=self.exploration_policy,
         )
-        if self.save_environment:
-            data_to_save["env"] = self.training_env
         return data_to_save
 
-    # @abc.abstractmethod
-    # def load_snapshot(self, snapshot):
-    #     """
-    #     Should be implemented on a per algorithm basis
-    #     taking into consideration the particular
-    #     get_epoch_snapshot implementation for the algorithm
-    #     """
-    #     pass
+    def load_snapshot(self, snapshot):
+        """
+        Should be implemented on a per algorithm basis
+        taking into consideration the particular
+        get_epoch_snapshot implementation for the algorithm
+        """
+        self.exploration_policy = snapshot["exploration_policy"]
+
+    def set_steps(self, n_env_steps_total, n_rollouts_total, n_train_steps_total, n_prev_train_env_steps, **kwargs):
+         self._n_env_steps_total = n_env_steps_total
+         self._n_rollouts_total = n_rollouts_total
+         self._n_train_steps_total = n_train_steps_total
+         self._n_prev_train_env_steps = n_prev_train_env_steps
 
     def get_extra_data_to_save(self, epoch):
         """
@@ -562,13 +569,13 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
             self.training_env.render(close=True)
         data_to_save = dict(
             epoch=epoch,
+            n_env_steps_total = self._n_env_steps_total,
+            n_rollouts_total = self._n_rollouts_total,
+            n_train_steps_total = self._n_train_steps_total,
+            n_prev_train_env_steps = self._n_prev_train_env_steps,
         )
-        if self.save_environment:
-            data_to_save["env"] = self.training_env
         if self.save_replay_buffer:
             data_to_save["replay_buffer"] = self.replay_buffer
-        if self.save_algorithm:
-            data_to_save["algorithm"] = self
         return data_to_save
 
     @abc.abstractmethod

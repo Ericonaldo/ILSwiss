@@ -32,8 +32,8 @@ constants:
     save_best: true
     freq_saving: 10
     save_replay_buffer: false
-    save_environment: false
-    save_algorithm: false
+    # save_environment: false
+    # save_environment: false
 
   sac_params:
     alpha: 0.05

@@ -12,6 +12,11 @@ variables:
 constants:
   net_size: 256
   num_hidden_layers: 2
+  
+  load_params:
+    load_replay_buffer: true
+    load_model: true
+    load_path: './logs/test-sac-hopper/test_sac_hopper_2021_11_17_21_58_24_0000--s-0'
 
   rl_alg_params:
     num_epochs: 282
@@ -30,10 +35,10 @@ constants:
     wrap_absorbing: false
 
     save_best: false
-    freq_saving: 10
-    save_replay_buffer: false
-    save_environment: false
-    save_algorithm: false
+    freq_saving: 1
+    save_replay_buffer: true
+    # save_environment: false
+    # save_environment: false
 
   sac_params:
     alpha: 0.2

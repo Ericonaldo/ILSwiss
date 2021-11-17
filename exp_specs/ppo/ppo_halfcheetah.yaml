@@ -35,8 +35,8 @@ constants:
     save_best: false
     freq_saving: 10
     save_replay_buffer: false
-    save_environment: false
-    save_algorithm: false
+    # save_environment: false
+    # save_environment: false
 
   ppo_params:
     clip_eps: 0.2

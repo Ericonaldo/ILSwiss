@@ -63,8 +63,8 @@ constants:
     save_best: true
     freq_saving: 20
     save_replay_buffer: false
-    save_environment: false
-    save_algorithm: false
+    # save_environment: false
+    # save_environment: false
 
   sac_params:
     # reward_scale: 8.0

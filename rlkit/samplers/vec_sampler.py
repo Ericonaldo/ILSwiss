@@ -17,7 +17,7 @@ def rollout(
     observations = env.reset(ready_env_ids)
 
     for _ in range(max_path_length):
-        actions, agent_infos = policy.get_actions(observations)
+        actions = policy.get_actions(observations)
         if render:
             env.render(**render_kwargs)
 

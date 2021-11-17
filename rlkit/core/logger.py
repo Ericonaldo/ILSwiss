@@ -21,7 +21,30 @@ import errno
 import pickle
 
 from rlkit.core.tabulate import tabulate
+from rlkit.data_management.replay_buffer import ReplayBuffer
+from rlkit.envs import load
 from torch.utils.tensorboard import SummaryWriter
+
+def load_from_file(algorithm, load_replay_buffer, load_model, load_path=None):
+    algorithm = algorithm
+    if (load_path is not None) and (len(load_path) > 0):
+        load_extra_data_path = load_path+'/extra_data.pkl'
+        load_model_path = load_path+'/params.pkl'
+
+        extra_data = joblib.load(load_extra_data_path)
+        model = joblib.load(load_model_path)
+
+        if load_replay_buffer:
+            print("LOAD BUFFER from {}".format(load_path))
+            algorithm.replay_buffer = extra_data['replay_buffer']
+        if load_model:
+            print("LOAD MODELS from {}".format(load_path))
+            algorithm.load_snapshot(model)
+        
+        algorithm.set_steps(extra_data)
+        epoch = extra_data["epoch"] + 1
+
+    return algorithm, epoch
 
 def mkdir_p(path):
     try:

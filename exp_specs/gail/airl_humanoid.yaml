@@ -63,8 +63,8 @@ constants:
     save_epoch: false
     freq_saving: 20
     save_replay_buffer: false
-    save_environment: false
-    save_algorithm: false
+    # save_environment: false
+    # save_environment: false
 
   sac_params:
     alpha: 0.2

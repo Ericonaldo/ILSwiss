@@ -37,8 +37,8 @@ constants:
     save_best: false
     freq_saving: 10
     save_replay_buffer: false
-    save_environment: false
-    save_algorithm: false
+    # save_environment: false
+    # save_environment: false
 
     relabel_type: "final"
     her_ratio: 0.8
