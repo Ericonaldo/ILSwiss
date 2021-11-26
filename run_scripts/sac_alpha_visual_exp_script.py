@@ -70,7 +70,8 @@ def experiment(variant):
             max_replay_buffer_size=variant["rl_alg_params"]["replay_buffer_size"], 
             env=env, 
             random_seed=np.random.randint(10000), 
-            pre_image_size=pre_image_size, image_size=image_size
+            pre_image_size=pre_image_size, 
+            image_size=image_size
         )
     
     obs_space = env.observation_space

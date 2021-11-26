@@ -7,8 +7,8 @@ envs_dict = {
     "walker": "gym.envs.mujoco.walker2d:Walker2dEnv",
     "humanoid": "gym.envs.mujoco.humanoid:HumanoidEnv",
     "swimmer": "gym.envs.mujoco.swimmer:SwimmerEnv",
-    "inverteddoublependulum": "gym.envs.mujoco.inverted_double_pendulum:InvertedDoublePendulum2dEnv",
-    "invertedpendulum": "gym.envs.mujoco.inverted_pendulum:InvertedPendulum",
+    "inverteddoublependulum": "gym.envs.mujoco.inverted_double_pendulum:InvertedDoublePendulumEnv",
+    "invertedpendulum": "gym.envs.mujoco.inverted_pendulum:InvertedPendulumEnv",
 
     # normal envs
     "lunarlandercont": "gym.envs.box2d.lunar_lander:LunarLanderContinuous",

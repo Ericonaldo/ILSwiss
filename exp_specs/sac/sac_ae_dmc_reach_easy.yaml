@@ -21,7 +21,7 @@ constants:
     num_train_steps_per_train_call: 1
     num_steps_per_eval: 5000
     max_path_length: 1000
-    min_steps_before_training: 5000
+    min_steps_before_training: 1000
 
     eval_deterministic: true
 
