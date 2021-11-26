@@ -23,7 +23,6 @@ You can easily build experiment codes under this framework in your research. We 
 - Behaviour Cloning (bc)
 - DAgger
 
-
 # Running Notes:
 
 Before running, assign important log and output paths in `\rlkit\launchers\common.py` (There is an example file show necessary variables).
@@ -43,8 +42,79 @@ RL algorithms do not need demonstrations. Therefore, all you need is to write an
 
 For on-policy algorithms (e.g., PPO), we clean the buffer after every training step.
 
+### Example scripts
+
+run sac for hopper:
+
+```
+CUDA_VISIBLE_DEVICES=0 python run_experiment -e \exp_specs\sac\sac_hopper.yaml
+```
+
+
+run ppo for hopper:
+
+```
+CUDA_VISIBLE_DEVICES=0 python run_experiment -e \exp_specs\ppo\ppo_hopper.yaml
+```
+
+run td3 for humanoid:
+
+```
+CUDA_VISIBLE_DEVICES=0 python run_experiment -e \exp_specs\td3\td3_humanoid.yaml
+```
+
+run her for pick with td3:
+
+```
+CUDA_VISIBLE_DEVICES=0 python run_experiment -e \exp_specs\her\her_pick_td3.yaml
+```
+
+
 ## Running IL algorithms
 
 IL algorithms need to be assigned with demonstrations. A input-format-matching standard mujoco demonstrations can be download in [here](https://github.com/apexrl/Baseline_Pool/tree/master/imitation_learning/sac/expert_trajs_50). If you want to sample your own data, train an expert agent using RL algorithms and sample using `\run_scripts\gen_expert_demo.py` or `\run_scripts\evaluate_policy.py`, and do not forget to modify your IO format.
 
 If you get the demos ready, write the path for each expert name in `demos_listing.yaml` (there are already some examples). Then you should specify the expert name and the traj number in the corresponding yaml file (see `\exp_specs\bc.yaml` for example). After all the stuff, you can run it as a regular experiment following the above suggestions.
+
+### Example scripts
+
+run bc for hopper:
+
+```
+CUDA_VISIBLE_DEVICES=0 python run_experiment -e \exp_specs\bc.yaml
+```
+
+run gail for walker:
+
+```
+CUDA_VISIBLE_DEVICES=0 python run_experiment -e \exp_specs\gail\gail_walker.yaml
+```
+
+## Current Baseline Reults
+
+### SAC
+
+| Envs | Mean | Std
+| ----  | ----  | ----  |
+| Pendulum | 139.7313 | 79.8126 |
+| InvertedPendulum-v2 | 1000.0000 | 0.0000 |
+| InvertedDoublePendulum-v2 | 9358.8740 | 0.1043
+| Ant-v2 | 5404.5532 | 1520.4961 |
+| Hopper-v2 | 3402.9494 | 446.4877 |
+| Humanoid-v2 | 6043.9907 | 726.1788 |
+| HalfCheetah-v2 | 13711.6445 | 111.4709 |
+| Walker2d-v2 | 5639.3267 | 29.9715 |
+
+### Random
+
+| Envs | Mean | Std
+| ----  | ----  | ----  |
+| Pendulum | -1494.1357 | 265.8315 |
+| InvertedPendulum-v2 | 25.2800 | 5.5318 |
+| InvertedDoublePendulum-v2 | 78.2829 | 10.7335
+| Ant-v2 | 713.5986 | 203.9204 |
+| Hopper-v2 | 13.0901 | 0.1022 |
+| Humanoid-v2 | 64.7384 | 2.3037 |
+| HalfCheetah-v2 | 74.4849 | 12.3917 |
+| Walker2d-v2 | 7.0708 | 0.1292 |
+| Swimmer-v2 | 15.5430 | 6.6655 |

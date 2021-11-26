@@ -1,0 +1,72 @@
+meta_data:
+  script_path: run_scripts/sac_alpha_visual_exp_script.py
+  exp_name: test_sac_dmc_reach_easy
+  description: Train an agent using Soft-Actor-Critic
+  num_workers: 2
+  using_gpus: true
+  # num_gpu_workers: 1
+# -----------------------------------------------------------------------------
+variables:
+  seed: [723894]
+
+# -----------------------------------------------------------------------------
+constants:
+  net_size: 1024
+  num_hidden_layers: 2
+
+  rl_alg_params:
+    num_epochs: 102
+    num_steps_per_epoch: 10000
+    num_steps_between_train_calls: 2
+    num_train_steps_per_train_call: 1
+    num_steps_per_eval: 5000
+    max_path_length: 1000
+    min_steps_before_training: 5000
+
+    eval_deterministic: true
+
+    batch_size: 128
+    replay_buffer_size: 1000000
+    no_terminal: false
+    wrap_absorbing: false
+
+    save_best: true
+    freq_saving: 10
+    save_replay_buffer: false
+    # save_environment: false
+    # save_environment: false
+
+  encoder_params:
+    encoder_feature_dim: 50
+    encoder_type: 'pixel'
+    decoder_type: 'pixel'
+    num_layers: 4
+    num_filters: 32
+
+  sac_params:
+    alpha: 0.1
+    reward_scale: 1.0
+    discount: 0.99
+    soft_target_tau: 0.01
+    enc_soft_target_tau: 0.05
+    policy_lr: 0.001
+    qf_lr: 0.001
+    encdec_lr: 0.001
+    alpha_lr: 0.0001
+    policy_mean_reg_weight: 0.001
+    policy_std_reg_weight: 0.001
+    ac_update_freq: 2
+    encdec_update_freq: 1
+
+  env_specs:
+    env_name: 'dmc'
+    frame_stack: 3
+    env_kwargs: 
+      domain_name: "reacher"
+      task_name: "easy"
+      visualize_reward: false
+      from_pixels: true
+      height: 84
+      width: 84
+      frame_skip: 1
+    env_num: 1

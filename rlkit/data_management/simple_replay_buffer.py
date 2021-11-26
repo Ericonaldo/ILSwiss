@@ -30,31 +30,30 @@ class SimpleReplayBuffer(ReplayBuffer):
         self._action_dim = action_dim
         self._max_replay_buffer_size = max_replay_buffer_size
 
+        obs_dtype = np.uint8 if type(observation_dim == tuple) else np.float64
+
         if isinstance(observation_dim, tuple):
             dims = [d for d in observation_dim]
             dims = [max_replay_buffer_size] + dims
             dims = tuple(dims)
-            self._observations = np.zeros(dims)
-            self._next_obs = np.zeros(dims)
+            self._observations = np.zeros(dims, dtype=obs_dtype)
+            self._next_obs = np.zeros(dims, dtype=obs_dtype)
         elif isinstance(observation_dim, dict):
             # assuming that this is a one-level dictionary
             self._observations = {}
             self._next_obs = {}
-            self._pred_obs = {}
 
             for key, dims in observation_dim.items():
                 if isinstance(dims, tuple):
                     dims = tuple([max_replay_buffer_size] + list(dims))
                 else:
                     dims = (max_replay_buffer_size, dims)
-                self._observations[key] = np.zeros(dims)
-                self._next_obs[key] = np.zeros(dims)
-                self._pred_obs[key] = np.zeros(dims)
+                self._observations[key] = np.zeros(dims, dtype=obs_dtype)
+                self._next_obs[key] = np.zeros(dims, dtype=obs_dtype)
         else:
             # else observation_dim is an integer
             self._observations = np.zeros((max_replay_buffer_size, observation_dim))
             self._next_obs = np.zeros((max_replay_buffer_size, observation_dim))
-            self._pred_obs = np.zeros((max_replay_buffer_size, observation_dim))
 
         self._actions = np.zeros((max_replay_buffer_size, action_dim))
 
@@ -90,7 +89,6 @@ class SimpleReplayBuffer(ReplayBuffer):
         reward,
         terminal,
         next_observation,
-        pred_obs=None,
         timeout=False,
         **kwargs
     ):
@@ -111,14 +109,9 @@ class SimpleReplayBuffer(ReplayBuffer):
                 self._observations[key][self._top] = obs
             for key, obs in next_observation.items():
                 self._next_obs[key][self._top] = obs
-            if pred_obs is not None:
-                for key, obs in pred_obs.items():
-                    self._pred_obs[key][self._top] = obs
         else:
             self._observations[self._top] = observation
             self._next_obs[self._top] = next_observation
-            if pred_obs is not None:
-                self._pred_obs[self._top] = pred_obs
         self._advance()
 
     def save_data(self, save_name):
@@ -126,7 +119,6 @@ class SimpleReplayBuffer(ReplayBuffer):
             "observations": self._observations[: self._top],
             "actions": self._actions[: self._top],
             "next_observations": self._next_obs[: self._top],
-            "pred_observations": self._pred_obs[: self._top], 
             "terminals": self._terminals[: self._top],
             "timeouts": self._timeouts[: self._top],
             "rewards": self._rewards[: self._top],
@@ -271,25 +263,20 @@ class SimpleReplayBuffer(ReplayBuffer):
                     "rewards",
                     "terminals",
                     "next_observations",
-                    "pred_observations",
                     "absorbing",
                 ]
             )
         if isinstance(self._observations, dict):
             obs_to_return = {}
             next_obs_to_return = {}
-            pred_obs_to_return = {}
             for k in self._observations:
                 if "observations" in keys:
                     obs_to_return[k] = self._observations[k][indices]
                 if "next_observations" in keys:
                     next_obs_to_return[k] = self._next_obs[k][indices]
-                if "pred_observations" in keys:
-                    pred_obs_to_return[k] = self._pred_obs[k][indices]
         else:
             obs_to_return = self._observations[indices]
             next_obs_to_return = self._next_obs[indices]
-            pred_obs_to_return = self._pred_obs[indices]
 
         ret_dict = {}
         if "observations" in keys:
@@ -302,8 +289,6 @@ class SimpleReplayBuffer(ReplayBuffer):
             ret_dict["terminals"] = self._terminals[indices]
         if "next_observations" in keys:
             ret_dict["next_observations"] = next_obs_to_return
-        if "pred_observations" in keys:
-            ret_dict["pred_observations"] = pred_obs_to_return
         if "absorbing" in keys:
             ret_dict["absorbing"] = self._absorbing[indices]
 

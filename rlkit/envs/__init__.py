@@ -1,10 +1,11 @@
 # Inspired by OpenAI gym registration.py
 import abc
 import importlib
+import dmc2gym
 
 from rlkit.envs.envs_dict import envs_dict
 from rlkit.envs.tasks_dict import tasks_dict
-from rlkit.envs.wrappers import NormalizedBoxEnv, ProxyEnv
+from rlkit.envs.wrappers import ProxyEnv
 from rlkit.envs.vecenvs import BaseVectorEnv, DummyVectorEnv, SubprocVectorEnv
 
 __all__ = [
@@ -38,10 +39,15 @@ def get_env(env_specs):
         env_name: 'halfcheetah'
         env_kwargs: {} # kwargs to pass to the env constructor call
     """
-    domain = envs_dict[env_specs["env_name"]]
+    domain = None
 
+    if env_specs["env_name"] == "dmc":
+        env_class = dmc2gym.make
+    else:
+        domain = envs_dict[env_specs["env_name"]]
+        env_class = load(domain)
+    
     # Equal to gym.make()
-    env_class = load(domain)
     env = env_class(**env_specs["env_kwargs"])
 
     if domain in env_overwrite:
@@ -55,22 +61,25 @@ def get_env(env_specs):
     return env
 
 
-def get_envs(env_specs, env_wrapper=None, **kwargs):
+def get_envs(env_specs, env_wrapper=None, wrapper_kwargs={}, **kwargs):
     """
     env_specs:
         env_name: 'halfcheetah'
         env_kwargs: {} # kwargs to pass to the env constructor call
     """
-    domain = envs_dict[env_specs["env_name"]]
+    domain = None
 
     if env_wrapper is None:
         env_wrapper = ProxyEnv
-
-    # Equal to gym.make()
-    env_class = load(domain)
+    
+    if env_specs["env_name"] == "dmc":
+        env_class = dmc2gym.make
+    else:
+        domain = envs_dict[env_specs["env_name"]]
+        env_class = load(domain)
 
     if ("env_num" not in env_specs.keys()) or (env_specs["env_num"] == 1):
-        envs = env_wrapper(env_class(**env_specs["env_kwargs"]))
+        envs = env_wrapper(env_class(**env_specs["env_kwargs"]), **wrapper_kwargs)
 
         if domain in env_overwrite:
             print(

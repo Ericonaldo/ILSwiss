@@ -1,6 +1,8 @@
 import numpy as np
+import gym
 from gym import Env
 from gym.spaces import Box
+from collections import deque
 
 from rlkit.core.serializable import Serializable
 
@@ -360,3 +362,39 @@ class NormalizedBoxEnv(ProxyEnv, Serializable):
 
     def __getattr__(self, attrname):
         return getattr(self._wrapped_env, attrname)
+
+
+class FrameStackEnv(ProxyEnv, Serializable):
+    def __init__(self, env, k):
+        self._wrapped_env = env
+        # Or else serialization gets delegated to the wrapped_env. Serialize
+        # this env separately from the wrapped_env.
+        self._serializable_initialized = False
+        Serializable.quick_init(self, locals())
+        ProxyEnv.__init__(self, env)
+        
+        self._k = k
+        self._frames = deque([], maxlen=k)
+        shp = env.observation_space.shape
+        self.observation_space = gym.spaces.Box(
+            low=0,
+            high=1,
+            shape=((shp[0] * k,) + shp[1:]),
+            dtype=env.observation_space.dtype
+        )
+        self._max_episode_steps = env._max_episode_steps
+
+    def reset(self):
+        obs = self.env.reset()
+        for _ in range(self._k):
+            self._frames.append(obs)
+        return self._get_obs()
+
+    def step(self, action):
+        obs, reward, done, info = self.env.step(action)
+        self._frames.append(obs)
+        return self._get_obs(), reward, done, info
+
+    def _get_obs(self):
+        assert len(self._frames) == self._k
+        return np.concatenate(list(self._frames), axis=0)

@@ -10,7 +10,7 @@ variables: # If you want to do grid search, take the constant variables to here 
 
 # -----------------------------------------------------------------------------
 constants: # These are constant hyperparameters without tunning, and the name is defined by your algorithm, however there are many common hyperparameters
-  expert_name: 'norm_hopper_16_demos_sub_20'
+  expert_name: 'hopper_sac'
   expert_idx: 0
   traj_num: 4
   scale_env_with_demo_stats: false

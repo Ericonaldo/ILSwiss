@@ -12,16 +12,19 @@ print(sys.path)
 
 import gym
 from rlkit.envs import get_env, get_envs
-from rlkit.envs.wrappers import NormalizedBoxEnv, ProxyEnv
+from rlkit.envs.wrappers import NormalizedBoxEnv, ProxyEnv, FrameStackEnv
 
 import rlkit.torch.utils.pytorch_util as ptu
 from rlkit.core.logger import load_from_file
 from rlkit.launchers.launcher_util import setup_logger, set_seed
+from rlkit.torch.common.encoders import make_encoder, make_decoder
 from rlkit.torch.common.networks import FlattenMlp
-from rlkit.torch.common.policies import ReparamTanhMultivariateGaussianPolicy
-from rlkit.torch.algorithms.sac.sac_alpha import SoftActorCritic
+from rlkit.torch.common.policies import ReparamTanhMultivariateGaussianEncoderPolicy
+from rlkit.torch.algorithms.sac.sac_ae import SoftActorCritic
 from rlkit.torch.algorithms.torch_rl_algorithm import TorchRLAlgorithm
 
+os.environ['LD_LIBRARY_PATH']="/home/minghuanliu/.mujoco/mjpro210/bin"
+os.environ['MUJOCO_GL']="egl"
 
 def experiment(variant):
     env_specs = variant["env_specs"]
@@ -33,43 +36,64 @@ def experiment(variant):
     print("Obs Space: {}".format(env.observation_space))
     print("Act Space: {}\n\n".format(env.action_space))
 
+    env_wrapper = ProxyEnv  # Identical wrapper
+    kwargs = {}
+    if ("frame_stack" in env_specs) and (env_specs["frame_stack"] is not None):
+        env_wrapper = FrameStackEnv
+        wrapper_kwargs = {"k": env_specs["frame_stack"]} 
+
+    env = env_wrapper(env, **wrapper_kwargs)
     obs_space = env.observation_space
     act_space = env.action_space
     assert not isinstance(obs_space, gym.spaces.Dict)
-    assert len(obs_space.shape) == 1
+    assert len(obs_space.shape) == 3
     assert len(act_space.shape) == 1
 
-    env_wrapper = ProxyEnv  # Identical wrapper
-    kwargs = {}
-    if isinstance(act_space, gym.spaces.Box):
-        env_wrapper = NormalizedBoxEnv
 
-    env = env_wrapper(env, **kwargs)
-    training_env = get_envs(env_specs, env_wrapper, **kwargs)
+    training_env = get_envs(env_specs, env_wrapper, wrapper_kwargs=wrapper_kwargs, **kwargs)
     training_env.seed(env_specs["training_env_seed"])
 
-    obs_dim = obs_space.shape[0]
+    obs_shape = obs_space.shape
     action_dim = act_space.shape[0]
+    feature_dim = variant["encoder_params"]["encoder_feature_dim"]
 
     net_size = variant["net_size"]
     num_hidden = variant["num_hidden_layers"]
     qf1 = FlattenMlp(
         hidden_sizes=num_hidden * [net_size],
-        input_size=obs_dim + action_dim,
+        input_size=feature_dim + action_dim,
         output_size=1,
     )
     qf2 = FlattenMlp(
         hidden_sizes=num_hidden * [net_size],
-        input_size=obs_dim + action_dim,
+        input_size=feature_dim + action_dim,
         output_size=1,
     )
-    policy = ReparamTanhMultivariateGaussianPolicy(
+    encoder = make_encoder(
+        variant["encoder_params"]["encoder_type"], 
+        obs_shape, 
+        feature_dim, 
+        variant["encoder_params"]["num_layers"],
+        variant["encoder_params"]["num_filters"], 
+        output_logits=True
+    )
+    decoder = make_decoder(
+        variant["encoder_params"]["encoder_type"], 
+        obs_shape, 
+        feature_dim, 
+        variant["encoder_params"]["num_layers"],
+        variant["encoder_params"]["num_filters"], 
+    )
+    policy = ReparamTanhMultivariateGaussianEncoderPolicy(
+        encoder=encoder,
         hidden_sizes=num_hidden * [net_size],
-        obs_dim=obs_dim,
+        obs_dim=feature_dim,
         action_dim=action_dim,
     )
 
     trainer = SoftActorCritic(
+        encoder=encoder,
+        decoder=decoder,
         policy=policy,
         qf1=qf1,
         qf2=qf2,

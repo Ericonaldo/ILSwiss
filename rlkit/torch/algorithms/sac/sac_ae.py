@@ -8,9 +8,9 @@ import torch.optim as optim
 import itertools
 
 import rlkit.torch.utils.pytorch_util as ptu
+from rlkit.torch.utils.normalizer import preprocess_obs
 from rlkit.core.trainer import Trainer
 from rlkit.core.eval_util import create_stats_ordered_dict
-
 
 class SoftActorCritic(Trainer):
     """
@@ -22,6 +22,8 @@ class SoftActorCritic(Trainer):
 
     def __init__(
         self,
+        encoder,
+        decoder,
         policy,
         qf1,
         qf2,
@@ -29,24 +31,38 @@ class SoftActorCritic(Trainer):
         discount=0.99,
         policy_lr=1e-3,
         qf_lr=1e-3,
-        alpha_lr=3e-4,
-        soft_target_tau=1e-2,
-        alpha=0.2,
+        alpha_lr=1e-3,
+        encdec_lr=1e-3,
+        soft_target_tau=0.01,
+        enc_soft_target_tau=0.05,
+        alpha=0.1,
         train_alpha=True,
         policy_mean_reg_weight=1e-3,
         policy_std_reg_weight=1e-3,
         optimizer_class=optim.Adam,
         beta_1=0.9,
+        decoder_latent_lambda=1e-6,
+        decoder_weight_lambda=1e-7, # decoder lr decay, not used by now
+        ac_update_freq = 2,
+        encdec_update_freq = 1,
         **kwargs
     ):
+        self.encoder = encoder
+        self.decoder = decoder
         self.policy = policy
         self.qf1 = qf1
         self.qf2 = qf2
         self.reward_scale = reward_scale
         self.discount = discount
         self.soft_target_tau = soft_target_tau
+        self.enc_soft_target_tau = enc_soft_target_tau
         self.policy_mean_reg_weight = policy_mean_reg_weight
         self.policy_std_reg_weight = policy_std_reg_weight
+        self.decoder_latent_lambda=decoder_latent_lambda
+        self.decoder_weight_lambda=decoder_weight_lambda
+
+        self.ac_update_freq = ac_update_freq
+        self.encdec_update_freq = encdec_update_freq
 
         self.train_alpha = train_alpha
         self.log_alpha = torch.tensor(np.log(alpha), requires_grad=train_alpha)
@@ -56,47 +72,81 @@ class SoftActorCritic(Trainer):
 
         self.target_qf1 = qf1.copy()
         self.target_qf2 = qf2.copy()
+        self.target_encoder = encoder.copy()
 
         self.eval_statistics = None
 
         self.policy_optimizer = optimizer_class(
-            self.policy.parameters(), lr=policy_lr, betas=(beta_1, 0.999)
+            list(set(self.policy.parameters()).difference(set(self.encoder.parameters()))), lr=policy_lr, betas=(beta_1, 0.999)
         )
-        self.qf1_optimizer = optimizer_class(
-            self.qf1.parameters(), lr=qf_lr, betas=(beta_1, 0.999)
-        )
-        self.qf2_optimizer = optimizer_class(
-            self.qf2.parameters(), lr=qf_lr, betas=(beta_1, 0.999)
+        self.qf_optimizer = optimizer_class(
+            list(self.qf1.parameters())+list(self.qf2.parameters())+list(self.encoder.parameters()), lr=qf_lr, betas=(beta_1, 0.999)
         )
         self.alpha_optimizer = optimizer_class(
-            [self.log_alpha], lr=alpha_lr, betas=(beta_1, 0.999)
+            [self.log_alpha], lr=alpha_lr, betas=(0.5, 0.999)
+        )
+        self.encdec_optimizer = optimizer_class(
+            list(self.encoder.parameters())+list(self.decoder.parameters()), lr=encdec_lr, betas=(beta_1, 0.999)
         )
 
-    def train_step(self, batch):
-        # q_params = itertools.chain(self.qf1.parameters(), self.qf2.parameters())
-        # policy_params = itertools.chain(self.policy.parameters())
+        self.total_train_step = 0
 
+    def train_encdec(self, batch):
+        obs = batch["observations"]
+
+        """
+        Enc-Dec Loss
+        """
+        feature_obs = self.encoder(obs)
+        target_obs = obs.detach()
+        if target_obs.dim() == 4:
+            target_obs = preprocess_obs(target_obs)
+        rec_obs = self.decoder(feature_obs)
+        rec_loss = F.mse_loss(target_obs, rec_obs)
+
+        # add L2 penalty on latent representation
+        # see https://arxiv.org/pdf/1903.12436.pdf
+        latent_loss = (0.5 * feature_obs.pow(2).sum(1)).mean()
+
+        encdec_loss = rec_loss + self.decoder_latent_lambda * latent_loss
+        self.encdec_optimizer.zero_grad()
+        encdec_loss.backward()
+        self.encdec_optimizer.step()
+
+        """
+        Save some statistics for eval
+        """
+        if self.eval_statistics is None:
+            """
+            Eval should set this to None.
+            This way, these statistics are only computed for one batch.
+            """
+            self.eval_statistics = OrderedDict()
+
+        self.eval_statistics["Reward Scale"] = self.reward_scale
+        self.eval_statistics["Rec Loss"] = np.mean(ptu.get_numpy(rec_loss))
+        self.eval_statistics["Lat Loss"] = np.mean(ptu.get_numpy(latent_loss))
+
+    def train_ac(self, batch):
         rewards = self.reward_scale * batch["rewards"]
         terminals = batch["terminals"]
         obs = batch["observations"]
         actions = batch["actions"]
         next_obs = batch["next_observations"]
 
+        obs = self.encoder(obs)
+        target_next_obs = self.target_encoder(next_obs)
+        next_obs = self.encoder(next_obs)
+
         """
         QF Loss
         """
-        # Only unfreeze parameter of Q
-        # for p in itertools.chain(self.qf1.parameters(), self.qf2.parameters()):
-        #     p.requires_grad = True
-        # for p in self.policy.parameters():
-        #     p.requires_grad = False
-        self.qf1_optimizer.zero_grad()
-        self.qf2_optimizer.zero_grad()
+        self.qf_optimizer.zero_grad()
         q1_pred = self.qf1(obs, actions)
         q2_pred = self.qf2(obs, actions)
 
         # Make sure policy accounts for squashing functions like tanh correctly!
-        next_policy_outputs = self.policy(next_obs, return_log_prob=True)
+        next_policy_outputs = self.policy(next_obs.detach(), use_feature=True, return_log_prob=True)
         # in this part, we only need new_actions and log_pi with no grad
         (
             next_new_actions,
@@ -105,10 +155,10 @@ class SoftActorCritic(Trainer):
             next_log_pi,
         ) = next_policy_outputs[:4]
         target_qf1_values = self.target_qf1(
-            next_obs, next_new_actions
+            target_next_obs, next_new_actions
         )  # do not need grad || it's the shared part of two calculation
         target_qf2_values = self.target_qf2(
-            next_obs, next_new_actions
+            target_next_obs, next_new_actions
         )  # do not need grad || it's the shared part of two calculation
         min_target_value = torch.min(target_qf1_values, target_qf2_values)
         q_target = rewards + (1.0 - terminals) * self.discount * (
@@ -118,28 +168,19 @@ class SoftActorCritic(Trainer):
 
         qf1_loss = 0.5 * torch.mean((q1_pred - q_target) ** 2)
         qf2_loss = 0.5 * torch.mean((q2_pred - q_target) ** 2)
+        qf_loss = qf1_loss + qf2_loss
 
-        # freeze parameter of Q
-        # for p in itertools.chain(self.qf1.parameters(), self.qf2.parameters()):
-        #     p.requires_grad = False
+        qf_loss.backward()
 
-        qf1_loss.backward()
-        qf2_loss.backward()
-
-        self.qf1_optimizer.step()
-        self.qf2_optimizer.step()
+        self.qf_optimizer.step()
 
         """
         Policy Loss
         """
-        # for p in itertools.chain(self.qf1.parameters(), self.qf2.parameters()):
-        #     p.requires_grad = False
-        # for p in self.policy.parameters():
-        #     p.requires_grad = True
-        policy_outputs = self.policy(obs, return_log_prob=True)
+        policy_outputs = self.policy(obs.detach(), use_feature=True, return_log_prob=True) # policy do not update the encoder
         new_actions, policy_mean, policy_log_std, log_pi = policy_outputs[:4]
-        q1_new_acts = self.qf1(obs, new_actions)
-        q2_new_acts = self.qf2(obs, new_actions)  ## error
+        q1_new_acts = self.qf1(obs.detach(), new_actions)
+        q2_new_acts = self.qf2(obs.detach(), new_actions) 
         q_new_actions = torch.min(q1_new_acts, q2_new_acts)
 
         self.policy_optimizer.zero_grad()
@@ -165,15 +206,6 @@ class SoftActorCritic(Trainer):
         """
         Update networks
         """
-        # unfreeze all -> initial states
-        # for p in itertools.chain(self.qf1.parameters(), self.qf2.parameters()):
-        #     p.requires_grad = True
-        # for p in self.policy.parameters():
-        #     p.requires_grad = True
-
-        # unfreeze parameter of Q
-        # for p in itertools.chain(self.qf1.parameters(), self.qf2.parameters()):
-        #     p.requires_grad = True
 
         self._update_target_network()
 
@@ -186,7 +218,6 @@ class SoftActorCritic(Trainer):
             This way, these statistics are only computed for one batch.
             """
             self.eval_statistics = OrderedDict()
-            self.eval_statistics["Reward Scale"] = self.reward_scale
             self.eval_statistics["QF1 Loss"] = np.mean(ptu.get_numpy(qf1_loss))
             self.eval_statistics["QF2 Loss"] = np.mean(ptu.get_numpy(qf2_loss))
             if self.train_alpha:
@@ -227,8 +258,17 @@ class SoftActorCritic(Trainer):
                     "Policy log std",
                     ptu.get_numpy(policy_log_std),
                 )
-            )
+            )    
 
+    def train_step(self, batch):
+
+        if self.total_train_step % self.ac_update_freq == 0:
+            self.train_ac(batch)
+        if self.total_train_step % self.encdec_update_freq == 0:
+            self.train_encdec(batch)
+
+        self.total_train_step += 1
+        
     @property
     def networks(self):
         return [
@@ -237,11 +277,15 @@ class SoftActorCritic(Trainer):
             self.qf2,
             self.target_qf1,
             self.target_qf2,
+            self.encoder,
+            self.target_encoder,
+            self.decoder
         ]
 
     def _update_target_network(self):
         ptu.soft_update_from_to(self.qf1, self.target_qf1, self.soft_target_tau)
         ptu.soft_update_from_to(self.qf2, self.target_qf2, self.soft_target_tau)
+        ptu.soft_update_from_to(self.encoder, self.target_encoder, self.soft_target_tau)
 
     def get_snapshot(self):
         return dict(
@@ -252,9 +296,9 @@ class SoftActorCritic(Trainer):
             target_qf2=self.target_qf2,
             log_alpha=self.log_alpha,
             policy_optimizer=self.policy_optimizer,
-            qf1_optimizer=self.qf1_optimizer,
-            qf2_optimizer=self.qf2_optimizer,
+            qf_optimizer=self.qf_optimizer,
             alpha_optimizer=self.alpha_optimizer,
+            encdec_optimizer=self.encdec_optimizer,
         )
 
     def load_snapshot(self, snapshot):
@@ -265,9 +309,9 @@ class SoftActorCritic(Trainer):
         self.target_qf2 = snapshot["target_qf2"]
         self.log_alpha = snapshot["log_alpha"]
         self.policy_optimizer = snapshot["policy_optimizer"]
-        self.qf1_optimizer = snapshot["qf1_optimizer"]
-        self.qf2_optimizer = snapshot["qf2_optimizer"]
+        self.qf_optimizer = snapshot["qf_optimizer"]
         self.alpha_optimizer = snapshot["alpha_optimizer"]
+        self.encdec_optimizer = snapshot["encdec_optimizer"]
 
     def get_eval_statistics(self):
         return self.eval_statistics

@@ -680,3 +680,34 @@ class ReparamTanhMultivariateGaussianConditionPolicy(
         ConditionPolicy.__init__(
             self, obs_dim, condition_dim, action_dim, observation_key, desired_goal_key, achieved_goal_key
         )
+
+
+class ReparamTanhMultivariateGaussianEncoderPolicy(ReparamTanhMultivariateGaussianPolicy):
+    """
+    Policy with encoder
+    Usage:
+    ```
+    policy = ReparamTanhMultivariateGaussianEncoderPolicy(...)
+    """
+
+    def __init__(
+            self,
+            encoder,
+            **kwargs
+    ):  
+        self.save_init_params(locals())
+        super().__init__(
+            **kwargs
+        )
+        self.encoder = encoder
+
+    def forward(
+        self, obs, use_feature=False, **kwargs
+    ):
+        """
+        :param obs: Observation
+        """
+        feature_obs = obs
+        if not use_feature:
+            feature_obs = self.encoder(obs)
+        return super().forward(feature_obs, **kwargs)
