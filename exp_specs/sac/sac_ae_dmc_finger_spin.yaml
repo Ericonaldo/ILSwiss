@@ -1,6 +1,6 @@
 meta_data:
   script_path: run_scripts/sac_alpha_visual_exp_script.py
-  exp_name: test_sac_dmc_reach_easy
+  exp_name: test_sac_ae_dmc_finger_spin
   description: Train an agent using Soft-Actor-Critic
   num_workers: 2
   using_gpus: true
@@ -33,8 +33,6 @@ constants:
     save_best: true
     freq_saving: 10
     save_replay_buffer: false
-    # save_environment: false
-    # save_environment: false
 
   encoder_params:
     encoder_feature_dim: 50

@@ -9,11 +9,14 @@ def rollout(
     no_terminal=False,
     render=False,
     render_kwargs={},
+    preprocess_func=None,
 ):
     path_builder = PathBuilder()
     observation = env.reset()
 
     for _ in range(max_path_length):
+        if preprocess_func:
+            observation = preprocess_func(observation)
         action, agent_info = policy.get_action(observation)
         if render:
             env.render(**render_kwargs)
@@ -49,6 +52,7 @@ class PathSampler:
         no_terminal=False,
         render=False,
         render_kwargs={},
+        preprocess_func=None,
     ):
         """
         When obtain_samples is called, the path sampler will generates the
@@ -62,6 +66,7 @@ class PathSampler:
         self.no_terminal = no_terminal
         self.render = render
         self.render_kwargs = render_kwargs
+        self.preprocess_func = preprocess_func
 
     def obtain_samples(self, num_steps=None):
         paths = []
@@ -76,6 +81,7 @@ class PathSampler:
                 no_terminal=self.no_terminal,
                 render=self.render,
                 render_kwargs=self.render_kwargs,
+                preprocess_func=self.preprocess_func,
             )
             paths.append(new_path)
             total_steps += len(new_path["rewards"])

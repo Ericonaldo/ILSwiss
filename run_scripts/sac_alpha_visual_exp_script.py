@@ -22,12 +22,34 @@ from rlkit.torch.common.networks import FlattenMlp
 from rlkit.torch.common.policies import ReparamTanhMultivariateGaussianEncoderPolicy
 from rlkit.torch.algorithms.sac.sac_ae import SoftActorCritic
 from rlkit.torch.algorithms.torch_rl_algorithm import TorchRLAlgorithm
+from rlkit.data_management.aug_replay_buffer import AugmentImageEnvReplayBuffer
+import rlkit.data_management.data_augmentation as rad
 
-os.environ['LD_LIBRARY_PATH']="/home/minghuanliu/.mujoco/mjpro210/bin"
+os.environ['LD_LIBRARY_PATH']="～/.mujoco/mjpro210/bin"
 os.environ['MUJOCO_GL']="egl"
 
 def experiment(variant):
     env_specs = variant["env_specs"]
+    replay_buffer = None
+    eval_preprocess_func = None
+
+    if "rad_augmentation_params" in variant: # Use rad augmentation, record important params
+        data_augs = variant["rad_augmentation_params"]["data_augs"]
+        image_size = variant["rad_augmentation_params"]["image_size"]
+        pre_transform_image_size = variant["rad_augmentation_params"]["pre_transform_image_size"] \
+            if 'crop' in data_augs else variant["rad_augmentation_params"]["image_size"]
+        pre_image_size = variant["rad_augmentation_params"]["pre_transform_image_size"] # record the pre transform image size for translation
+        env_specs["env_kwargs"]["width"] = env_specs["env_kwargs"]["height"] = pre_transform_image_size # The env create as the shape before transformed
+
+        # preprocess obs func for eval
+        if 'crop' in data_augs:
+            eval_preprocess_func = lambda x:rad.center_crop_image(x, image_size) / 255.
+        if 'translate' in data_augs:
+            # first crop the center with pre_image_size
+            eval_preprocess_func = lambda x:rad.center_crop_image(x, pre_transform_image_size) / 255.
+            # then translate cropped to center
+            eval_preprocess_func = lambda x:rad.center_translate(x, image_size) / 255.
+    
     env = get_env(env_specs)
     env.seed(env_specs["eval_env_seed"])
 
@@ -43,12 +65,19 @@ def experiment(variant):
         wrapper_kwargs = {"k": env_specs["frame_stack"]} 
 
     env = env_wrapper(env, **wrapper_kwargs)
+    if "rad_augmentation_params" in variant: # If use rad augmentation, create augmentation env buffer
+        replay_buffer = AugmentImageEnvReplayBuffer(
+            max_replay_buffer_size=variant["rl_alg_params"]["replay_buffer_size"], 
+            env=env, 
+            random_seed=np.random.randint(10000), 
+            pre_image_size=pre_image_size, image_size=image_size
+        )
+    
     obs_space = env.observation_space
     act_space = env.action_space
     assert not isinstance(obs_space, gym.spaces.Dict)
     assert len(obs_space.shape) == 3
     assert len(act_space.shape) == 1
-
 
     training_env = get_envs(env_specs, env_wrapper, wrapper_kwargs=wrapper_kwargs, **kwargs)
     training_env.seed(env_specs["training_env_seed"])
@@ -56,6 +85,9 @@ def experiment(variant):
     obs_shape = obs_space.shape
     action_dim = act_space.shape[0]
     feature_dim = variant["encoder_params"]["encoder_feature_dim"]
+
+    if "rad_augmentation_params" in variant: # If use rad augmentation, take the after transform size as the shape
+        obs_shape = (obs_shape[0], image_size, image_size)
 
     net_size = variant["net_size"]
     num_hidden = variant["num_hidden_layers"]
@@ -100,11 +132,14 @@ def experiment(variant):
         env=env,
         **variant["sac_params"],
     )
+
     algorithm = TorchRLAlgorithm(
         trainer=trainer,
         env=env,
         training_env=training_env,
         exploration_policy=policy,
+        replay_buffer=replay_buffer,
+        eval_preprocess_func=eval_preprocess_func,
         **variant["rl_alg_params"],
     )
 

@@ -1,6 +1,6 @@
 meta_data:
   script_path: run_scripts/sac_alpha_visual_exp_script.py
-  exp_name: test_sac_ae_dmc_reach_easy
+  exp_name: test_sac_rad_dmc_reach_easy
   description: Train an agent using Soft-Actor-Critic
   num_workers: 2
   using_gpus: true
@@ -41,6 +41,11 @@ constants:
     num_layers: 4
     num_filters: 32
 
+  rad_augmentation_params:
+    data_augs: 'translate'
+    image_size: 84
+    pre_transform_image_size: 100
+
   sac_params:
     alpha: 0.1
     reward_scale: 1.0
@@ -54,7 +59,7 @@ constants:
     policy_mean_reg_weight: 0.001
     policy_std_reg_weight: 0.001
     ac_update_freq: 2
-    encdec_update_freq: 1
+    encdec_update_freq: 10000000000 # So that we do not use reconstruction error to update encdec
 
   env_specs:
     env_name: 'dmc'

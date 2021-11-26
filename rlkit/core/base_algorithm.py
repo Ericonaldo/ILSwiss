@@ -54,6 +54,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         render_kwargs={},
         freq_log_visuals=1,
         eval_deterministic=False,
+        eval_preprocess_func=None,
     ):
         self.env = env
         self.env_num = 1
@@ -96,6 +97,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
                     no_terminal=eval_no_terminal,
                     render=render,
                     render_kwargs=render_kwargs,
+                    preprocess_func=eval_preprocess_func,
                 )
             else:
                 # make sure eval env is a vec env
@@ -107,6 +109,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
                     no_terminal=eval_no_terminal,
                     render=render,
                     render_kwargs=render_kwargs,
+                    preprocess_func=eval_preprocess_func,
                 )
         self.eval_policy = eval_policy
         self.eval_sampler = eval_sampler

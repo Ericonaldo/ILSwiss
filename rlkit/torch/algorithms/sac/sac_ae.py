@@ -218,47 +218,47 @@ class SoftActorCritic(Trainer):
             This way, these statistics are only computed for one batch.
             """
             self.eval_statistics = OrderedDict()
-            self.eval_statistics["QF1 Loss"] = np.mean(ptu.get_numpy(qf1_loss))
-            self.eval_statistics["QF2 Loss"] = np.mean(ptu.get_numpy(qf2_loss))
-            if self.train_alpha:
-                self.eval_statistics["Alpha Loss"] = np.mean(ptu.get_numpy(alpha_loss))
-            self.eval_statistics["Policy Loss"] = np.mean(ptu.get_numpy(policy_loss))
-            self.eval_statistics.update(
-                create_stats_ordered_dict(
-                    "Q1 Predictions",
-                    ptu.get_numpy(q1_pred),
-                )
+        self.eval_statistics["QF1 Loss"] = np.mean(ptu.get_numpy(qf1_loss))
+        self.eval_statistics["QF2 Loss"] = np.mean(ptu.get_numpy(qf2_loss))
+        if self.train_alpha:
+            self.eval_statistics["Alpha Loss"] = np.mean(ptu.get_numpy(alpha_loss))
+        self.eval_statistics["Policy Loss"] = np.mean(ptu.get_numpy(policy_loss))
+        self.eval_statistics.update(
+            create_stats_ordered_dict(
+                "Q1 Predictions",
+                ptu.get_numpy(q1_pred),
             )
-            self.eval_statistics.update(
-                create_stats_ordered_dict(
-                    "Q2 Predictions",
-                    ptu.get_numpy(q2_pred),
-                )
+        )
+        self.eval_statistics.update(
+            create_stats_ordered_dict(
+                "Q2 Predictions",
+                ptu.get_numpy(q2_pred),
             )
-            self.eval_statistics.update(
-                create_stats_ordered_dict(
-                    "Alpha",
-                    [ptu.get_numpy(self.alpha)],
-                )
+        )
+        self.eval_statistics.update(
+            create_stats_ordered_dict(
+                "Alpha",
+                [ptu.get_numpy(self.alpha)],
             )
-            self.eval_statistics.update(
-                create_stats_ordered_dict(
-                    "Log Pis",
-                    ptu.get_numpy(log_pi),
-                )
+        )
+        self.eval_statistics.update(
+            create_stats_ordered_dict(
+                "Log Pis",
+                ptu.get_numpy(log_pi),
             )
-            self.eval_statistics.update(
-                create_stats_ordered_dict(
-                    "Policy mu",
-                    ptu.get_numpy(policy_mean),
-                )
+        )
+        self.eval_statistics.update(
+            create_stats_ordered_dict(
+                "Policy mu",
+                ptu.get_numpy(policy_mean),
             )
-            self.eval_statistics.update(
-                create_stats_ordered_dict(
-                    "Policy log std",
-                    ptu.get_numpy(policy_log_std),
-                )
-            )    
+        )
+        self.eval_statistics.update(
+            create_stats_ordered_dict(
+                "Policy log std",
+                ptu.get_numpy(policy_log_std),
+            )
+        )    
 
     def train_step(self, batch):
 

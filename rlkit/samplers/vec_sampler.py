@@ -9,6 +9,7 @@ def rollout(
     no_terminal=False,
     render=False,
     render_kwargs={},
+    preprocess_func=None,
 ):
     env_num = len(env)
     path_builder = [PathBuilder() for _ in range(env_num)]
@@ -17,6 +18,9 @@ def rollout(
     observations = env.reset(ready_env_ids)
 
     for _ in range(max_path_length):
+        if preprocess_func:
+            observation = preprocess_func(observation)
+            
         actions = policy.get_actions(observations)
         if render:
             env.render(**render_kwargs)
@@ -74,6 +78,7 @@ class VecPathSampler:
         no_terminal=False,
         render=False,
         render_kwargs={},
+        preprocess_func=None,
     ):
         """
         When obtain_samples is called, the path sampler will generates the
@@ -87,6 +92,7 @@ class VecPathSampler:
         self.no_terminal = no_terminal
         self.render = render
         self.render_kwargs = render_kwargs
+        self.preprocess_func = preprocess_func
 
     def obtain_samples(self, num_steps=None):
         paths = []
@@ -101,6 +107,7 @@ class VecPathSampler:
                 no_terminal=self.no_terminal,
                 render=self.render,
                 render_kwargs=self.render_kwargs,
+                preprocess_func=self.preprocess_func,
             )
             paths.extend(new_paths)
             total_steps += sum([len(new_path) for new_path in new_paths])
