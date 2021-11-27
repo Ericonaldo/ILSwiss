@@ -12,12 +12,14 @@ constants:
   use_scripted_policy: false
   expert_path: './logs/test-sac-hopper/test_sac_hopper_2020_09_23_22_46_00_0000--s-0/params.pkl'
   use_deterministic_expert: true
+  save_buffer: false
 
   num_rollouts: 4
   subsample_factor: 1
   max_path_length: 1000
   no_terminal: false
   check_for_success: false
+  check_for_return: false
 
   render: false
   render_kwargs: {}

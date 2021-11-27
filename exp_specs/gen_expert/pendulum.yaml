@@ -12,12 +12,14 @@ constants:
   use_scripted_policy: false
   expert_path: './logs/test-sac-pendulum/test_sac_pendulum_2020_09_21_01_53_52_0000--s-0/best.pkl'
   use_deterministic_expert: true
+  save_buffer: false
 
   num_rollouts: 4
   subsample_factor: 20
   max_path_length: 100
   no_terminal: false
   check_for_success: false
+  check_for_return: false
 
   render: false
   render_kwargs: {}

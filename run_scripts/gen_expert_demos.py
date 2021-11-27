@@ -3,10 +3,9 @@ import argparse
 import os
 from os import path
 import joblib
+import pickle
 from random import randint
 import os, sys, inspect
-
-import pyglet
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
@@ -26,7 +25,7 @@ from rlkit.scripted_experts import get_scripted_policy
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.data_management.path_builder import PathBuilder
 from rlkit.torch.common.policies import MakeDeterministic
-
+from rlkit.envs.wrappers import FrameStackEnv
 from gym.wrappers.monitor import Monitor
 
 
@@ -41,11 +40,14 @@ def fill_buffer(
     render=False,
     render_kwargs={},
     check_for_success=False,
+    check_for_return=False,
     wrap_absorbing=False,
     subsample_factor=1,
 ):
     num_rollouts_completed = 0
     total_rewards = 0.0
+
+    res_data = []
 
     while num_rollouts_completed < num_rollouts:
         print("Rollout %d..." % num_rollouts_completed)
@@ -75,6 +77,8 @@ def fill_buffer(
                 action, agent_info = expert_policy.get_action(observation)
 
             next_ob, reward, terminal, env_info = env.step(action)
+            if "is_success" in env_info.keys():
+                terminal = env_info["is_success"]
             if no_terminal:
                 terminal = False
             terminal_array = np.array([terminal])
@@ -98,6 +102,13 @@ def fill_buffer(
 
         print("\tNum Steps: %d" % step_num)
         print("\tReturns: %.2f" % rewards_for_rollout)
+        
+        # if necessary check if it was successful
+        if check_for_return:
+            if rewards_for_rollout <= 0:
+                print("\tFail! Skip")
+                continue
+
 
         # if necessary check if it was successful
         if check_for_success:
@@ -114,6 +125,7 @@ def fill_buffer(
 
         # add the path to the buffer
         if (check_for_success and was_successful) or (not check_for_success):
+            res_data.append(cur_path_builder)
             for timestep in range(len(cur_path_builder)):
                 buffer.add_sample(
                     cur_path_builder["observations"][timestep],
@@ -130,6 +142,7 @@ def fill_buffer(
             total_rewards += rewards_for_rollout
 
     print("\nAverage Episode Return: %f\n" % (total_rewards / num_rollouts_completed))
+    return res_data
 
 
 def experiment(specs):
@@ -142,13 +155,25 @@ def experiment(specs):
 
     if specs["use_deterministic_expert"]:
         policy = MakeDeterministic(policy)
-    if exp_specs["using_gpus"] > 0:
+    if specs["using_gpus"] > 0:
         policy.to(ptu.device)
+        
+    env_specs = specs["env_specs"]
+    if env_specs["env_name"] == "dmc":
+        os.environ['LD_LIBRARY_PATH']="～/.mujoco/mjpro210/bin"
+        os.environ['MUJOCO_GL']="egl"
+    
     # make all seeds the same.
-    exp_specs["env_specs"]["env_seed"] = exp_specs["seed"]
+    env_specs["env_seed"] = specs["seed"]
+    
+    env = get_env(env_specs)
+    env.seed(env_specs["env_seed"])
 
-    env = get_env(specs["env_specs"])
-    env.seed(specs["env_specs"]["env_seed"])
+    if ("frame_stack" in env_specs) and (env_specs["frame_stack"] is not None):
+        env_wrapper = FrameStackEnv
+        wrapper_kwargs = {"k": env_specs["frame_stack"]} 
+
+    env = env_wrapper(env, **wrapper_kwargs)
 
     # env = Monitor(env, './videos/' + str(time()) + '/')
 
@@ -164,6 +189,7 @@ def experiment(specs):
     else:
         _max_buffer_size = max_path_length * specs["num_rollouts"]
     _max_buffer_size = int(np.ceil(_max_buffer_size / float(specs["subsample_factor"])))
+    
     buffer_constructor = lambda: EnvReplayBuffer(
         _max_buffer_size,
         env,
@@ -175,14 +201,16 @@ def experiment(specs):
     render = specs["render"]
     render_kwargs = specs["render_kwargs"]
     check_for_success = specs["check_for_success"]
+    check_for_return = specs["check_for_return"]
+    num_rollouts = specs["num_rollouts"]
 
     print("\n")
     # fill the train buffer
-    fill_buffer(
+    res = fill_buffer(
         train_buffer,
         env,
         policy,
-        specs["num_rollouts"],
+        num_rollouts,
         max_path_length,
         no_terminal=specs["no_terminal"],
         policy_is_scripted=policy_is_scripted,
@@ -192,27 +220,38 @@ def experiment(specs):
         wrap_absorbing=False,
         subsample_factor=specs["subsample_factor"],
     )
-
-    # fill the test buffer
-    fill_buffer(
-        test_buffer,
-        env,
-        policy,
-        specs["num_rollouts"],
-        max_path_length,
-        no_terminal=specs["no_terminal"],
-        policy_is_scripted=policy_is_scripted,
-        render=render,
-        render_kwargs=render_kwargs,
-        check_for_success=check_for_success,
-        wrap_absorbing=False,
-        subsample_factor=specs["subsample_factor"],
-    )
-
-    # save the replay buffers
-    logger.save_extra_data(
-        {"train": train_buffer, "test": test_buffer}, name="expert_demos.pkl"
-    )
+    
+    if specs["save_buffer"]:
+        # fill the test buffer
+        fill_buffer(
+            test_buffer,
+            env,
+            policy,
+            num_rollouts,
+            max_path_length,
+            no_terminal=specs["no_terminal"],
+            policy_is_scripted=policy_is_scripted,
+            render=render,
+            render_kwargs=render_kwargs,
+            check_for_success=check_for_success,
+            wrap_absorbing=False,
+            subsample_factor=specs["subsample_factor"],
+        )
+    
+    if specs["save_buffer"]:
+        # save the replay buffers
+        logger.save_extra_data(
+            {"train": train_buffer, "test": test_buffer}, name="expert_demos_buffer.pkl"
+        )
+    
+    env_name = specs["env_specs"]["env_name"]
+    if env_name == "dmc":
+        env_name = env_specs["env_kwargs"]["domain_name"] + '_' + env_specs["env_kwargs"]["task_name"]
+    if not os.path.exists("./demos/{}".format(env_name)):
+        os.makedirs("./demos/{}".format(env_name))
+    # save demos directly
+    with open("./demos/{}/expert_demos-{}.pkl".format(env_name, num_rollouts), "wb") as f:
+        pickle.dump(res, f)
 
     return 1
 

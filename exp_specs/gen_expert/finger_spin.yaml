@@ -1,6 +1,6 @@
 meta_data:
   script_path: run_scripts/gen_expert_demos.py
-  exp_name: test_gen_lunar_demos
+  exp_name: test_gen_finger_spin_demos
   description: Generate demonstrations for imitation learning algorithms
   num_workers: 1
   using_gpus: true
@@ -10,23 +10,30 @@ variables: {}
 # -----------------------------------------------------------------------------
 constants:
   use_scripted_policy: false
-  expert_path: './logs/test-sac-lunarlander/test_sac_lunarlander_2020_09_21_01_54_35_0000--s-0/params.pkl'
+  expert_path: './logs/test_sac_dmc_finger_spin/test_sac_dmc_finger_spin_2021_11_26_13_58_44_0000--s-0/best.pkl'
   use_deterministic_expert: true
   save_buffer: false
 
-  num_rollouts: 4
+  num_rollouts: 50
   subsample_factor: 1
   max_path_length: 1000
   no_terminal: false
   check_for_success: false
-  check_for_return: false
+  check_for_return: true
 
   render: false
   render_kwargs: {}
 
-  seed: 723894
+  seed: 0
 
   env_specs:
-    env_name: 'lunarlandercont'
-    env_kwargs: {}
-    env_seed: 55334
+    env_name: 'dmc'
+    frame_stack: 3
+    env_kwargs: 
+      domain_name: "finger"
+      task_name: "spin"
+      visualize_reward: false
+      from_pixels: true
+      height: 84
+      width: 84
+      frame_skip: 1
