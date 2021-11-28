@@ -30,7 +30,7 @@ class SimpleReplayBuffer(ReplayBuffer):
         self._action_dim = action_dim
         self._max_replay_buffer_size = max_replay_buffer_size
 
-        obs_dtype = np.uint8 if type(observation_dim == tuple) else np.float64
+        obs_dtype = np.uint8 if type(observation_dim) == tuple else np.float64
 
         if isinstance(observation_dim, tuple):
             dims = [d for d in observation_dim]

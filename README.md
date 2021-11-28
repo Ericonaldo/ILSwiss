@@ -44,6 +44,13 @@ For on-policy algorithms (e.g., PPO), we clean the buffer after every training s
 
 ### Example scripts
 
+run sac-ae for finger_spin:
+
+```
+CUDA_VISIBLE_DEVICES=0 python run_experiment -e \exp_specs\sac\sac_ae_dmc_finger_spin.yaml
+```
+
+
 run sac for hopper:
 
 ```
@@ -78,6 +85,12 @@ If you get the demos ready, write the path for each expert name in `demos_listin
 
 ### Example scripts
 
+gen expert data for hopper:
+
+```
+python run_experiment -e \exp_specs\gen_expert\hopper.yaml
+```
+
 run bc for hopper:
 
 ```
@@ -105,11 +118,16 @@ CUDA_VISIBLE_DEVICES=0 python run_experiment -e \exp_specs\gail\gail_walker.yaml
 | HalfCheetah-v2 | 13711.6445 | 111.4709 |
 | Walker2d-v2 | 5639.3267 | 29.9715 |
 
+### SAC-AE
+
+| Envs | Mean | Std
+| ----  | ----  | ----  |
+| Finger_Spin (600K) | 983.4286 | 5.8274 |
+
 ### Random
 
 | Envs | Mean | Std
 | ----  | ----  | ----  |
-| Pendulum | -1494.1357 | 265.8315 |
 | InvertedPendulum-v2 | 25.2800 | 5.5318 |
 | InvertedDoublePendulum-v2 | 78.2829 | 10.7335
 | Ant-v2 | 713.5986 | 203.9204 |
