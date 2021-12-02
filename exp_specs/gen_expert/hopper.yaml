@@ -10,11 +10,11 @@ variables: {}
 # -----------------------------------------------------------------------------
 constants:
   use_scripted_policy: false
-  expert_path: './logs/test-sac-hopper/test_sac_hopper_2020_09_23_22_46_00_0000--s-0/params.pkl'
+  expert_path: './logs/test-sac-hopper-noclip/test_sac_hopper_noclip_2021_12_02_17_42_33_0000--s-0/best.pkl'
   use_deterministic_expert: true
   save_buffer: false
 
-  num_rollouts: 4
+  num_rollouts: 50
   subsample_factor: 1
   max_path_length: 1000
   no_terminal: false
@@ -24,9 +24,9 @@ constants:
   render: false
   render_kwargs: {}
 
-  seed: 723894
+  seed: 0
 
   env_specs:
     env_name: 'hopper'
     env_kwargs: {}
-    env_seed: 55334
+    env_seed: 0

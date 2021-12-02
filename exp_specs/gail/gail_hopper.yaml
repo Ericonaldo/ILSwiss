@@ -1,6 +1,6 @@
 meta_data:
   script_path: run_scripts/adv_irl_staticsac_exp_script.py
-  exp_name: gail_hopper_staticsac_terminal
+  exp_name: gail2_hopper_staticsac
   description: Train an adversarial IRL model
   num_workers: 3 # 64
   using_gpus: true
@@ -31,7 +31,7 @@ constants:
   policy_num_hidden_layers: 2
 
   adv_irl_params:
-    mode: 'gail'
+    mode: 'gail2'
     state_only: false
 
     num_epochs: 162
@@ -44,7 +44,7 @@ constants:
     num_steps_per_eval: 10000
     
     replay_buffer_size: 20000
-    no_terminal: false
+    no_terminal: true
     eval_no_terminal: false
     wrap_absorbing: false
 
