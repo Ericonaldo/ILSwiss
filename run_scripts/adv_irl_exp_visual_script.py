@@ -18,14 +18,17 @@ import rlkit.torch.utils.pytorch_util as ptu
 from rlkit.launchers.launcher_util import setup_logger, set_seed
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.torch.common.networks import FlattenMlp
-from rlkit.torch.common.policies import ReparamTanhMultivariateGaussianPolicy
+from rlkit.torch.common.encoders import make_encoder, make_decoder
+from rlkit.torch.common.policies import ReparamTanhMultivariateGaussianEncoderPolicy
 from rlkit.torch.algorithms.sac.sac_alpha import (
     SoftActorCritic,
 )  # SAC Auto alpha version
-from rlkit.torch.algorithms.adv_irl.disc_models.simple_disc_models import MLPDisc
-from rlkit.torch.algorithms.adv_irl.adv_irl import AdvIRL
-from rlkit.envs.wrappers import ProxyEnv, ScaledEnv, MinmaxEnv, NormalizedBoxEnv
+from rlkit.torch.algorithms.adv_irl.disc_models.cnn_disc_models import CNNDisc
+from rlkit.torch.algorithms.adv_irl.adv_irl_visual import AdvIRL
+from rlkit.envs.wrappers import ProxyEnv, ScaledEnv, MinmaxEnv, NormalizedBoxEnv, FrameStackEnv
 
+os.environ['LD_LIBRARY_PATH']="～/.mujoco/mjpro210/bin"
+os.environ['MUJOCO_GL']="egl"
 
 def experiment(variant):
     with open("demos_listing.yaml", "r") as f:
@@ -85,7 +88,13 @@ def experiment(variant):
         )
 
     tmp_env_wrapper = env_wrapper = ProxyEnv  # Identical wrapper
+    wrapper_kwargs = {}
     kwargs = {}
+    if ("frame_stack" in env_specs) and (env_specs["frame_stack"] is not None):
+        env_wrapper = FrameStackEnv
+        wrapper_kwargs = {"k": env_specs["frame_stack"]} 
+
+    env = env_wrapper(env, **wrapper_kwargs)
 
     if variant["scale_env_with_demo_stats"]:
         print("\nWARNING: Using scale env wrapper")
@@ -104,66 +113,69 @@ def experiment(variant):
     obs_space = env.observation_space
     act_space = env.action_space
     assert not isinstance(obs_space, gym.spaces.Dict)
-    assert len(obs_space.shape) == 1
+    assert len(obs_space.shape) == 3
     assert len(act_space.shape) == 1
 
-    if isinstance(act_space, gym.spaces.Box) and (
-        (acts_mean is None) and (acts_std is None)
-    ):
-        print("\nWARNING: Using Normalized Box Env wrapper")
-        env_wrapper = lambda *args, **kwargs: NormalizedBoxEnv(
-            tmp_env_wrapper(*args, **kwargs)
-        )
-
-    env = env_wrapper(env, **kwargs)
-    training_env = get_envs(env_specs, env_wrapper, **kwargs)
+    training_env = get_envs(env_specs, env_wrapper, wrapper_kwargs=wrapper_kwargs, **kwargs)
     training_env.seed(env_specs["training_env_seed"])
 
-    obs_dim = obs_space.shape[0]
+    obs_shape = obs_space.shape
     action_dim = act_space.shape[0]
+    feature_dim = variant["encoder_params"]["encoder_feature_dim"]
 
     # build the policy models
     net_size = variant["policy_net_size"]
     num_hidden = variant["policy_num_hidden_layers"]
     qf1 = FlattenMlp(
         hidden_sizes=num_hidden * [net_size],
-        input_size=obs_dim + action_dim,
+        input_size=feature_dim + action_dim,
         output_size=1,
     )
     qf2 = FlattenMlp(
         hidden_sizes=num_hidden * [net_size],
-        input_size=obs_dim + action_dim,
+        input_size=feature_dim + action_dim,
         output_size=1,
     )
-    vf = FlattenMlp(
-        hidden_sizes=num_hidden * [net_size],
-        input_size=obs_dim,
-        output_size=1,
+    encoder = make_encoder(
+        variant["encoder_params"]["encoder_type"], 
+        obs_shape, 
+        feature_dim, 
+        variant["encoder_params"]["num_layers"],
+        variant["encoder_params"]["num_filters"], 
+        output_logits=True
     )
-    policy = ReparamTanhMultivariateGaussianPolicy(
+    decoder = make_decoder(
+        variant["encoder_params"]["encoder_type"], 
+        obs_shape, 
+        feature_dim, 
+        variant["encoder_params"]["num_layers"],
+        variant["encoder_params"]["num_filters"], 
+    )
+    policy = ReparamTanhMultivariateGaussianEncoderPolicy(
+        encoder=encoder,
         hidden_sizes=num_hidden * [net_size],
-        obs_dim=obs_dim,
+        obs_dim=feature_dim,
         action_dim=action_dim,
     )
-    if variant["adv_irl_params"]["wrap_absorbing"]:
-        obs_dim += 1
-    input_dim = obs_dim + action_dim
+
     if variant["adv_irl_params"]["state_only"]:
-        input_dim = obs_dim + obs_dim
+        action_dim = 0
+        obs_shape[-1] *= 2
 
     # build the discriminator model
-    disc_model = MLPDisc(
-        input_dim,
+    disc_model = CNNDisc(
+        obs_shape,
+        action_dim,
+        variant["encoder_params"]["num_filters"],
         num_layer_blocks=variant["disc_num_blocks"],
         hid_dim=variant["disc_hid_dim"],
         hid_act=variant["disc_hid_act"],
-        use_bn=variant["disc_use_bn"],
         clamp_magnitude=variant["disc_clamp_magnitude"],
     )
 
     # set up the algorithm
     trainer = SoftActorCritic(
-        policy=policy, qf1=qf1, qf2=qf2, vf=vf, env=env, **variant["sac_params"]
+        policy=policy, qf1=qf1, qf2=qf2, env=env, **variant["sac_params"]
     )
     algorithm = AdvIRL(
         env=env,
