@@ -252,9 +252,9 @@ class SoftActorCritic(Trainer):
             vf=self.vf,
             target_vf=self.target_vf,
             policy_optimizer=self.policy_optimizer,
-            qf_optimizer=self.qf_optimizer,
+            qf1_optimizer=self.qf1_optimizer,
+            qf2_optimizer=self.qf2_optimizer,
             vf_optimizer=self.vf_optimizer,
-            alpha_optimizer=self.alpha_optimizer,
         )
 
     def load_snapshot(self, snapshot):
@@ -264,9 +264,9 @@ class SoftActorCritic(Trainer):
         self.vf = snapshot["vf"]
         self.target_vf = snapshot["target_vf"]
         self.policy_optimizer = snapshot["policy_optimizer"]
-        self.qf_optimizer = snapshot["qf_optimizer"]
+        self.qf1_optimizer = snapshot["qf1_optimizer"]
+        self.qf2_optimizer = snapshot["qf2_optimizer"]
         self.vf_optimizer = snapshot["self.vf_optimizer"]
-        self.alpha_optimizer = snapshot["alpha_optimizer"]
 
     def get_eval_statistics(self):
         return self.eval_statistics
