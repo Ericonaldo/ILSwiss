@@ -59,6 +59,7 @@ def experiment(variant):
     print("Act Space: {}\n\n".format(env.action_space))
 
     env_wrapper = ProxyEnv  # Identical wrapper
+    wrapper_kwargs = {}
     kwargs = {}
     if ("frame_stack" in env_specs) and (env_specs["frame_stack"] is not None):
         env_wrapper = FrameStackEnv

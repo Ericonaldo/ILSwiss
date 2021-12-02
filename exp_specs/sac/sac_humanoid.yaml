@@ -1,12 +1,12 @@
 meta_data:
-  script_path: run_scripts/sac_exp_script.py
-  exp_name: test_sac_humanoid
+  script_path: run_scripts/sac_alpha_exp_script.py
+  exp_name: test_sac_humanoid_slim
   description: Train an agent using Soft-Actor-Critic
   num_workers: 2
   using_gpus: true
 # -----------------------------------------------------------------------------
 variables:
-  seed: [723894]
+  seed: [0]
 
 # -----------------------------------------------------------------------------
 constants:
@@ -14,7 +14,7 @@ constants:
   num_hidden_layers: 2
 
   rl_alg_params:
-    num_epochs: 282
+    num_epochs: 582
     num_steps_per_epoch: 10000
     num_steps_between_train_calls: 1000
     num_train_steps_per_train_call: 1000
@@ -29,11 +29,11 @@ constants:
     no_terminal: false
     wrap_absorbing: false
 
-    save_best: false
+    save_best: true
     freq_saving: 10
-    save_replay_buffer: true
-    save_environment: true
-    save_algorithm: true
+    save_replay_buffer: false
+    # save_environment: true
+    # save_algorithm: true
 
   sac_params:
     alpha: 0.2
@@ -49,4 +49,4 @@ constants:
   env_specs:
     env_name: 'humanoid'
     env_kwargs: {}
-    env_num: 10
+    env_num: 2

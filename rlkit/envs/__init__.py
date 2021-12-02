@@ -17,12 +17,17 @@ __all__ = [
 import sys
 
 # Overwrite envs
-# from rlkit.envs.ant import AntEnv
-# from rlkit.envs.humanoid import HumanoidEnv
-# from rlkit.envs.swimmer import SwimmerEnv
+from rlkit.envs.mujoco.hopper import HopperEnv
+from rlkit.envs.mujoco.walker2d import Walker2dEnv
+# from rlkit.envs.mujoco.halfcheetah import HalfCheetahEnv
+# from rlkit.envs.mujoco.ant import AntEnv
+from rlkit.envs.mujoco.humanoid import HumanoidEnv
+# from rlkit.envs.mujoco.swimmer import SwimmerEnv
 
-env_overwrite = {}  # {'Ant': AntEnv, 'Humanoid': HumanoidEnv, 'Swimmer':SwimmerEnv}
-
+env_overwrite = {}
+# unclip for hopper, walker2d and drop unnecessary dims in half, ant, human and swimmer
+env_overwrite = {'hopper': HopperEnv, 'walker': Walker2dEnv, 'humanoid': HumanoidEnv} # , 'halfcheetah':HalfCheetahEnv, \
+    # 'ant': AntEnv, 'humanoid': HumanoidEnv, 'swimmer':SwimmerEnv}
 
 def load(name):
     # taken from OpenAI gym registration.py
@@ -39,17 +44,17 @@ def get_env(env_specs):
         env_name: 'halfcheetah'
         env_kwargs: {} # kwargs to pass to the env constructor call
     """
-    domain = None
+    domain = env_specs["env_name"]
 
-    if env_specs["env_name"] == "dmc":
+    if domain == "dmc":
         env_class = dmc2gym.make
     else:
-        domain = envs_dict[env_specs["env_name"]]
-        env_class = load(domain)
+        env_class = load(envs_dict[domain])
     
     # Equal to gym.make()
     env = env_class(**env_specs["env_kwargs"])
-
+    
+    print(domain, domain in env_overwrite)
     if domain in env_overwrite:
         print(
             "[ environments/utils ] WARNING: Using overwritten {} environment".format(
@@ -67,18 +72,17 @@ def get_envs(env_specs, env_wrapper=None, wrapper_kwargs={}, **kwargs):
         env_name: 'halfcheetah'
         env_kwargs: {} # kwargs to pass to the env constructor call
     """
-    domain = None
+    domain = env_specs["env_name"]
 
     if env_wrapper is None:
         env_wrapper = ProxyEnv
     
-    if env_specs["env_name"] == "dmc":
+    if domain == "dmc":
         env_class = dmc2gym.make
     else:
-        domain = envs_dict[env_specs["env_name"]]
-        env_class = load(domain)
-
-    if ("env_num" not in env_specs.keys()) or (env_specs["env_num"] == 1):
+        env_class = load(envs_dict[domain])
+    
+    if ("env_num" not in env_specs.keys()) or (env_specs["env_num"] <= 1):
         envs = env_wrapper(env_class(**env_specs["env_kwargs"]), **wrapper_kwargs)
 
         if domain in env_overwrite:
@@ -87,7 +91,7 @@ def get_envs(env_specs, env_wrapper=None, wrapper_kwargs={}, **kwargs):
                     domain
                 )
             )
-            envs = env_overwrite[domain]()
+            envs = env_wrapper(env_overwrite[domain](**env_specs["env_kwargs"]), **wrapper_kwargs)
 
         print("\n WARNING: Single environment detected, wrap to DummyVectorEnv.")
         envs = DummyVectorEnv([lambda: envs], **kwargs)

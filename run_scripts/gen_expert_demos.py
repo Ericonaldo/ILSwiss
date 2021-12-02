@@ -25,9 +25,8 @@ from rlkit.scripted_experts import get_scripted_policy
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.data_management.path_builder import PathBuilder
 from rlkit.torch.common.policies import MakeDeterministic
-from rlkit.envs.wrappers import FrameStackEnv
+from rlkit.envs.wrappers import FrameStackEnv, ProxyEnv
 from gym.wrappers.monitor import Monitor
-
 
 def fill_buffer(
     buffer,
@@ -168,7 +167,10 @@ def experiment(specs):
     
     env = get_env(env_specs)
     env.seed(env_specs["env_seed"])
-
+    
+    env_wrapper = ProxyEnv  # Identical wrapper
+    wrapper_kwargs = {}
+    kwargs = {}
     if ("frame_stack" in env_specs) and (env_specs["frame_stack"] is not None):
         env_wrapper = FrameStackEnv
         wrapper_kwargs = {"k": env_specs["frame_stack"]} 
@@ -247,10 +249,10 @@ def experiment(specs):
     env_name = specs["env_specs"]["env_name"]
     if env_name == "dmc":
         env_name = env_specs["env_kwargs"]["domain_name"] + '_' + env_specs["env_kwargs"]["task_name"]
-    if not os.path.exists("./demos/{}".format(env_name)):
-        os.makedirs("./demos/{}".format(env_name))
+    if not os.path.exists("./demos/{}/seed-{}".format(env_name, specs["seed"])):
+        os.makedirs("./demos/{}/seed-{}".format(env_name, specs["seed"]))
     # save demos directly
-    with open("./demos/{}/expert_demos-{}.pkl".format(env_name, num_rollouts), "wb") as f:
+    with open("./demos/{}/seed-{}/expert_demos-{}.pkl".format(env_name, specs["seed"], num_rollouts), "wb") as f:
         pickle.dump(res, f)
 
     return 1
