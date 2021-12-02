@@ -1,6 +1,6 @@
 meta_data:
-  script_path: run_scripts/adv_irl_staticsac_exp_script.py
-  exp_name: gail_hopper_staticsac_terminal
+  script_path: run_scripts/adv_irl_rewardq_exp_script.py
+  exp_name: gail_hopper_rewardq_terminal
   description: Train an adversarial IRL model
   num_workers: 3 # 64
   using_gpus: true

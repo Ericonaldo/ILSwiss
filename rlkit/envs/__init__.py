@@ -1,7 +1,10 @@
 # Inspired by OpenAI gym registration.py
 import abc
 import importlib
-import dmc2gym
+try:
+    import dmc2gym
+except:
+    pass
 
 from rlkit.envs.envs_dict import envs_dict
 from rlkit.envs.tasks_dict import tasks_dict

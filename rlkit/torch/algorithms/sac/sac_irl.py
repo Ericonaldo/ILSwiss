@@ -74,7 +74,7 @@ class SoftActorCritic(Trainer):
         # v_params = itertools.chain(self.vf.parameters())
         # policy_params = itertools.chain(self.policy.parameters())
 
-        rewards = self.reward_scale * batch["rewards"]
+        rewards_q = self.reward_scale * batch["rewards"]
         terminals = batch["terminals"]
         obs = batch["observations"]
         actions = batch["actions"]
@@ -94,11 +94,14 @@ class SoftActorCritic(Trainer):
         self.qf2_optimizer.zero_grad()
         q1_pred = self.qf1(obs, actions)
         q2_pred = self.qf2(obs, actions)
+        target_v_values_current = self.target_vf(
+            obs
+        )
         target_v_values = self.target_vf(
             next_obs
         )  # do not need grad || it's the shared part of two calculation
         q_target = (
-            rewards + (1.0 - terminals) * self.discount * target_v_values
+            rewards_q - target_v_values_current + (1.0 - terminals) * self.discount * target_v_values
         )  ## original implementation has detach
         q_target = q_target.detach()
         qf1_loss = 0.5 * torch.mean((q1_pred - q_target) ** 2)
