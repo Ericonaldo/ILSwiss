@@ -29,7 +29,7 @@ from rlkit.envs.mujoco.humanoid import HumanoidEnv
 
 env_overwrite = {}
 # unclip for hopper, walker2d and drop unnecessary dims in half, ant, human and swimmer
-env_overwrite = {'hopper': HopperEnv, 'walker': Walker2dEnv, 'humanoid': HumanoidEnv} # , 'halfcheetah':HalfCheetahEnv, \
+# env_overwrite = {'hopper': HopperEnv, 'walker': Walker2dEnv, 'humanoid': HumanoidEnv} # , 'halfcheetah':HalfCheetahEnv, \
     # 'ant': AntEnv, 'humanoid': HumanoidEnv, 'swimmer':SwimmerEnv}
 
 def load(name):

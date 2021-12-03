@@ -217,7 +217,7 @@ class ReparamTanhMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
         action_dim,
         init_w=1e-3,
         max_act=1.0,
-        conditioned_std: bool = False,
+        conditioned_std: bool = True,
         **kwargs
     ):
         self.save_init_params(locals())
@@ -354,7 +354,7 @@ class ReparamMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
         hidden_sizes,
         obs_dim,
         action_dim,
-        conditioned_std=False,
+        conditioned_std=True,
         init_w=1e-3,
         **kwargs,
     ):
