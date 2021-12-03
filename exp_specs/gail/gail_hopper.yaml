@@ -35,7 +35,7 @@ constants:
     state_only: false
 
     num_epochs: 162
-    num_steps_per_epoch: 10000
+    num_steps_per_epoch: 100000
     num_steps_between_train_calls: 1000
     max_path_length: 1000
     min_steps_before_training: 5000
@@ -48,7 +48,7 @@ constants:
     eval_no_terminal: false
     wrap_absorbing: false
 
-    num_update_loops_per_train_call: 1000
+    num_update_loops_per_train_call: 100
     num_disc_updates_per_loop_iter: 1
     num_policy_updates_per_loop_iter: 1
 
@@ -82,6 +82,6 @@ constants:
   env_specs:
     env_name: 'hopper'
     env_kwargs: {}
-    env_num: 10 # This parameter define how many vec envs are created
+    env_num: 1 # This parameter define how many vec envs are created
     eval_env_seed: 78236 # These two seeds are no longer needed since in our implementation we makes all seeds the same, see the script file, however you can change the script to make it valid
     training_env_seed: 24495

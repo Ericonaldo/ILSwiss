@@ -23,14 +23,14 @@ import sys
 from rlkit.envs.mujoco.hopper import HopperEnv
 from rlkit.envs.mujoco.walker2d import Walker2dEnv
 # from rlkit.envs.mujoco.halfcheetah import HalfCheetahEnv
-# from rlkit.envs.mujoco.ant import AntEnv
+from rlkit.envs.mujoco.ant import AntEnv
 from rlkit.envs.mujoco.humanoid import HumanoidEnv
 # from rlkit.envs.mujoco.swimmer import SwimmerEnv
 
 env_overwrite = {}
 # unclip for hopper, walker2d and drop unnecessary dims in half, ant, human and swimmer
-env_overwrite = {'hopper': HopperEnv, 'walker': Walker2dEnv, 'humanoid': HumanoidEnv} # , 'halfcheetah':HalfCheetahEnv, \
-    # 'ant': AntEnv, 'humanoid': HumanoidEnv, 'swimmer':SwimmerEnv}
+# env_overwrite = {'hopper': HopperEnv, 'walker': Walker2dEnv, 'humanoid': HumanoidEnv, 'ant': AntEnv} # 'halfcheetah':HalfCheetahEnv, \
+    # , 'humanoid': HumanoidEnv, 'swimmer':SwimmerEnv}
 
 def load(name):
     # taken from OpenAI gym registration.py

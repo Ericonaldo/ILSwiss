@@ -1,21 +1,21 @@
 meta_data:
   script_path: run_scripts/adv_irl_rewardq_exp_script.py
-  exp_name: gail2_hopper_rewardq
+  exp_name: gail2_walker_rewardq
   description: Train an adversarial IRL model
   num_workers: 3 # 64
   using_gpus: true
 # -----------------------------------------------------------------------------
 variables:
   adv_irl_params:
-    grad_pen_weight: [4.0] # [0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]
+    grad_pen_weight: [8.0] # [0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]
   sac_params:
     reward_scale: [2.0] # [0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]
-  # seed: [723894, 23789]
+
   seed: [0,1,2]
 
 # -----------------------------------------------------------------------------
 constants:
-  expert_name: 'hopper_sac'
+  expert_name: 'walker_sac'
   expert_idx: 0
   traj_num: 4
   scale_env_with_demo_stats: false
@@ -80,8 +80,8 @@ constants:
     policy_std_reg_weight: 0.001
 
   env_specs:
-    env_name: 'hopper'
+    env_name: 'walker'
     env_kwargs: {}
-    env_num: 1 # This parameter define how many vec envs are created
+    env_num: 10 # This parameter define how many vec envs are created
     eval_env_seed: 78236 # These two seeds are no longer needed since in our implementation we makes all seeds the same, see the script file, however you can change the script to make it valid
     training_env_seed: 24495
