@@ -20,15 +20,15 @@ from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.torch.common.networks import FlattenMlp
 from rlkit.torch.common.encoders import make_encoder, make_decoder
 from rlkit.torch.common.policies import ReparamTanhMultivariateGaussianEncoderPolicy
-from rlkit.torch.algorithms.sac.sac_alpha import (
+from rlkit.torch.algorithms.sac.sac_ae import (
     SoftActorCritic,
 )  # SAC Auto alpha version
-from rlkit.torch.algorithms.adv_irl.disc_models.cnn_disc_models import CNNDisc
+from rlkit.torch.algorithms.adv_irl.disc_models import CNNDisc
 from rlkit.torch.algorithms.adv_irl.adv_irl_visual import AdvIRL
 from rlkit.envs.wrappers import ProxyEnv, ScaledEnv, MinmaxEnv, NormalizedBoxEnv, FrameStackEnv
 
-os.environ['LD_LIBRARY_PATH']="～/.mujoco/mjpro210/bin"
-os.environ['MUJOCO_GL']="egl"
+# os.environ['LD_LIBRARY_PATH'] = "～/.mujoco/mjpro210/bin"
+os.environ['MUJOCO_GL'] = "egl"
 
 def experiment(variant):
     with open("demos_listing.yaml", "r") as f:
@@ -76,6 +76,15 @@ def experiment(variant):
     print("Obs Space: {}".format(env.observation_space))
     print("Act Space: {}\n\n".format(env.action_space))
 
+    tmp_env_wrapper = env_wrapper = ProxyEnv  # Identical wrapper
+    wrapper_kwargs = {}
+    kwargs = {}
+    if ("frame_stack" in env_specs) and (env_specs["frame_stack"] is not None):
+        env_wrapper = FrameStackEnv
+        wrapper_kwargs = {"k": env_specs["frame_stack"]} 
+
+    env = env_wrapper(env, **wrapper_kwargs)
+
     expert_replay_buffer = EnvReplayBuffer(
         variant["adv_irl_params"]["replay_buffer_size"],
         env,
@@ -86,15 +95,6 @@ def experiment(variant):
         expert_replay_buffer.add_path(
             traj_list[i], absorbing=variant["adv_irl_params"]["wrap_absorbing"], env=env
         )
-
-    tmp_env_wrapper = env_wrapper = ProxyEnv  # Identical wrapper
-    wrapper_kwargs = {}
-    kwargs = {}
-    if ("frame_stack" in env_specs) and (env_specs["frame_stack"] is not None):
-        env_wrapper = FrameStackEnv
-        wrapper_kwargs = {"k": env_specs["frame_stack"]} 
-
-    env = env_wrapper(env, **wrapper_kwargs)
 
     if variant["scale_env_with_demo_stats"]:
         print("\nWARNING: Using scale env wrapper")
@@ -175,8 +175,15 @@ def experiment(variant):
 
     # set up the algorithm
     trainer = SoftActorCritic(
-        policy=policy, qf1=qf1, qf2=qf2, env=env, **variant["sac_params"]
+        encoder=encoder,
+        decoder=decoder,
+        policy=policy,
+        qf1=qf1,
+        qf2=qf2,
+        env=env,
+        **variant["sac_params"],
     )
+
     algorithm = AdvIRL(
         env=env,
         training_env=training_env,

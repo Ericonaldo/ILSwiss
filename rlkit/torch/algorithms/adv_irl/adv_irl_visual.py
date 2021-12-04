@@ -10,7 +10,7 @@ import torch.nn.functional as F
 import rlkit.torch.utils.pytorch_util as ptu
 from rlkit.torch.core import np_to_pytorch_batch
 from rlkit.torch.algorithms.torch_base_algorithm import TorchBaseAlgorithm
-import rlkit.torch.algorithms.irl.adv_irl as adv_irl
+import rlkit.torch.algorithms.adv_irl.adv_irl as adv_irl
 
 class AdvIRL(adv_irl.AdvIRL):
     """
@@ -33,11 +33,9 @@ class AdvIRL(adv_irl.AdvIRL):
 
     def __init__(
         self,
-        encoder,
         **kwargs
     ):
         super().__init__(**kwargs)
-        self.encoder = encoder
 
     def _do_reward_training(self, epoch):
         """
@@ -56,8 +54,8 @@ class AdvIRL(adv_irl.AdvIRL):
         expert_batch = self.get_batch(self.disc_optim_batch_size, True, keys)
         policy_batch = self.get_batch(self.disc_optim_batch_size, False, keys)
 
-        expert_obs = self.encoder(expert_batch["observations"])
-        policy_obs = self.encoder(policy_batch["observations"])
+        expert_obs = expert_batch["observations"]
+        policy_obs = policy_batch["observations"]
 
         if self.wrap_absorbing:
             # pass
@@ -69,39 +67,61 @@ class AdvIRL(adv_irl.AdvIRL):
             )
 
         if self.state_only:
-            expert_next_obs = self.encoder(expert_batch["next_observations"])
-            policy_next_obs = self.encoder(policy_batch["next_observations"])
+            expert_next_obs = expert_batch["next_observations"]
+            policy_next_obs = policy_batch["next_observations"]
             if self.wrap_absorbing:
                 raise not NotImplementedError
             expert_disc_input = torch.cat([expert_obs, expert_next_obs], dim=1)
             policy_disc_input = torch.cat([policy_obs, policy_next_obs], dim=1)
+            disc_input = torch.cat([expert_disc_input, policy_disc_input], dim=0)
+            disc_logits = self.discriminator(disc_input)
         else:
             expert_acts = expert_batch["actions"]
             policy_acts = policy_batch["actions"]
-            expert_disc_input = torch.cat([expert_obs, expert_acts], dim=1)
-            policy_disc_input = torch.cat([policy_obs, policy_acts], dim=1)
-        disc_input = torch.cat([expert_disc_input, policy_disc_input], dim=0)
+            disc_obs_input = torch.cat([expert_obs, policy_obs], dim=0)
+            disc_act_input = torch.cat([expert_acts, policy_acts], dim=0)
+            disc_logits = self.discriminator(disc_obs_input, vec=disc_act_input)
 
-        disc_logits = self.discriminator(disc_input)
         disc_preds = (disc_logits > 0).type(disc_logits.data.type())
         disc_ce_loss = self.bce(disc_logits, self.bce_targets)
         accuracy = (disc_preds == self.bce_targets).type(torch.FloatTensor).mean()
 
         if self.use_grad_pen:
-            eps = ptu.rand(expert_obs.size(0), 1)
+            eps = ptu.rand(expert_obs.size(0), 1, 1, 1)
             eps.to(ptu.device)
 
-            interp_obs = eps * expert_disc_input + (1 - eps) * policy_disc_input
-            interp_obs = interp_obs.detach()
-            interp_obs.requires_grad_(True)
+            if self.state_only:
+                interp_obs = eps * expert_disc_input + (1 - eps) * policy_disc_input
+                interp_obs = interp_obs.detach()
+                interp_obs.requires_grad_(True)
 
-            gradients = autograd.grad(
-                outputs=self.discriminator(interp_obs).sum(),
-                inputs=[interp_obs],
-                create_graph=True,
-                retain_graph=True,
-                only_inputs=True,
-            )
+                gradients = autograd.grad(
+                    outputs=self.discriminator(interp_obs).sum(),
+                    inputs=[interp_obs],
+                    create_graph=True,
+                    retain_graph=True,
+                    only_inputs=True,
+                )
+            else:
+                interp_obs = eps * expert_obs + (1 - eps) * policy_obs
+                interp_obs = interp_obs.detach()
+                interp_obs.requires_grad_(True)
+
+                interp_acts = (
+                    eps.view(expert_obs.size(0), 1) * expert_acts
+                    + (1 - eps.view(expert_obs.size(0), 1)) * policy_acts
+                )
+                interp_acts = interp_acts.detach()
+                interp_acts.requires_grad_(True)
+
+                gradients = autograd.grad(
+                    outputs=self.discriminator(interp_obs, vec=interp_acts).sum(),
+                    inputs=[interp_obs],
+                    create_graph=True,
+                    retain_graph=True,
+                    only_inputs=True,
+                )
+
             total_grad = gradients[0]
 
             # GP from Gulrajani et al.
@@ -159,9 +179,9 @@ class AdvIRL(adv_irl.AdvIRL):
         else:
             policy_batch = self.get_batch(self.policy_optim_batch_size, False)
 
-        obs = self.encoder(policy_batch["observations"])
+        obs = policy_batch["observations"]
         acts = policy_batch["actions"]
-        next_obs = self.encoder(policy_batch["next_observations"])
+        next_obs = policy_batch["next_observations"]
 
         if self.wrap_absorbing:
             # pass
@@ -171,9 +191,9 @@ class AdvIRL(adv_irl.AdvIRL):
         self.discriminator.eval()
         if self.state_only:
             disc_input = torch.cat([obs, next_obs], dim=1)
+            disc_logits = self.discriminator(disc_input).detach()
         else:
-            disc_input = torch.cat([obs, acts], dim=1)
-        disc_logits = self.discriminator(disc_input).detach()
+            disc_logits = self.discriminator(obs, vec=acts).detach()
         self.discriminator.train()
 
         # compute the reward using the algorithm

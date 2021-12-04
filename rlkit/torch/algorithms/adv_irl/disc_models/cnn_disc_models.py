@@ -62,7 +62,7 @@ class CNNDisc(nn.Module):
         if self.input_dim != 0:
             assert vec is not None, "act should not be none!"
             output = torch.cat([output, vec], axis=-1)
-        output = self.model(output)
+        output = self.linear_model(output)
         output = torch.clamp(
             output, min=-1.0 * self.clamp_magnitude, max=self.clamp_magnitude
         )
@@ -81,4 +81,4 @@ class ResNetCNNDisc(nn.Module):
     ):
         super().__init__()
 
-        raise not NotImplementedError
+        raise NotImplementedError

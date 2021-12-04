@@ -22,7 +22,7 @@ from rlkit.torch.common.policies import ReparamTanhMultivariateGaussianPolicy
 from rlkit.torch.algorithms.sac.sac_alpha import (
     SoftActorCritic,
 )  # SAC Auto alpha version
-from rlkit.torch.algorithms.adv_irl.disc_models.simple_disc_models import MLPDisc
+from rlkit.torch.algorithms.adv_irl.disc_models import MLPDisc
 from rlkit.torch.algorithms.adv_irl.adv_irl import AdvIRL
 from rlkit.envs.wrappers import ProxyEnv, ScaledEnv, MinmaxEnv, NormalizedBoxEnv
 

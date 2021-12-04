@@ -71,3 +71,9 @@ invdoublependulum_sac:
   file_paths: [
     ./demos/expert_trajs_50/InvertedDoublePendulum/seed-0/exp_trajs_sac_50.pkl
   ]
+
+finger_spin_sac_ae:
+  description: "Finger Spin, expert"
+  file_paths: [
+    ./demos/expert_trajs_50/Finger_Spin/seed-0/expert_demos-50.pkl
+  ]
