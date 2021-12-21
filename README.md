@@ -27,12 +27,12 @@ You can easily build experiment codes under this framework in your research. We 
 
 Before running, assign important log and output paths in `\rlkit\launchers\common.py` (There is an example file show necessary variables).
 
-Their are simple multiple processing shcheduling (we use multiple processing to clarify it with multi-processing since it only starts many independent sub-process without communication) for simple hyperparameter grid search.
+There are simple multiple processing shcheduling (we use multiple processing to clarify it with multi-processing since it only starts many independent sub-process without communication) for simple hyperparameter grid search.
 
-The main entry is **run_experiments.py**, with the assigned experiment yaml file in `\exp_specs`:
+The main entry is `run_experiments.py`, with the assigned experiment yaml file in `\exp_specs`:
 `python run_experiment.py -g 0 -e your_yaml_path` or `CUDA_VISIBLE_DEVICES=0 python run_experiment.py -e your_yaml_path`.
 
-When you run the **run_experiments.py**, it reads the yaml file, and generate small yaml files with only one hyperparameter setting for each. In a yaml file, a script file path is assigned (see `\run_scripts\`), which is specified to run the script with every the small yaml file. See `\exp_specs\sac\bc.yaml` for necessary explaination of each parameter.
+When you run the `run_experiments.py`, it reads the yaml file, and generate small yaml files with only one hyperparameter setting for each. In a yaml file, a script file path is assigned (see `\run_scripts\`), which is specified to run the script with every the small yaml file. See `\exp_specs\sac\bc.yaml` for necessary explaination of each parameter.
 
 NOTE: all experiments, including the evaluation tasks (see `\run_scripts\evaluate_policy.py` and `\exp_specs\evaluate_policy`) and the render tasks, can be run under this framework by specifying the yaml file (in a multiple processes style).
 
