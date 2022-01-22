@@ -126,6 +126,7 @@ original_rlkit_README.md
 refactor_notes.txt
 other/*
 old_hc_rand_vel.py
+.vscode/
 
 # demos
 demos/

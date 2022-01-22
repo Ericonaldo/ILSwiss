@@ -31,7 +31,7 @@ constants:
 
     batch_size: 128
     replay_buffer_size: 100000
-    no_terminal: true
+    no_terminal: false
     wrap_absorbing: false
 
     save_best: false
@@ -54,3 +54,5 @@ constants:
   env_specs:
     env_name: 'fetch-reach'
     env_kwargs: {}
+    vec_env_kwargs: 
+      "norm_obs": True

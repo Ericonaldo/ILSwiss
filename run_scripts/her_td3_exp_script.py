@@ -37,11 +37,14 @@ def experiment(variant):
     assert isinstance(obs_space, gym.spaces.Dict), "obs is {}".format(obs_space)
 
     env_wrapper = ProxyEnv  # Identical wrapper
-    kwargs = {}
+    wrapper_kwargs = {}
     
-    env = env_wrapper(env, **kwargs)
-
-    training_env = get_envs(env_specs, env_wrapper, **kwargs)
+    env = env_wrapper(env, **wrapper_kwargs)
+    
+    kwargs = {}
+    if "vec_env_kwargs" in env_specs:
+        kwargs = env_specs["env_kwargs"]["vec_env_kwargs"]
+    training_env = get_envs(env_specs, env_wrapper, **wrapper_kwargs, **kwargs)
     training_env.seed(env_specs["training_env_seed"])
 
     try:

@@ -24,7 +24,7 @@ from rlkit.torch.algorithms.sac.sac_alpha import (
 )  # SAC Auto alpha version
 from rlkit.torch.algorithms.adv_irl.disc_models.simple_disc_models import MLPDisc
 from rlkit.torch.algorithms.adv_irl.adv_irl import AdvIRL
-from rlkit.envs.wrappers import ProxyEnv, ScaledEnv, MinmaxEnv, NormalizedBoxEnv
+from rlkit.envs.wrappers import ProxyEnv, ScaledEnv, MinmaxEnv, NormalizedBoxEnv, EPS
 
 
 def experiment(variant):
@@ -79,11 +79,6 @@ def experiment(variant):
         random_seed=np.random.randint(10000),
     )
 
-    for i in range(len(traj_list)):
-        expert_replay_buffer.add_path(
-            traj_list[i], absorbing=variant["adv_irl_params"]["wrap_absorbing"], env=env
-        )
-
     tmp_env_wrapper = env_wrapper = ProxyEnv  # Identical wrapper
     kwargs = {}
 
@@ -96,10 +91,22 @@ def experiment(variant):
             acts_mean=acts_mean,
             acts_std=acts_std,
         )
+        for i in range(len(traj_list)):
+            traj_list[i]["observations"] = (traj_list[i]["observations"] - obs_mean) / (obs_std + EPS)
+            traj_list[i]["next_observations"] = (traj_list[i]["next_observations"] - obs_mean) / (obs_std + EPS)
+
     elif variant["minmax_env_with_demo_stats"]:
         print("\nWARNING: Using min max env wrapper")
         tmp_env_wrapper = env_wrapper = MinmaxEnv
         kwargs = dict(obs_min=obs_min, obs_max=obs_max)
+        for i in range(len(traj_list)):
+            traj_list[i]["observations"] = (traj_list[i]["observations"] - obs_min) / (obs_max - obs_min + EPS)
+            traj_list[i]["next_observations"] = (traj_list[i]["next_observations"] - obs_min) / (obs_max - obs_min + EPS)
+
+    for i in range(len(traj_list)):
+        expert_replay_buffer.add_path(
+            traj_list[i], absorbing=variant["adv_irl_params"]["wrap_absorbing"], env=env
+        )
 
     obs_space = env.observation_space
     act_space = env.action_space

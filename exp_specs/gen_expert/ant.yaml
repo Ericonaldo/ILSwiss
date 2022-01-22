@@ -1,0 +1,31 @@
+meta_data:
+  script_path: run_scripts/gen_expert_demos.py
+  exp_name: test_gen_antslim_demos
+  description: Generate demonstrations for imitation learning algorithms
+  num_workers: 1
+  using_gpus: true
+# -----------------------------------------------------------------------------
+variables: {}
+
+# -----------------------------------------------------------------------------
+constants:
+  use_scripted_policy: false
+  expert_path: './logs/test-sac-antslim/test_sac_antslim_2021_12_02_18_35_29_0000--s-0/best.pkl'
+  use_deterministic_expert: true
+  save_buffer: false
+
+  num_rollouts: 50
+  subsample_factor: 1
+  max_path_length: 1000
+  no_terminal: false
+  check_for_success: false
+  check_for_return: false
+
+  render: false
+  render_kwargs: {}
+
+  seed: 0
+
+  env_specs:
+    env_name: 'ant'
+    env_kwargs: {}

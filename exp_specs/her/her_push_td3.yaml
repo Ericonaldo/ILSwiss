@@ -52,3 +52,4 @@ constants:
   env_specs:
     env_name: 'fetch-reach'
     env_kwargs: {}
+    env_num: 4

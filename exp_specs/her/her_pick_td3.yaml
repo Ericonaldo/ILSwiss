@@ -29,7 +29,7 @@ constants:
 
     batch_size: 2048
     replay_buffer_size: 1000000
-    no_terminal: true
+    no_terminal: false
     wrap_absorbing: false
 
     save_best: false
@@ -52,3 +52,4 @@ constants:
   env_specs:
     env_name: 'fetch-pick-place'
     env_kwargs: {}
+    env_num: 4
