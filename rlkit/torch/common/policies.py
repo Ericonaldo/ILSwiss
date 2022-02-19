@@ -480,6 +480,7 @@ class ReparamMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
             return log_prob, mean, log_std
         return log_prob
 
+
 class MlpGaussianAndEpsilonPolicy(Mlp, ExplorationPolicy):
     def __init__(
         self,
@@ -561,7 +562,7 @@ class MlpGaussianAndEpsilonPolicy(Mlp, ExplorationPolicy):
                 )
 
         assert np.shape(action)[-1] == self._action_space.shape[-1], "action shape mismatch!"
-            
+
         return (action, preactivation)
 
 
@@ -599,15 +600,14 @@ class ConditionPolicy(ExplorationPolicy):
         return actions[0, :], {}
 
     def get_actions(self, obs_condition_np, deterministic=False):
-        
+
         if isinstance(obs_condition_np, dict):
             obs_condition_np = np.concatenate([obs_condition_np[self.observation_key], obs_condition_np[self.desired_goal_key]], axis=-1)
         elif isinstance(obs_condition_np[0], dict):
             obs_condition_np = [{k: v for k, v in x.items() if k != self.achieved_goal_key} for x in obs_condition_np]
             obs_condition_np = np.array([np.concatenate([x[self.observation_key], x[self.desired_goal_key]], axis=-1) for x in obs_condition_np])
-        
-        return self.eval_np(obs_condition_np, deterministic=deterministic)[0]
 
+        return self.eval_np(obs_condition_np, deterministic=deterministic)[0]
 
 
 class MlpGaussianAndEpsilonConditionPolicy(

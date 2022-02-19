@@ -225,6 +225,13 @@ class SimpleReplayBuffer(ReplayBuffer):
     def get_traj_num(self):
         return self._trajs
 
+    def get_all(self, keys=None, multi_step=False, step_num=1, **kwargs):
+        indices = range(self._size)
+
+        return self._get_batch_using_indices(
+            indices, keys=keys, multi_step=multi_step, step_num=step_num, **kwargs
+        )
+
     def _advance(self):
         if self._top in self._traj_endpoints:
             # this means that the step in the replay buffer

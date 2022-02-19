@@ -17,9 +17,9 @@ constants:
   # goal_gen: 'interval' # ['vanilla', 'fixobj', 'interval', 'reach']
 
   rl_alg_params:
-    num_epochs: 5000
-    num_steps_per_epoch: 1000
-    num_steps_between_train_calls: 1
+    num_epochs: 1000
+    num_steps_per_epoch: 10000
+    num_steps_between_train_calls: 2
     num_train_steps_per_train_call: 1
     num_steps_per_eval: 1000
     max_path_length: 50
@@ -52,4 +52,4 @@ constants:
   env_specs:
     env_name: 'fetch-slide'
     env_kwargs: {}
-    env_num: 8
+    env_num: 16

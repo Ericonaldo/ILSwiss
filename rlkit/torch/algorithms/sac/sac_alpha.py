@@ -37,6 +37,7 @@ class SoftActorCritic(Trainer):
         policy_std_reg_weight=1e-3,
         optimizer_class=optim.Adam,
         beta_1=0.9,
+        target_entropy=None,
         **kwargs
     ):
         self.policy = policy
@@ -52,7 +53,9 @@ class SoftActorCritic(Trainer):
         self.log_alpha = torch.tensor(np.log(alpha), requires_grad=train_alpha)
         self.alpha = self.log_alpha.detach().exp()
         assert "env" in kwargs.keys(), "env info should be taken into SAC alpha"
-        self.target_entropy = -np.prod(kwargs["env"].action_space.shape)
+        self.target_entropy = target_entropy
+        if target_entropy is None:
+            self.target_entropy = -np.prod(kwargs["env"].action_space.shape) / 2.0
 
         self.target_qf1 = qf1.copy()
         self.target_qf2 = qf2.copy()
