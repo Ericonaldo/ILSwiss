@@ -7,7 +7,7 @@ import torch
 from torch import nn as nn
 
 from rlkit.policies.base import ExplorationPolicy, Policy
-from rlkit.torch.common.networks import Mlp, FlattenMlp
+from rlkit.torch.common.networks import Mlp, FlattenMlp, CatagorialMlp
 from rlkit.torch.common.distributions import ReparamTanhMultivariateNormal
 from rlkit.torch.common.distributions import ReparamMultivariateNormalDiag
 from rlkit.torch.core import PyTorchModule
