@@ -80,8 +80,8 @@ class SAC(Trainer):
         actions = batch["actions"]
         next_obs = batch["next_observations"]
 
-        goals = batch['desired_goals']
-        next_goals = batch['next_desired_goals']
+        goals = batch["desired_goals"]
+        next_goals = batch["next_desired_goals"]
 
         concat_input = torch.cat([obs, goals], axis=-1)
         target_input = torch.cat([next_obs, next_goals], axis=-1)

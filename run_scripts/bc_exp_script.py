@@ -69,23 +69,24 @@ def experiment(variant):
     print("Act Space: {}\n\n".format(env.action_space))
 
     expert_replay_buffer = EnvReplayBuffer(
-        variant["adv_irl_params"]["replay_buffer_size"],
+        variant["bc_params"]["replay_buffer_size"],
         env,
         random_seed=np.random.randint(10000),
     )
 
     for i in range(len(traj_list)):
         expert_replay_buffer.add_path(
-            traj_list[i], absorbing=variant["adv_irl_params"]["wrap_absorbing"], env=env
+            traj_list[i], absorbing=variant["bc_params"]["wrap_absorbing"], env=env
         )
 
     env_wrapper = ProxyEnv  # Identical wrapper
     kwargs = {}
+    wrapper_kwargs = {}
 
     if variant["scale_env_with_demo_stats"]:
         print("\nWARNING: Using scale env wrapper")
         tmp_env_wrapper = env_wrapper = ScaledEnv
-        kwargs = dict(
+        wrapper_kwargs = dict(
             obs_mean=obs_mean,
             obs_std=obs_std,
             acts_mean=acts_mean,
@@ -94,7 +95,7 @@ def experiment(variant):
     elif variant["minmax_env_with_demo_stats"]:
         print("\nWARNING: Using min max env wrapper")
         tmp_env_wrapper = env_wrapper = MinmaxEnv
-        kwargs = dict(obs_min=obs_min, obs_max=obs_max)
+        wrapper_kwargs = dict(obs_min=obs_min, obs_max=obs_max)
 
     obs_space = env.observation_space
     act_space = env.action_space
@@ -110,8 +111,10 @@ def experiment(variant):
             tmp_env_wrapper(*args, **kwargs)
         )
 
-    env = env_wrapper(env, **kwargs)
-    training_env = get_envs(env_specs, env_wrapper, **kwargs)
+    env = env_wrapper(env, **wrapper_kwargs)
+    training_env = get_envs(
+        env_specs, env_wrapper, wrapper_kwargs=wrapper_kwargs, **kwargs
+    )
     training_env.seed(env_specs["training_env_seed"])
 
     obs_space = env.observation_space

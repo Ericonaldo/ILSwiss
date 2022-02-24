@@ -150,7 +150,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
 
         self.ready_env_ids = np.arange(self.env_num)
 
-    def train(self, start_epoch=0, flag=False):
+    def train(self, start_epoch=0):
         self.pretrain()
         if start_epoch == 0:
             params = self.get_epoch_snapshot(-1)
@@ -159,7 +159,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         # self._n_env_steps_total = start_epoch * self.num_env_steps_per_epoch
         gt.reset()
         gt.set_def_unique(False)
-        self.start_training(start_epoch=start_epoch, flag=flag)
+        self.start_training(start_epoch=start_epoch)
 
     def pretrain(self):
         """
@@ -167,7 +167,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         """
         pass
 
-    def start_training(self, start_epoch=0, flag=False):
+    def start_training(self, start_epoch=0):
         # self._current_path_builder = PathBuilder()
         self.ready_env_ids = np.arange(self.env_num)
         observations = self._start_new_rollout(
@@ -219,8 +219,6 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
                 )
                 if np.any(terminals):
                     env_ind_local = np.where(terminals)[0]
-                    if flag:
-                        pass
                     total_rews[env_ind_local] = 0.0
                     if self.wrap_absorbing:
                         # raise NotImplementedError()
@@ -291,7 +289,9 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
 
                 observations = next_obs
 
-                if (self._n_env_steps_total - self._n_prev_train_env_steps) >= self.num_steps_between_train_calls:
+                if (
+                    self._n_env_steps_total - self._n_prev_train_env_steps
+                ) >= self.num_steps_between_train_calls:
                     gt.stamp("sample")
                     self._try_to_train(epoch)
                     gt.stamp("train")
@@ -367,10 +367,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
 
         :return:
         """
-        return (
-            (len(self._exploration_paths) > 0)
-            and (self._n_train_steps_total >= 0)
-        )
+        return (len(self._exploration_paths) > 0) and (self._n_train_steps_total >= 0)
 
     def _can_train(self):
         return (
@@ -543,7 +540,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         """
         data_to_save = dict(
             epoch=epoch,
-            exploration_policy=self.exploration_policy,
+            policy=self.exploration_policy,
         )
         return data_to_save
 
@@ -553,13 +550,20 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         taking into consideration the particular
         get_epoch_snapshot implementation for the algorithm
         """
-        self.exploration_policy = snapshot["exploration_policy"]
+        self.exploration_policy = snapshot["policy"]
 
-    def set_steps(self, n_env_steps_total, n_rollouts_total, n_train_steps_total, n_prev_train_env_steps, **kwargs):
-         self._n_env_steps_total = n_env_steps_total
-         self._n_rollouts_total = n_rollouts_total
-         self._n_train_steps_total = n_train_steps_total
-         self._n_prev_train_env_steps = n_prev_train_env_steps
+    def set_steps(
+        self,
+        n_env_steps_total,
+        n_rollouts_total,
+        n_train_steps_total,
+        n_prev_train_env_steps,
+        **kwargs
+    ):
+        self._n_env_steps_total = n_env_steps_total
+        self._n_rollouts_total = n_rollouts_total
+        self._n_train_steps_total = n_train_steps_total
+        self._n_prev_train_env_steps = n_prev_train_env_steps
 
     def get_extra_data_to_save(self, epoch):
         """
@@ -572,10 +576,10 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
             self.training_env.render(close=True)
         data_to_save = dict(
             epoch=epoch,
-            n_env_steps_total = self._n_env_steps_total,
-            n_rollouts_total = self._n_rollouts_total,
-            n_train_steps_total = self._n_train_steps_total,
-            n_prev_train_env_steps = self._n_prev_train_env_steps,
+            n_env_steps_total=self._n_env_steps_total,
+            n_rollouts_total=self._n_rollouts_total,
+            n_train_steps_total=self._n_train_steps_total,
+            n_prev_train_env_steps=self._n_prev_train_env_steps,
         )
         if self.save_replay_buffer:
             data_to_save["replay_buffer"] = self.replay_buffer

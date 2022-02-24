@@ -6,7 +6,7 @@ meta_data:
   using_gpus: true # Whether to use GPU
 # -----------------------------------------------------------------------------
 variables: # If you want to do grid search, take the constant variables to here and write down the grid value in a list, the run_experiment.py will split every combination of these varibles into small yaml files
-  seed: [0, 1]
+  seed: [0]
 
 # -----------------------------------------------------------------------------
 constants: # These are constant hyperparameters without tunning, and the name is defined by your algorithm, however there are many common hyperparameters

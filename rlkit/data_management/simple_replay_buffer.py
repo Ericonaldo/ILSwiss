@@ -449,7 +449,6 @@ class SimpleReplayBuffer(ReplayBuffer):
         self._traj_endpoints = {}  # start->end means [start, end)
 
 
-
 class SimpleReplayBufferDict(dict):
     def __init__(self, max_size, obs_dim, act_dim, seed):
         super().__init__()

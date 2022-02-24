@@ -27,7 +27,7 @@ class PPO(Trainer):
         lambda_entropy_policy=0.0,
         **kwargs,
     ):
-        self.on_policy = True # Flag for on-policy algorithm
+        self.on_policy = True  # Flag for on-policy algorithm
 
         self.policy = policy
         self.vf = vf

@@ -1,6 +1,6 @@
 meta_data:
   script_path: run_scripts/sac_alpha_exp_script.py
-  exp_name: test_sac_walker_noclip
+  exp_name: test_sac_walker
   description: Train an agent using Soft-Actor-Critic
   num_workers: 2
   using_gpus: true

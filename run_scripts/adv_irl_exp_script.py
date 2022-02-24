@@ -81,27 +81,36 @@ def experiment(variant):
 
     tmp_env_wrapper = env_wrapper = ProxyEnv  # Identical wrapper
     kwargs = {}
+    wrapper_kwargs = {}
 
     if variant["scale_env_with_demo_stats"]:
         print("\nWARNING: Using scale env wrapper")
         tmp_env_wrapper = env_wrapper = ScaledEnv
-        kwargs = dict(
+        wrapper_kwargs = dict(
             obs_mean=obs_mean,
             obs_std=obs_std,
             acts_mean=acts_mean,
             acts_std=acts_std,
         )
         for i in range(len(traj_list)):
-            traj_list[i]["observations"] = (traj_list[i]["observations"] - obs_mean) / (obs_std + EPS)
-            traj_list[i]["next_observations"] = (traj_list[i]["next_observations"] - obs_mean) / (obs_std + EPS)
+            traj_list[i]["observations"] = (traj_list[i]["observations"] - obs_mean) / (
+                obs_std + EPS
+            )
+            traj_list[i]["next_observations"] = (
+                traj_list[i]["next_observations"] - obs_mean
+            ) / (obs_std + EPS)
 
     elif variant["minmax_env_with_demo_stats"]:
         print("\nWARNING: Using min max env wrapper")
         tmp_env_wrapper = env_wrapper = MinmaxEnv
-        kwargs = dict(obs_min=obs_min, obs_max=obs_max)
+        wrapper_kwargs = dict(obs_min=obs_min, obs_max=obs_max)
         for i in range(len(traj_list)):
-            traj_list[i]["observations"] = (traj_list[i]["observations"] - obs_min) / (obs_max - obs_min + EPS)
-            traj_list[i]["next_observations"] = (traj_list[i]["next_observations"] - obs_min) / (obs_max - obs_min + EPS)
+            traj_list[i]["observations"] = (traj_list[i]["observations"] - obs_min) / (
+                obs_max - obs_min + EPS
+            )
+            traj_list[i]["next_observations"] = (
+                traj_list[i]["next_observations"] - obs_min
+            ) / (obs_max - obs_min + EPS)
 
     for i in range(len(traj_list)):
         expert_replay_buffer.add_path(
@@ -122,8 +131,10 @@ def experiment(variant):
             tmp_env_wrapper(*args, **kwargs)
         )
 
-    env = env_wrapper(env, **kwargs)
-    training_env = get_envs(env_specs, env_wrapper, **kwargs)
+    env = env_wrapper(env, **wrapper_kwargs)
+    training_env = get_envs(
+        env_specs, env_wrapper, wrapper_kwargs=wrapper_kwargs, **kwargs
+    )
     training_env.seed(env_specs["training_env_seed"])
 
     obs_dim = obs_space.shape[0]

@@ -9,14 +9,11 @@ envs_dict = {
     "swimmer": "gym.envs.mujoco.swimmer:SwimmerEnv",
     "inverteddoublependulum": "gym.envs.mujoco.inverted_double_pendulum:InvertedDoublePendulumEnv",
     "invertedpendulum": "gym.envs.mujoco.inverted_pendulum:InvertedPendulumEnv",
-
     # normal envs
     "lunarlandercont": "gym.envs.box2d.lunar_lander:LunarLanderContinuous",
-
     # robotics envs
     "fetch-reach": "gym.envs.robotics.fetch.reach:FetchReachEnv",
     "fetch-push": "gym.envs.robotics.fetch.push:FetchPushEnv",
     "fetch-pick-place": "gym.envs.robotics.fetch.pick_and_place:FetchPickAndPlaceEnv",
     "fetch-slide": "gym.envs.robotics.fetch.slide:FetchSlideEnv",
-
 }

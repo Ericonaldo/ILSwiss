@@ -46,17 +46,12 @@ def experiment(variant):
     env = env_wrapper(env, **kwargs)
     if "env_num" not in env_specs:
         env_specs["env_num"] = 1
-    
+
     if "training_env_num" in env_specs:
         env_specs["env_num"] = env_specs["training_env_num"]
-    
+
     print("Creating {} training environments ...".format(env_specs["env_num"]))
-    training_env = get_envs(
-        env_specs, 
-        env_wrapper, 
-        norm_obs=True,
-        **kwargs
-    )
+    training_env = get_envs(env_specs, env_wrapper, norm_obs=True, **kwargs)
     training_env.seed(env_specs["training_env_seed"])
 
     if "eval_env_num" in env_specs:
@@ -73,12 +68,12 @@ def experiment(variant):
     eval_env.seed(env_specs["eval_env_seed"])
 
     try:
-        obs_dim = obs_space.spaces['observation'].shape[0]
-        goal_dim = obs_space.spaces['desired_goal'].shape[0]
+        obs_dim = obs_space.spaces["observation"].shape[0]
+        goal_dim = obs_space.spaces["desired_goal"].shape[0]
     except BaseException:
         tmp = env.reset()
-        obs_dim = tmp['observation'].shape[0]
-        goal_dim = tmp['desired_goal'].shape[0]
+        obs_dim = tmp["observation"].shape[0]
+        goal_dim = tmp["desired_goal"].shape[0]
     action_dim = act_space.shape[0]
 
     net_size = variant["net_size"]
@@ -105,7 +100,7 @@ def experiment(variant):
         action_dim=action_dim,
         output_activation=tanh,
         policy_noise=variant["policy_noise"],
-        policy_noise_clip=variant["policy_noise_clip"]
+        policy_noise_clip=variant["policy_noise_clip"],
     )
 
     trainer = PPO(
@@ -151,13 +146,15 @@ if __name__ == "__main__":
     exp_prefix = exp_specs["exp_name"]
     seed = exp_specs["seed"]
     set_seed(seed)
-    
-    log_dir=None
+
+    log_dir = None
     if "load_params" in exp_specs:
         load_path = exp_specs["load_params"]["load_path"]
         if (load_path is not None) and (len(load_path) > 0):
             log_dir = load_path
 
-    setup_logger(exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs, log_dir=log_dir)
+    setup_logger(
+        exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs, log_dir=log_dir
+    )
 
     experiment(exp_specs)

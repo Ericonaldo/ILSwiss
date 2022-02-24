@@ -20,42 +20,44 @@ def rollout(
     for _ in range(max_path_length):
         if preprocess_func:
             observation = preprocess_func(observation)
-            
+
         actions = policy.get_actions(observations)
         if render:
             env.render(**render_kwargs)
 
-        next_observations, rewards, terminals, env_infos = env.step(actions, ready_env_ids)
+        next_observations, rewards, terminals, env_infos = env.step(
+            actions, ready_env_ids
+        )
         if no_terminal:
             terminals = [False for _ in range(len(ready_env_ids))]
 
         for idx, (
-                observation,
-                action,
-                reward,
-                next_observation,
-                terminal,
-                env_info,
-            ) in enumerate(
-                zip(
-                    observations,
-                    actions,
-                    rewards,
-                    next_observations,
-                    terminals,
-                    env_infos,
-                )
-            ):
-                env_idx = ready_env_ids[idx]
-                path_builder[env_idx].add_all(
-                    observations=observation,
-                    actions=action,
-                    rewards=np.array([reward]),
-                    next_observations=next_observation,
-                    terminals=np.array([terminal]),
-                    absorbings=np.array([0.0, 0.0]),
-                    env_infos=env_info,
-                )
+            observation,
+            action,
+            reward,
+            next_observation,
+            terminal,
+            env_info,
+        ) in enumerate(
+            zip(
+                observations,
+                actions,
+                rewards,
+                next_observations,
+                terminals,
+                env_infos,
+            )
+        ):
+            env_idx = ready_env_ids[idx]
+            path_builder[env_idx].add_all(
+                observations=observation,
+                actions=action,
+                rewards=np.array([reward]),
+                next_observations=next_observation,
+                terminals=np.array([terminal]),
+                absorbings=np.array([0.0, 0.0]),
+                env_infos=env_info,
+            )
 
         observations = next_observations
 
@@ -64,7 +66,7 @@ def rollout(
             ready_env_ids = np.array(list(set(ready_env_ids) - set(end_env_ids)))
             if len(ready_env_ids) == 0:
                 break
-        
+
     return path_builder
 
 

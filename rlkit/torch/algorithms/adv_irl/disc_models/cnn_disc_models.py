@@ -5,11 +5,12 @@ import torch.nn.functional as F
 from rlkit.torch.utils import pytorch_util as ptu
 from rlkit.torch.common.encoders import OUT_DIM, OUT_DIM_64
 
+
 class CNNDisc(nn.Module):
     def __init__(
         self,
-        input_shape, # observation image
-        input_dim=0, # action
+        input_shape,  # observation image
+        input_dim=0,  # action
         num_filters=32,
         num_layer_blocks=2,
         hid_dim=100,
@@ -43,8 +44,14 @@ class CNNDisc(nn.Module):
             self.convs_list.append(nn.Conv2d(num_filters, num_filters, 3, stride=1))
         self.conv_model = nn.Sequential(*self.convs_list)
 
-        out_dim = OUT_DIM_64[self.num_layers] if input_shape[-1] == 64 else OUT_DIM[self.num_layers] 
-        self.mod_list = nn.ModuleList([nn.Linear(num_filters * out_dim * out_dim + self.input_dim, hid_dim)])
+        out_dim = (
+            OUT_DIM_64[self.num_layers]
+            if input_shape[-1] == 64
+            else OUT_DIM[self.num_layers]
+        )
+        self.mod_list = nn.ModuleList(
+            [nn.Linear(num_filters * out_dim * out_dim + self.input_dim, hid_dim)]
+        )
         self.mod_list.append(nn.LayerNorm(hid_dim))
         self.mod_list.append(hid_act_class())
 

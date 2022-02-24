@@ -14,22 +14,23 @@ from rlkit.data_management.relabel_replay_buffer import HindsightReplayBuffer
 from rlkit.data_management.path_builder import PathBuilder
 from rlkit.samplers import PathSampler
 
+
 class HER(TorchRLAlgorithm):
     """
     Hindsight Experience Replay. Default using TD3 for RL policy trainer.
     """
 
     def __init__(
-        self,
-        replay_buffer=None,
-        her_ratio=0.8,
-        relabel_type="future",
-        **kwargs
+        self, replay_buffer=None, her_ratio=0.8, relabel_type="future", **kwargs
     ):
         if replay_buffer is None:
-            assert kwargs['max_path_length'] < kwargs['replay_buffer_size']
+            assert kwargs["max_path_length"] < kwargs["replay_buffer_size"]
             replay_buffer = HindsightReplayBuffer(
-                kwargs['replay_buffer_size'], kwargs['env'], random_seed=np.random.randint(10000), relabel_type=relabel_type, her_ratio=her_ratio
+                kwargs["replay_buffer_size"],
+                kwargs["env"],
+                random_seed=np.random.randint(10000),
+                relabel_type=relabel_type,
+                her_ratio=her_ratio,
             )
         super().__init__(replay_buffer=replay_buffer, **kwargs)
 

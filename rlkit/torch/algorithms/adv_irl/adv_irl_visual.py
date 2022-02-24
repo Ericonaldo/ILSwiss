@@ -12,6 +12,7 @@ from rlkit.torch.core import np_to_pytorch_batch
 from rlkit.torch.algorithms.torch_base_algorithm import TorchBaseAlgorithm
 import rlkit.torch.algorithms.irl.adv_irl as adv_irl
 
+
 class AdvIRL(adv_irl.AdvIRL):
     """
     Depending on choice of reward function and size of replay
@@ -31,11 +32,7 @@ class AdvIRL(adv_irl.AdvIRL):
         - disc input noise
     """
 
-    def __init__(
-        self,
-        encoder,
-        **kwargs
-    ):
+    def __init__(self, encoder, **kwargs):
         super().__init__(**kwargs)
         self.encoder = encoder
 

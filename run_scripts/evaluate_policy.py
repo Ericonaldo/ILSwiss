@@ -61,7 +61,7 @@ def experiment(variant):
     net_size = variant["policy_net_size"]
     num_hidden = variant["policy_num_hidden_layers"]
 
-    policy = joblib.load(variant["policy_checkpoint"])["exploration_policy"][0]
+    policy = joblib.load(variant["policy_checkpoint"])["policy"]
 
     if variant["eval_deterministic"]:
         policy = MakeDeterministic(policy)
@@ -125,9 +125,7 @@ if __name__ == "__main__":
     set_seed(seed)
     # setup_logger(exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs)
 
-    train_file = (
-        exp_specs["method"] + "-" + exp_specs["env_specs"]["env_name"]
-    )
+    train_file = exp_specs["method"] + "-" + exp_specs["env_specs"]["env_name"]
     pkl_name = "/best.pkl"
 
     train_files = [train_file]
@@ -140,10 +138,7 @@ if __name__ == "__main__":
             exp_specs["policy_checkpoint"] = (
                 "./logs/" + train_file + "/" + file_ + pkl_name
             )
-            flag = False
-            if "_lfo" in file_:
-                flag = True
-            average_returns, std_returns, test_paths = experiment(exp_specs, flag)
+            average_returns, std_returns, test_paths = experiment(exp_specs)
             test_paths_all.extend(test_paths)
 
             if args.save_res:

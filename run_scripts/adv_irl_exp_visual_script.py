@@ -25,10 +25,17 @@ from rlkit.torch.algorithms.sac.sac_alpha import (
 )  # SAC Auto alpha version
 from rlkit.torch.algorithms.adv_irl.disc_models.cnn_disc_models import CNNDisc
 from rlkit.torch.algorithms.adv_irl.adv_irl_visual import AdvIRL
-from rlkit.envs.wrappers import ProxyEnv, ScaledEnv, MinmaxEnv, NormalizedBoxEnv, FrameStackEnv
+from rlkit.envs.wrappers import (
+    ProxyEnv,
+    ScaledEnv,
+    MinmaxEnv,
+    NormalizedBoxEnv,
+    FrameStackEnv,
+)
 
-os.environ['LD_LIBRARY_PATH']="～/.mujoco/mjpro210/bin"
-os.environ['MUJOCO_GL']="egl"
+os.environ["LD_LIBRARY_PATH"] = "～/.mujoco/mjpro210/bin"
+os.environ["MUJOCO_GL"] = "egl"
+
 
 def experiment(variant):
     with open("demos_listing.yaml", "r") as f:
@@ -92,7 +99,7 @@ def experiment(variant):
     kwargs = {}
     if ("frame_stack" in env_specs) and (env_specs["frame_stack"] is not None):
         env_wrapper = FrameStackEnv
-        wrapper_kwargs = {"k": env_specs["frame_stack"]} 
+        wrapper_kwargs = {"k": env_specs["frame_stack"]}
 
     env = env_wrapper(env, **wrapper_kwargs)
 
@@ -116,7 +123,9 @@ def experiment(variant):
     assert len(obs_space.shape) == 3
     assert len(act_space.shape) == 1
 
-    training_env = get_envs(env_specs, env_wrapper, wrapper_kwargs=wrapper_kwargs, **kwargs)
+    training_env = get_envs(
+        env_specs, env_wrapper, wrapper_kwargs=wrapper_kwargs, **kwargs
+    )
     training_env.seed(env_specs["training_env_seed"])
 
     obs_shape = obs_space.shape
@@ -137,19 +146,19 @@ def experiment(variant):
         output_size=1,
     )
     encoder = make_encoder(
-        variant["encoder_params"]["encoder_type"], 
-        obs_shape, 
-        feature_dim, 
+        variant["encoder_params"]["encoder_type"],
+        obs_shape,
+        feature_dim,
         variant["encoder_params"]["num_layers"],
-        variant["encoder_params"]["num_filters"], 
-        output_logits=True
+        variant["encoder_params"]["num_filters"],
+        output_logits=True,
     )
     decoder = make_decoder(
-        variant["encoder_params"]["encoder_type"], 
-        obs_shape, 
-        feature_dim, 
+        variant["encoder_params"]["encoder_type"],
+        obs_shape,
+        feature_dim,
         variant["encoder_params"]["num_layers"],
-        variant["encoder_params"]["num_filters"], 
+        variant["encoder_params"]["num_filters"],
     )
     policy = ReparamTanhMultivariateGaussianEncoderPolicy(
         encoder=encoder,

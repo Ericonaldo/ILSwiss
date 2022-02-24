@@ -14,7 +14,7 @@ class ProxyEnv(Serializable, Env):
         self._wrapped_env = wrapped_env
         Serializable.quick_init(self, locals())
         super(ProxyEnv, self).__init__()
-        
+
         self.action_space = self._wrapped_env.action_space
         self.observation_space = self._wrapped_env.observation_space
 
@@ -372,7 +372,7 @@ class FrameStackEnv(ProxyEnv, Serializable):
         self._serializable_initialized = False
         Serializable.quick_init(self, locals())
         ProxyEnv.__init__(self, env)
-        
+
         self._k = k
         self._frames = deque([], maxlen=k)
         shp = env.observation_space.shape
@@ -380,7 +380,7 @@ class FrameStackEnv(ProxyEnv, Serializable):
             low=0,
             high=1,
             shape=((shp[0] * k,) + shp[1:]),
-            dtype=env.observation_space.dtype
+            dtype=env.observation_space.dtype,
         )
         self._max_episode_steps = env._max_episode_steps
 
@@ -398,3 +398,49 @@ class FrameStackEnv(ProxyEnv, Serializable):
     def _get_obs(self):
         assert len(self._frames) == self._k
         return np.concatenate(list(self._frames), axis=0)
+
+
+class Discretized(gym.spaces.Discrete):
+    def __init__(self, n, n_dims, granularity):
+        self.n_dims = n_dims
+        self.granularity = granularity
+        assert n == granularity ** n_dims
+        super(Discretized, self).__init__(n)
+
+
+class DiscretEnv(ProxyEnv, Serializable):
+    def __init__(self, env, granularity=10, possible_actions=None):
+        self._wrapped_env = env
+        # Or else serialization gets delegated to the wrapped_env. Serialize
+        # this env separately from the wrapped_env.
+        self._serializable_initialized = False
+        Serializable.quick_init(self, locals())
+        ProxyEnv.__init__(self, env)
+
+        self.raw_action_space = self._wrapped_env.action_space
+        assert (
+            type(self.raw_action_space) is not gym.spaces.Discrete
+        ), "already discrete"
+
+        if possible_actions is not None:
+            self.base_actions = possible_actions
+            n_dims = 1
+            granularity = len(self.base_actions)
+        else:
+            actions_meshed = np.meshgrid(
+                *[
+                    np.linspace(lo, hi, granularity)
+                    for lo, hi in zip(
+                        self._wrapped_env.action_space.low,
+                        self.wrapped_env.action_space.high,
+                    )
+                ]
+            )
+            self.base_actions = np.array([a.flat[:] for a in actions_meshed]).T
+            n_dims = self.wrapped_env.action_space.shape[0]
+
+        self.action_space = Discretized(len(self.base_actions), n_dims, granularity)
+        self.observation_space = self._wrapped_env.observation_space
+
+    def step(self, action):
+        return self._wrapped_env.step(self.base_actions[action][0])

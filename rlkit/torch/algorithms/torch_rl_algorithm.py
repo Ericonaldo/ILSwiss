@@ -28,7 +28,7 @@ class TorchRLAlgorithm(TorchBaseAlgorithm):
 
     def _do_training(self, epoch):
         for _ in range(self.num_train_steps_per_train_call):
-            if hasattr(self.trainer, 'on_policy') and self.trainer.on_policy:
+            if hasattr(self.trainer, "on_policy") and self.trainer.on_policy:
                 self.trainer.train_step(self.get_all_trajs())
                 self.clear_buffer()
             else:
@@ -43,6 +43,7 @@ class TorchRLAlgorithm(TorchBaseAlgorithm):
         self.trainer.load_snapshot(snapshot)
         self.exploration_policy = self.trainer.policy
         from rlkit.torch.common.policies import MakeDeterministic
+
         self.eval_policy = MakeDeterministic(self.exploration_policy)
         self.eval_sampler.policy = self.eval_policy
 

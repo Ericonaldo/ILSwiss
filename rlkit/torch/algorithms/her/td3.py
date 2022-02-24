@@ -58,7 +58,7 @@ class TD3(Trainer):
         self.target_policy = self.policy.copy()
         self.target_qf1 = self.qf1.copy()
         self.target_qf2 = self.qf2.copy()
-        
+
         self.qf1_optimizer = optimizer_class(
             self.qf1.parameters(),
             lr=qf_lr,
@@ -83,12 +83,11 @@ class TD3(Trainer):
         actions = batch["actions"]
         next_obs = batch["next_observations"]
 
-        goals = batch['desired_goals']
-        next_goals = batch['next_desired_goals']
+        goals = batch["desired_goals"]
+        next_goals = batch["next_desired_goals"]
 
         concat_input = torch.cat([obs, goals], axis=-1)
         target_input = torch.cat([next_obs, next_goals], axis=-1)
- 
 
         """
         Critic operations.
@@ -99,7 +98,7 @@ class TD3(Trainer):
         target_q1_values = self.target_qf1(target_input, noisy_next_actions)
         target_q2_values = self.target_qf2(target_input, noisy_next_actions)
         target_q_values = torch.min(target_q1_values, target_q2_values)
-        
+
         q_target = rewards + (1.0 - terminals) * self.discount * target_q_values
         q_target = q_target.detach()
 
@@ -146,7 +145,7 @@ class TD3(Trainer):
                 policy_outputs = self.policy(concat_input, deterministic=True)
                 policy_actions = policy_outputs[0]
                 q_output = self.qf1(concat_input, policy_actions)
-                policy_loss = - q_output.mean()
+                policy_loss = -q_output.mean()
 
             self.eval_statistics = OrderedDict()
             self.eval_statistics["QF1 Loss"] = np.mean(ptu.get_numpy(qf1_loss))

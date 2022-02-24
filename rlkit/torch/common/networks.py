@@ -101,6 +101,7 @@ class Mlp(PyTorchModule):
         else:
             return output
 
+
 class FlattenMlp(Mlp):
     """
     Flatten inputs along dimension 1 and then pass through MLP.
@@ -109,3 +110,33 @@ class FlattenMlp(Mlp):
     def forward(self, *inputs, **kwargs):
         flat_inputs = torch.cat(inputs, dim=1)
         return super().forward(flat_inputs, **kwargs)
+
+
+class CatagorialMlp(Mlp):
+    def __init__(
+        self,
+        **kwargs,
+    ):
+        self.save_init_params(locals())
+        super().__init__(**kwargs)
+
+        self.softmax = nn.Softmax(dim=-1)
+
+    def forward(self, input, return_preactivations=False):
+        h = input
+        for i, fc in enumerate(self.fcs):
+            h = fc(h)
+            if self.layer_norm:
+                h = self.layer_norms[i](h)
+            if self.batch_norm:
+                h = self.batch_norms[i](h)
+            h = self.hidden_activation(h)
+        preactivation = self.last_fc(h)
+        if self.batch_norm_before_output_activation:
+            preactivation = self.batch_norms[-1](preactivation)
+        output = self.softmax(self.output_activation(preactivation))
+
+        if return_preactivations:
+            return output, preactivation
+        else:
+            return output

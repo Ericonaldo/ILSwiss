@@ -39,17 +39,17 @@ def experiment(variant):
 
     env_wrapper = ProxyEnv  # Identical wrapper
     wrapper_kwargs = {}
-    
+
     if isinstance(act_space, gym.spaces.Box):
         env_wrapper = NormalizedBoxEnv
 
     env = env_wrapper(env, **wrapper_kwargs)
-    
+
     kwargs = {}
     if "vec_env_kwargs" in env_specs:
         kwargs = env_specs["env_kwargs"]["vec_env_kwargs"]
 
-    training_env = get_envs(env_specs, env_wrapper, **wrapper_kwargs, **kwargs)
+    training_env = get_envs(env_specs, env_wrapper, wrapper_kwargs, **kwargs)
     training_env.seed(env_specs["training_env_seed"])
 
     obs_dim = obs_space.shape[0]
@@ -88,14 +88,14 @@ def experiment(variant):
         exploration_policy=policy,
         **variant["rl_alg_params"]
     )
-    
+
     epoch = 0
     if "load_params" in variant:
         algorithm, epoch = load_from_file(algorithm, **variant["load_params"])
-    
+
     if ptu.gpu_enabled():
         algorithm.to(ptu.device)
-    
+
     algorithm.train(start_epoch=epoch)
 
     return 1
@@ -123,13 +123,15 @@ if __name__ == "__main__":
     exp_prefix = exp_specs["exp_name"]
     seed = exp_specs["seed"]
     set_seed(seed)
-    
-    log_dir=None
+
+    log_dir = None
     if "load_params" in exp_specs:
         load_path = exp_specs["load_params"]["load_path"]
         if (load_path is not None) and (len(load_path) > 0):
             log_dir = load_path
 
-    setup_logger(exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs, log_dir=log_dir)
+    setup_logger(
+        exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs, log_dir=log_dir
+    )
 
     experiment(exp_specs)

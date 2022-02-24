@@ -12,6 +12,7 @@ from rlkit.torch.utils.normalizer import preprocess_obs
 from rlkit.core.trainer import Trainer
 from rlkit.core.eval_util import create_stats_ordered_dict
 
+
 class SoftActorCritic(Trainer):
     """
     version that:
@@ -42,9 +43,9 @@ class SoftActorCritic(Trainer):
         optimizer_class=optim.Adam,
         beta_1=0.9,
         decoder_latent_lambda=1e-6,
-        decoder_weight_lambda=1e-7, # decoder lr decay, not used by now
-        ac_update_freq = 2,
-        encdec_update_freq = 1,
+        decoder_weight_lambda=1e-7,  # decoder lr decay, not used by now
+        ac_update_freq=2,
+        encdec_update_freq=1,
         **kwargs
     ):
         self.encoder = encoder
@@ -58,8 +59,8 @@ class SoftActorCritic(Trainer):
         self.enc_soft_target_tau = enc_soft_target_tau
         self.policy_mean_reg_weight = policy_mean_reg_weight
         self.policy_std_reg_weight = policy_std_reg_weight
-        self.decoder_latent_lambda=decoder_latent_lambda
-        self.decoder_weight_lambda=decoder_weight_lambda
+        self.decoder_latent_lambda = decoder_latent_lambda
+        self.decoder_weight_lambda = decoder_weight_lambda
 
         self.ac_update_freq = ac_update_freq
         self.encdec_update_freq = encdec_update_freq
@@ -77,16 +78,26 @@ class SoftActorCritic(Trainer):
         self.eval_statistics = None
 
         self.policy_optimizer = optimizer_class(
-            list(set(self.policy.parameters()).difference(set(self.encoder.parameters()))), lr=policy_lr, betas=(beta_1, 0.999)
+            list(
+                set(self.policy.parameters()).difference(set(self.encoder.parameters()))
+            ),
+            lr=policy_lr,
+            betas=(beta_1, 0.999),
         )
         self.qf_optimizer = optimizer_class(
-            list(self.qf1.parameters())+list(self.qf2.parameters())+list(self.encoder.parameters()), lr=qf_lr, betas=(beta_1, 0.999)
+            list(self.qf1.parameters())
+            + list(self.qf2.parameters())
+            + list(self.encoder.parameters()),
+            lr=qf_lr,
+            betas=(beta_1, 0.999),
         )
         self.alpha_optimizer = optimizer_class(
             [self.log_alpha], lr=alpha_lr, betas=(0.5, 0.999)
         )
         self.encdec_optimizer = optimizer_class(
-            list(self.encoder.parameters())+list(self.decoder.parameters()), lr=encdec_lr, betas=(beta_1, 0.999)
+            list(self.encoder.parameters()) + list(self.decoder.parameters()),
+            lr=encdec_lr,
+            betas=(beta_1, 0.999),
         )
 
         self.total_train_step = 0
@@ -146,7 +157,9 @@ class SoftActorCritic(Trainer):
         q2_pred = self.qf2(obs, actions)
 
         # Make sure policy accounts for squashing functions like tanh correctly!
-        next_policy_outputs = self.policy(next_obs.detach(), use_feature=True, return_log_prob=True)
+        next_policy_outputs = self.policy(
+            next_obs.detach(), use_feature=True, return_log_prob=True
+        )
         # in this part, we only need new_actions and log_pi with no grad
         (
             next_new_actions,
@@ -177,10 +190,12 @@ class SoftActorCritic(Trainer):
         """
         Policy Loss
         """
-        policy_outputs = self.policy(obs.detach(), use_feature=True, return_log_prob=True) # policy do not update the encoder
+        policy_outputs = self.policy(
+            obs.detach(), use_feature=True, return_log_prob=True
+        )  # policy do not update the encoder
         new_actions, policy_mean, policy_log_std, log_pi = policy_outputs[:4]
         q1_new_acts = self.qf1(obs.detach(), new_actions)
-        q2_new_acts = self.qf2(obs.detach(), new_actions) 
+        q2_new_acts = self.qf2(obs.detach(), new_actions)
         q_new_actions = torch.min(q1_new_acts, q2_new_acts)
 
         self.policy_optimizer.zero_grad()
@@ -258,7 +273,7 @@ class SoftActorCritic(Trainer):
                 "Policy log std",
                 ptu.get_numpy(policy_log_std),
             )
-        )    
+        )
 
     def train_step(self, batch):
 
@@ -268,7 +283,7 @@ class SoftActorCritic(Trainer):
             self.train_encdec(batch)
 
         self.total_train_step += 1
-        
+
     @property
     def networks(self):
         return [
@@ -279,7 +294,7 @@ class SoftActorCritic(Trainer):
             self.target_qf2,
             self.encoder,
             self.target_encoder,
-            self.decoder
+            self.decoder,
         ]
 
     def _update_target_network(self):

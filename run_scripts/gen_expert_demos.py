@@ -28,6 +28,7 @@ from rlkit.torch.common.policies import MakeDeterministic
 from rlkit.envs.wrappers import FrameStackEnv, ProxyEnv
 from gym.wrappers.monitor import Monitor
 
+
 def fill_buffer(
     buffer,
     env,
@@ -101,13 +102,12 @@ def fill_buffer(
 
         print("\tNum Steps: %d" % step_num)
         print("\tReturns: %.2f" % rewards_for_rollout)
-        
+
         # if necessary check if it was successful
         if check_for_return:
             if rewards_for_rollout <= 0:
                 print("\tFail! Skip")
                 continue
-
 
         # if necessary check if it was successful
         if check_for_success:
@@ -156,24 +156,24 @@ def experiment(specs):
         policy = MakeDeterministic(policy)
     if specs["using_gpus"] > 0:
         policy.to(ptu.device)
-        
+
     env_specs = specs["env_specs"]
     if env_specs["env_name"] == "dmc":
-        os.environ['LD_LIBRARY_PATH']="～/.mujoco/mjpro210/bin"
-        os.environ['MUJOCO_GL']="egl"
-    
+        os.environ["LD_LIBRARY_PATH"] = "～/.mujoco/mjpro210/bin"
+        os.environ["MUJOCO_GL"] = "egl"
+
     # make all seeds the same.
     env_specs["env_seed"] = specs["seed"]
-    
+
     env = get_env(env_specs)
     env.seed(env_specs["env_seed"])
-    
+
     env_wrapper = ProxyEnv  # Identical wrapper
     wrapper_kwargs = {}
     kwargs = {}
     if ("frame_stack" in env_specs) and (env_specs["frame_stack"] is not None):
         env_wrapper = FrameStackEnv
-        wrapper_kwargs = {"k": env_specs["frame_stack"]} 
+        wrapper_kwargs = {"k": env_specs["frame_stack"]}
 
     env = env_wrapper(env, **wrapper_kwargs)
 
@@ -191,7 +191,7 @@ def experiment(specs):
     else:
         _max_buffer_size = max_path_length * specs["num_rollouts"]
     _max_buffer_size = int(np.ceil(_max_buffer_size / float(specs["subsample_factor"])))
-    
+
     buffer_constructor = lambda: EnvReplayBuffer(
         _max_buffer_size,
         env,
@@ -222,7 +222,7 @@ def experiment(specs):
         wrap_absorbing=False,
         subsample_factor=specs["subsample_factor"],
     )
-    
+
     if specs["save_buffer"]:
         # fill the test buffer
         fill_buffer(
@@ -239,20 +239,29 @@ def experiment(specs):
             wrap_absorbing=False,
             subsample_factor=specs["subsample_factor"],
         )
-    
+
     if specs["save_buffer"]:
         # save the replay buffers
         logger.save_extra_data(
             {"train": train_buffer, "test": test_buffer}, name="expert_demos_buffer.pkl"
         )
-    
+
     env_name = specs["env_specs"]["env_name"]
     if env_name == "dmc":
-        env_name = env_specs["env_kwargs"]["domain_name"] + '_' + env_specs["env_kwargs"]["task_name"]
+        env_name = (
+            env_specs["env_kwargs"]["domain_name"]
+            + "_"
+            + env_specs["env_kwargs"]["task_name"]
+        )
     if not os.path.exists("./demos/{}/seed-{}".format(env_name, specs["seed"])):
         os.makedirs("./demos/{}/seed-{}".format(env_name, specs["seed"]))
     # save demos directly
-    with open("./demos/{}/seed-{}/expert_demos-{}.pkl".format(env_name, specs["seed"], num_rollouts), "wb") as f:
+    with open(
+        "./demos/{}/seed-{}/expert_demos-{}.pkl".format(
+            env_name, specs["seed"], num_rollouts
+        ),
+        "wb",
+    ) as f:
         pickle.dump(res, f)
 
     return 1

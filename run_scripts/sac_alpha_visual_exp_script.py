@@ -25,31 +25,45 @@ from rlkit.torch.algorithms.torch_rl_algorithm import TorchRLAlgorithm
 from rlkit.data_management.aug_replay_buffer import AugmentImageEnvReplayBuffer
 import rlkit.data_management.data_augmentation as rad
 
-os.environ['LD_LIBRARY_PATH']="～/.mujoco/mjpro210/bin"
-os.environ['MUJOCO_GL']="egl"
+os.environ["LD_LIBRARY_PATH"] = "~/.mujoco/mjpro210/bin"
+os.environ["MUJOCO_GL"] = "egl"
+
 
 def experiment(variant):
     env_specs = variant["env_specs"]
     replay_buffer = None
     eval_preprocess_func = None
 
-    if "rad_augmentation_params" in variant: # Use rad augmentation, record important params
+    if (
+        "rad_augmentation_params" in variant
+    ):  # Use rad augmentation, record important params
         data_augs = variant["rad_augmentation_params"]["data_augs"]
         image_size = variant["rad_augmentation_params"]["image_size"]
-        pre_transform_image_size = variant["rad_augmentation_params"]["pre_transform_image_size"] \
-            if 'crop' in data_augs else variant["rad_augmentation_params"]["image_size"]
-        pre_image_size = variant["rad_augmentation_params"]["pre_transform_image_size"] # record the pre transform image size for translation
-        env_specs["env_kwargs"]["width"] = env_specs["env_kwargs"]["height"] = pre_transform_image_size # The env create as the shape before transformed
+        pre_transform_image_size = (
+            variant["rad_augmentation_params"]["pre_transform_image_size"]
+            if "crop" in data_augs
+            else variant["rad_augmentation_params"]["image_size"]
+        )
+        pre_image_size = variant["rad_augmentation_params"][
+            "pre_transform_image_size"
+        ]  # record the pre transform image size for translation
+        env_specs["env_kwargs"]["width"] = env_specs["env_kwargs"][
+            "height"
+        ] = pre_transform_image_size  # The env create as the shape before transformed
 
         # preprocess obs func for eval
-        if 'crop' in data_augs:
-            eval_preprocess_func = lambda x:rad.center_crop_image(x, image_size) / 255.
-        if 'translate' in data_augs:
+        if "crop" in data_augs:
+            eval_preprocess_func = (
+                lambda x: rad.center_crop_image(x, image_size) / 255.0
+            )
+        if "translate" in data_augs:
             # first crop the center with pre_image_size
-            eval_preprocess_func = lambda x:rad.center_crop_image(x, pre_transform_image_size) / 255.
+            eval_preprocess_func = (
+                lambda x: rad.center_crop_image(x, pre_transform_image_size) / 255.0
+            )
             # then translate cropped to center
-            eval_preprocess_func = lambda x:rad.center_translate(x, image_size) / 255.
-    
+            eval_preprocess_func = lambda x: rad.center_translate(x, image_size) / 255.0
+
     env = get_env(env_specs)
     env.seed(env_specs["eval_env_seed"])
 
@@ -63,32 +77,38 @@ def experiment(variant):
     kwargs = {}
     if ("frame_stack" in env_specs) and (env_specs["frame_stack"] is not None):
         env_wrapper = FrameStackEnv
-        wrapper_kwargs = {"k": env_specs["frame_stack"]} 
+        wrapper_kwargs = {"k": env_specs["frame_stack"]}
 
     env = env_wrapper(env, **wrapper_kwargs)
-    if "rad_augmentation_params" in variant: # If use rad augmentation, create augmentation env buffer
+    if (
+        "rad_augmentation_params" in variant
+    ):  # If use rad augmentation, create augmentation env buffer
         replay_buffer = AugmentImageEnvReplayBuffer(
-            max_replay_buffer_size=variant["rl_alg_params"]["replay_buffer_size"], 
-            env=env, 
-            random_seed=np.random.randint(10000), 
-            pre_image_size=pre_image_size, 
-            image_size=image_size
+            max_replay_buffer_size=variant["rl_alg_params"]["replay_buffer_size"],
+            env=env,
+            random_seed=np.random.randint(10000),
+            pre_image_size=pre_image_size,
+            image_size=image_size,
         )
-    
+
     obs_space = env.observation_space
     act_space = env.action_space
     assert not isinstance(obs_space, gym.spaces.Dict)
     assert len(obs_space.shape) == 3
     assert len(act_space.shape) == 1
 
-    training_env = get_envs(env_specs, env_wrapper, wrapper_kwargs=wrapper_kwargs, **kwargs)
+    training_env = get_envs(
+        env_specs, env_wrapper, wrapper_kwargs=wrapper_kwargs, **kwargs
+    )
     training_env.seed(env_specs["training_env_seed"])
 
     obs_shape = obs_space.shape
     action_dim = act_space.shape[0]
     feature_dim = variant["encoder_params"]["encoder_feature_dim"]
 
-    if "rad_augmentation_params" in variant: # If use rad augmentation, take the after transform size as the shape
+    if (
+        "rad_augmentation_params" in variant
+    ):  # If use rad augmentation, take the after transform size as the shape
         obs_shape = (obs_shape[0], image_size, image_size)
 
     net_size = variant["net_size"]
@@ -104,19 +124,19 @@ def experiment(variant):
         output_size=1,
     )
     encoder = make_encoder(
-        variant["encoder_params"]["encoder_type"], 
-        obs_shape, 
-        feature_dim, 
+        variant["encoder_params"]["encoder_type"],
+        obs_shape,
+        feature_dim,
         variant["encoder_params"]["num_layers"],
-        variant["encoder_params"]["num_filters"], 
-        output_logits=True
+        variant["encoder_params"]["num_filters"],
+        output_logits=True,
     )
     decoder = make_decoder(
-        variant["encoder_params"]["encoder_type"], 
-        obs_shape, 
-        feature_dim, 
+        variant["encoder_params"]["encoder_type"],
+        obs_shape,
+        feature_dim,
         variant["encoder_params"]["num_layers"],
-        variant["encoder_params"]["num_filters"], 
+        variant["encoder_params"]["num_filters"],
     )
     policy = ReparamTanhMultivariateGaussianEncoderPolicy(
         encoder=encoder,
@@ -148,10 +168,10 @@ def experiment(variant):
     epoch = 0
     if "load_params" in variant:
         algorithm, epoch = load_from_file(algorithm, **variant["load_params"])
-    
+
     if ptu.gpu_enabled():
         algorithm.to(ptu.device)
-    
+
     print("Start from epoch", epoch)
     algorithm.train(start_epoch=epoch)
 
@@ -181,12 +201,14 @@ if __name__ == "__main__":
     seed = exp_specs["seed"]
     set_seed(seed)
 
-    log_dir=None
+    log_dir = None
     if "load_params" in exp_specs:
         load_path = exp_specs["load_params"]["load_path"]
         if (load_path is not None) and (len(load_path) > 0):
             log_dir = load_path
 
-    setup_logger(exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs, log_dir=log_dir)
+    setup_logger(
+        exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs, log_dir=log_dir
+    )
 
     experiment(exp_specs)

@@ -38,23 +38,23 @@ def experiment(variant):
 
     env_wrapper = ProxyEnv  # Identical wrapper
     wrapper_kwargs = {}
-    
+
     env = env_wrapper(env, **wrapper_kwargs)
-    
+
     kwargs = {}
     if "vec_env_kwargs" in env_specs:
-        kwargs = env_specs["env_kwargs"]["vec_env_kwargs"]
+        kwargs = env_specs["vec_env_kwargs"]
 
-    training_env = get_envs(env_specs, env_wrapper, **wrapper_kwargs, **kwargs)
+    training_env = get_envs(env_specs, env_wrapper, wrapper_kwargs, **kwargs)
     training_env.seed(env_specs["training_env_seed"])
 
     try:
-        obs_dim = obs_space.spaces['observation'].shape[0]
-        goal_dim = obs_space.spaces['desired_goal'].shape[0]
+        obs_dim = obs_space.spaces["observation"].shape[0]
+        goal_dim = obs_space.spaces["desired_goal"].shape[0]
     except BaseException:
         tmp = env.reset()
-        obs_dim = tmp['observation'].shape[0]
-        goal_dim = tmp['desired_goal'].shape[0]
+        obs_dim = tmp["observation"].shape[0]
+        goal_dim = tmp["desired_goal"].shape[0]
     action_dim = act_space.shape[0]
 
     net_size = variant["net_size"]
@@ -73,7 +73,7 @@ def experiment(variant):
         hidden_sizes=num_hidden * [net_size],
         obs_dim=obs_dim,
         condition_dim=goal_dim,
-        action_dim=action_dim
+        action_dim=action_dim,
     )
 
     trainer = SAC(policy=policy, qf1=qf1, qf2=qf2, env=env, **variant["sac_params"])
@@ -111,7 +111,9 @@ if __name__ == "__main__":
         print("\n\nUSING GPU\n\n")
         ptu.set_gpu_mode(True, args.gpu)
     exp_id = exp_specs["exp_id"]
-    exp_prefix = exp_specs["exp_name"]
+    exp_prefix = exp_specs["exp_name"] + "_plr_{}_qlr_{}".format(
+        exp_specs["sac_params"]["policy_lr"], exp_specs["sac_params"]["qf_lr"]
+    )
     seed = exp_specs["seed"]
     set_seed(seed)
     setup_logger(exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs)

@@ -17,7 +17,7 @@ constants:
   # goal_gen: 'interval' # ['vanilla', 'fixobj', 'interval', 'reach']
 
   rl_alg_params:
-    num_epochs: 100
+    num_epochs: 2000
     num_steps_per_epoch: 1000
     num_steps_between_train_calls: 1
     num_train_steps_per_train_call: 1
@@ -46,10 +46,10 @@ constants:
     reward_scale: 1.0
     discount: 0.99
     soft_target_tau: 0.005
-    policy_lr: 0.0003
+    policy_lr: 0.001
     qf_lr: 0.0003
 
   env_specs:
     env_name: 'fetch-pick-place'
     env_kwargs: {}
-    env_num: 4
+    env_num: 16

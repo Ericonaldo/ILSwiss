@@ -1,6 +1,7 @@
 # Inspired by OpenAI gym registration.py
 import abc
 import importlib
+
 try:
     import dmc2gym
 except:
@@ -22,15 +23,18 @@ import sys
 # Overwrite envs
 from rlkit.envs.mujoco.hopper import HopperEnv
 from rlkit.envs.mujoco.walker2d import Walker2dEnv
+
 # from rlkit.envs.mujoco.halfcheetah import HalfCheetahEnv
 from rlkit.envs.mujoco.ant import AntEnv
 from rlkit.envs.mujoco.humanoid import HumanoidEnv
+
 # from rlkit.envs.mujoco.swimmer import SwimmerEnv
 
 env_overwrite = {}
 # unclip for hopper, walker2d and drop unnecessary dims in half, ant, human and swimmer
 # env_overwrite = {'hopper': HopperEnv, 'walker': Walker2dEnv, 'humanoid': HumanoidEnv, 'ant': AntEnv} # , 'halfcheetah':HalfCheetahEnv, \
-    # , 'humanoid': HumanoidEnv, 'swimmer':SwimmerEnv}
+# , 'humanoid': HumanoidEnv, 'swimmer':SwimmerEnv}
+
 
 def load(name):
     # taken from OpenAI gym registration.py
@@ -53,10 +57,10 @@ def get_env(env_specs):
         env_class = dmc2gym.make
     else:
         env_class = load(envs_dict[domain])
-    
+
     # Equal to gym.make()
     env = env_class(**env_specs["env_kwargs"])
-    
+
     print(domain, domain in env_overwrite)
     if domain in env_overwrite:
         print(
@@ -79,12 +83,12 @@ def get_envs(env_specs, env_wrapper=None, wrapper_kwargs={}, **kwargs):
 
     if env_wrapper is None:
         env_wrapper = ProxyEnv
-    
+
     if domain == "dmc":
         env_class = dmc2gym.make
     else:
         env_class = load(envs_dict[domain])
-    
+
     if ("env_num" not in env_specs.keys()) or (env_specs["env_num"] <= 1):
         envs = env_wrapper(env_class(**env_specs["env_kwargs"]), **wrapper_kwargs)
 
@@ -94,7 +98,9 @@ def get_envs(env_specs, env_wrapper=None, wrapper_kwargs={}, **kwargs):
                     domain
                 )
             )
-            envs = env_wrapper(env_overwrite[domain](**env_specs["env_kwargs"]), **wrapper_kwargs)
+            envs = env_wrapper(
+                env_overwrite[domain](**env_specs["env_kwargs"]), **wrapper_kwargs
+            )
 
         print("\n WARNING: Single environment detected, wrap to DummyVectorEnv.")
         envs = DummyVectorEnv([lambda: envs], **kwargs)
@@ -104,8 +110,8 @@ def get_envs(env_specs, env_wrapper=None, wrapper_kwargs={}, **kwargs):
             [
                 lambda: env_wrapper(env_class(**env_specs["env_kwargs"]))
                 for _ in range(env_specs["env_num"])
-            ]
-            , **kwargs
+            ],
+            **kwargs
         )
 
         if domain in env_overwrite:
@@ -113,8 +119,8 @@ def get_envs(env_specs, env_wrapper=None, wrapper_kwargs={}, **kwargs):
                 [
                     lambda: env_wrapper(env_overwrite[domain]())
                     for _ in range(env_specs["env_num"])
-                ]
-                , **kwargs
+                ],
+                **kwargs
             )
 
     return envs

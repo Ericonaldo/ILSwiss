@@ -57,7 +57,7 @@ class DiscretePolicy(Mlp, ExplorationPolicy):
             output_size=action_dim,
             init_w=init_w,
             output_activation=nn.LogSoftmax(1),
-            **kwargs
+            **kwargs,
         )
 
     def get_action(self, obs_np, deterministic=False):
@@ -114,7 +114,7 @@ class MlpPolicy(Mlp, ExplorationPolicy):
             input_size=obs_dim,
             output_size=action_dim,
             init_w=init_w,
-            **kwargs
+            **kwargs,
         )
 
     def get_action(self, obs_np, deterministic=False):
@@ -140,7 +140,7 @@ class MlpGaussianNoisePolicy(Mlp, ExplorationPolicy):
         policy_noise=0.1,
         policy_noise_clip=0.5,
         max_act=1.0,
-        **kwargs
+        **kwargs,
     ):
         self.save_init_params(locals())
         super().__init__(
@@ -148,7 +148,7 @@ class MlpGaussianNoisePolicy(Mlp, ExplorationPolicy):
             input_size=obs_dim,
             output_size=action_dim,
             init_w=init_w,
-            **kwargs
+            **kwargs,
         )
         self.noise = policy_noise
         self.noise_clip = policy_noise_clip
@@ -218,7 +218,7 @@ class ReparamTanhMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
         init_w=1e-3,
         max_act=1.0,
         conditioned_std: bool = True,
-        **kwargs
+        **kwargs,
     ):
         self.save_init_params(locals())
         super().__init__(
@@ -226,7 +226,7 @@ class ReparamTanhMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
             input_size=obs_dim,
             output_size=action_dim,
             init_w=init_w,
-            **kwargs
+            **kwargs,
         )
         self.max_act = max_act
         self.conditioned_std = conditioned_std
@@ -364,7 +364,7 @@ class ReparamMultivariateGaussianPolicy(Mlp, ExplorationPolicy):
             input_size=obs_dim,
             output_size=action_dim,
             init_w=init_w,
-            **kwargs
+            **kwargs,
         )
         self.conditioned_std = conditioned_std
 
@@ -561,7 +561,9 @@ class MlpGaussianAndEpsilonPolicy(Mlp, ExplorationPolicy):
                     self.max_act,
                 )
 
-        assert np.shape(action)[-1] == self._action_space.shape[-1], "action shape mismatch!"
+        assert (
+            np.shape(action)[-1] == self._action_space.shape[-1]
+        ), "action shape mismatch!"
 
         return (action, preactivation)
 
@@ -574,7 +576,7 @@ class ConditionPolicy(ExplorationPolicy):
         action_dim,
         observation_key="observation",
         desired_goal_key="desired_goal",
-        achieved_goal_key="achieved_goal"
+        achieved_goal_key="achieved_goal",
     ):
         self.condition_dim = condition_dim
         self.obs_dim = obs_dim
@@ -589,23 +591,55 @@ class ConditionPolicy(ExplorationPolicy):
         deterministic=False makes no diff, just doing this for
         consistency in interface for now
         """
-        
+
         if isinstance(obs_condition_np, dict):
-            obs_condition_np = np.concatenate([obs_condition_np[self.observation_key], obs_condition_np[self.desired_goal_key]], axis=-1)
+            obs_condition_np = np.concatenate(
+                [
+                    obs_condition_np[self.observation_key],
+                    obs_condition_np[self.desired_goal_key],
+                ],
+                axis=-1,
+            )
         elif isinstance(obs_condition_np[0], dict):
-            obs_condition_np = [{k: v for k, v in x.items() if k != self.achieved_goal_key} for x in obs_condition_np]
-            obs_condition_np = np.array([np.concatenate([x[self.observation_key], x[self.desired_goal_key]], axis=-1) for x in obs_condition_np])
-        
+            obs_condition_np = [
+                {k: v for k, v in x.items() if k != self.achieved_goal_key}
+                for x in obs_condition_np
+            ]
+            obs_condition_np = np.array(
+                [
+                    np.concatenate(
+                        [x[self.observation_key], x[self.desired_goal_key]], axis=-1
+                    )
+                    for x in obs_condition_np
+                ]
+            )
+
         actions = self.get_actions(obs_condition_np[None], deterministic=deterministic)
         return actions[0, :], {}
 
     def get_actions(self, obs_condition_np, deterministic=False):
 
         if isinstance(obs_condition_np, dict):
-            obs_condition_np = np.concatenate([obs_condition_np[self.observation_key], obs_condition_np[self.desired_goal_key]], axis=-1)
+            obs_condition_np = np.concatenate(
+                [
+                    obs_condition_np[self.observation_key],
+                    obs_condition_np[self.desired_goal_key],
+                ],
+                axis=-1,
+            )
         elif isinstance(obs_condition_np[0], dict):
-            obs_condition_np = [{k: v for k, v in x.items() if k != self.achieved_goal_key} for x in obs_condition_np]
-            obs_condition_np = np.array([np.concatenate([x[self.observation_key], x[self.desired_goal_key]], axis=-1) for x in obs_condition_np])
+            obs_condition_np = [
+                {k: v for k, v in x.items() if k != self.achieved_goal_key}
+                for x in obs_condition_np
+            ]
+            obs_condition_np = np.array(
+                [
+                    np.concatenate(
+                        [x[self.observation_key], x[self.desired_goal_key]], axis=-1
+                    )
+                    for x in obs_condition_np
+                ]
+            )
 
         return self.eval_np(obs_condition_np, deterministic=deterministic)[0]
 
@@ -628,14 +662,25 @@ class MlpGaussianAndEpsilonConditionPolicy(
         observation_key="observation",
         desired_goal_key="desired_goal",
         achieved_goal_key="achieved_goal",
-        **kwargs
+        **kwargs,
     ):
         self.save_init_params(locals())
         MlpGaussianAndEpsilonPolicy.__init__(
-            self, hidden_sizes, obs_dim+condition_dim, action_dim, action_space, **kwargs
+            self,
+            hidden_sizes,
+            obs_dim + condition_dim,
+            action_dim,
+            action_space,
+            **kwargs,
         )
         ConditionPolicy.__init__(
-            self, obs_dim, condition_dim, action_dim, observation_key, desired_goal_key, achieved_goal_key
+            self,
+            obs_dim,
+            condition_dim,
+            action_dim,
+            observation_key,
+            desired_goal_key,
+            achieved_goal_key,
         )
 
         self.t = 0
@@ -671,18 +716,26 @@ class ReparamTanhMultivariateGaussianConditionPolicy(
         observation_key="observation",
         desired_goal_key="desired_goal",
         achieved_goal_key="achieved_goal",
-        **kwargs
+        **kwargs,
     ):
         self.save_init_params(locals())
         ReparamTanhMultivariateGaussianPolicy.__init__(
-            self, hidden_sizes, obs_dim+condition_dim, action_dim, **kwargs
+            self, hidden_sizes, obs_dim + condition_dim, action_dim, **kwargs
         )
         ConditionPolicy.__init__(
-            self, obs_dim, condition_dim, action_dim, observation_key, desired_goal_key, achieved_goal_key
+            self,
+            obs_dim,
+            condition_dim,
+            action_dim,
+            observation_key,
+            desired_goal_key,
+            achieved_goal_key,
         )
 
 
-class ReparamTanhMultivariateGaussianEncoderPolicy(ReparamTanhMultivariateGaussianPolicy):
+class ReparamTanhMultivariateGaussianEncoderPolicy(
+    ReparamTanhMultivariateGaussianPolicy
+):
     """
     Policy with encoder
     Usage:
@@ -690,20 +743,12 @@ class ReparamTanhMultivariateGaussianEncoderPolicy(ReparamTanhMultivariateGaussi
     policy = ReparamTanhMultivariateGaussianEncoderPolicy(...)
     """
 
-    def __init__(
-            self,
-            encoder,
-            **kwargs
-    ):  
+    def __init__(self, encoder, **kwargs):
         self.save_init_params(locals())
-        super().__init__(
-            **kwargs
-        )
+        super().__init__(**kwargs)
         self.encoder = encoder
 
-    def forward(
-        self, obs, use_feature=False, **kwargs
-    ):
+    def forward(self, obs, use_feature=False, **kwargs):
         """
         :param obs: Observation
         """
@@ -711,3 +756,57 @@ class ReparamTanhMultivariateGaussianEncoderPolicy(ReparamTanhMultivariateGaussi
         if not use_feature:
             feature_obs = self.encoder(obs)
         return super().forward(feature_obs, **kwargs)
+
+
+class CatagorialPolicy(CatagorialMlp, ExplorationPolicy):
+    def __init__(
+        self,
+        hidden_sizes,
+        obs_dim,
+        action_dim,
+        init_w=1e-3,
+        **kwargs,
+    ):
+        self.save_init_params(locals())
+        super().__init__(
+            hidden_sizes=hidden_sizes,
+            input_size=obs_dim,
+            output_size=action_dim,
+            init_w=init_w,
+            **kwargs,
+        )
+        self.action_dim = action_dim
+
+    def get_action(self, obs_np, deterministic=False):
+        """
+        deterministic=False makes no diff, just doing this for
+        consistency in interface for now
+        """
+        actions = self.get_actions(obs_np[None], deterministic=deterministic)
+        return actions[0, :], {}
+
+    def get_actions(self, obs_np, deterministic=False):
+        return self.eval_np(obs_np, deterministic=deterministic)[0]
+
+    def forward(self, obs, deterministic=False, return_log_prob=False):
+        action_prob = super().forward(obs)
+
+        if deterministic:
+            action = torch.argmax(action_prob, axis=-1).unsqueeze(-1)
+        else:
+            action = torch.multinomial(action_prob, 1)
+        assert np.shape(action)[-1] == 1, "action shape mismatch! {}".format(
+            np.shape(action)
+        )
+        log_prob = None
+        if return_log_prob:
+            log_prob = torch.log(torch.index_select(action_prob, -1, action))
+
+        return action, action_prob, log_prob
+
+    def get_log_prob(self, obs, acts):
+        _, action_prob = self.forward(obs)
+
+        log_prob = torch.log(torch.index_select(action_prob, -1, acts))
+
+        return log_prob

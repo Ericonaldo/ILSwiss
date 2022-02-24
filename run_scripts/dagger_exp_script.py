@@ -2,12 +2,18 @@ import yaml
 import argparse
 import joblib
 import numpy as np
+import os, sys, inspect
 import random
 import pickle
 
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir)
+print(sys.path)
+
+
 import gym
 from rlkit.envs import get_env, get_envs
-
 import rlkit.torch.utils.pytorch_util as ptu
 from rlkit.launchers.launcher_util import setup_logger, set_seed
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
@@ -66,23 +72,24 @@ def experiment(variant):
     print("Act Space: {}\n\n".format(env.action_space))
 
     expert_replay_buffer = EnvReplayBuffer(
-        variant["adv_irl_params"]["replay_buffer_size"],
+        variant["dagger_params"]["replay_buffer_size"],
         env,
         random_seed=np.random.randint(10000),
     )
 
     for i in range(len(traj_list)):
         expert_replay_buffer.add_path(
-            traj_list[i], absorbing=variant["adv_irl_params"]["wrap_absorbing"], env=env
+            traj_list[i], absorbing=variant["dagger_params"]["wrap_absorbing"], env=env
         )
 
     env_wrapper = ProxyEnv  # Identical wrapper
     kwargs = {}
+    wrapper_kwargs = {}
 
     if variant["scale_env_with_demo_stats"]:
         print("\nWARNING: Using scale env wrapper")
         tmp_env_wrapper = env_wrapper = ScaledEnv
-        kwargs = dict(
+        wrapper_kwargs = dict(
             obs_mean=obs_mean,
             obs_std=obs_std,
             acts_mean=acts_mean,
@@ -91,7 +98,7 @@ def experiment(variant):
     elif variant["minmax_env_with_demo_stats"]:
         print("\nWARNING: Using min max env wrapper")
         tmp_env_wrapper = env_wrapper = MinmaxEnv
-        kwargs = dict(obs_min=obs_min, obs_max=obs_max)
+        wrapper_kwargs = dict(obs_min=obs_min, obs_max=obs_max)
 
     obs_space = env.observation_space
     act_space = env.action_space
@@ -107,8 +114,10 @@ def experiment(variant):
             tmp_env_wrapper(*args, **kwargs)
         )
 
-    env = env_wrapper(env, **kwargs)
-    training_env = get_envs(env_specs, env_wrapper, **kwargs)
+    env = env_wrapper(env, **wrapper_kwargs)
+    training_env = get_envs(
+        env_specs, env_wrapper, wrapper_kwargs=wrapper_kwargs, **kwargs
+    )
     training_env.seed(env_specs["training_env_seed"])
 
     obs_dim = obs_space.shape[0]
@@ -124,7 +133,7 @@ def experiment(variant):
     )
 
     # load the expert policy
-    expert_policy = joblib.load(variant["expert_policy_path"])["exploration_policy"]
+    expert_policy = joblib.load(variant["expert_policy_path"])["policy"]
     if variant["use_deterministic_expert"]:
         expert_policy = MakeDeterministic(expert_policy)
 
@@ -145,9 +154,9 @@ def experiment(variant):
 
 
 if __name__ == "__main__":
-    # Arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("-e", "--experiment", help="experiment specification file")
+    parser.add_argument("-g", "--gpu", help="gpu id", type=int, default=0)
     args = parser.parse_args()
     with open(args.experiment, "r") as spec_file:
         spec_string = spec_file.read()
