@@ -1,15 +1,21 @@
 # ILSwiss
 
-ILSwiss is an Easy-to-run Imitation Learning (IL, or Learning from Demonstration, LfD) framework (template) in PyTorch based on existing code base. 
+ILSwiss is an Easy-to-run Imitation Learning (IL, or Learning from Demonstration, LfD) framework (template) in PyTorch based on existing code base.
 
 The most works are based on [rlswiss](https://github.com/KamyarGh/rl_swiss) and [rlkit](https://github.com/rail-berkeley/rlkit/). Since the original rlswiss contains meta-rl methods and redundant codes, in this repo, we clean and optimize the code architecture, modify and re-implement algorithms for the purpose of easier running **imitation learning** experiments (rlkit focus on general RL algorithms). We further introduce vec envs to sample data in a parallel style to boost the sampling stage refering to [tianshou](https://github.com/thu-ml/tianshou) and add tensorboard support.
 
 You can easily build experiment codes under this framework in your research. We will continue to maintain this repo while keeping it clear and clean.
 
+## Implementing RL algorithms (for potential researches):
+
+- Contrastive Unsupervised Representation Learning (CURL-SAC, https://github.com/MishaLaskin/curl/)
+- Goal-Conditioned Supervised Learning (GCSL, https://github.com/dibyaghosh/gcsl)
+
 ## Implemented RL algorithms:
 
 - Soft-Actor-Critic (SAC)
 - Soft-Actor-Critic (SAC) (Auto Learning Alpha version)
+- Soft-Actor-Critic-Auto-Encoder (SAC-AE)
 - Soft Q Learning (SQL)
 - TD3
 - DDPG
@@ -18,9 +24,9 @@ You can easily build experiment codes under this framework in your research. We 
 
 ## Implemented IL algorithms:
 
-- Adversarial Inverse Reinforcement Learning 
+- Adversarial Inverse Reinforcement Learning
     - AIRL / GAIL / FAIRL / Discriminator-Actor-Critic (DAC) (Different reward signals for AIRL / GAIL / FAIRL, and absorbing state for DAC)
-- Behaviour Cloning (bc)
+- Behaviour Cloning (BC)
 - DAgger
 
 # Running Notes:
@@ -76,10 +82,9 @@ run her for pick with td3:
 CUDA_VISIBLE_DEVICES=0 python run_experiment -e \exp_specs\her\her_pick_td3.yaml
 ```
 
-
 ## Running IL algorithms
 
-IL algorithms need to be assigned with demonstrations. A input-format-matching standard mujoco demonstrations can be download in [here](https://github.com/apexrl/Baseline_Pool/tree/master/imitation_learning/sac/expert_trajs_50). If you want to sample your own data, train an expert agent using RL algorithms and sample using `\run_scripts\gen_expert_demo.py` or `\run_scripts\evaluate_policy.py`, and do not forget to modify your IO format.
+IL algorithms need to be assigned with demonstrations. The input-format-matching standard mujoco and dmc expert demonstrations data files run by us can be download in [here](https://drive.google.com/drive/folders/1cZYLU-Wm11SV76apLZUJHrirk8N4pVyh?usp=sharing). If you want to sample your own data, train an expert agent using RL algorithms and sample using `\run_scripts\gen_expert_demo.py` or `\run_scripts\evaluate_policy.py`, and do not forget to modify your IO format.
 
 If you get the demos ready, write the path for each expert name in `demos_listing.yaml` (there are already some examples). Then you should specify the expert name and the traj number in the corresponding yaml file (see `\exp_specs\bc.yaml` for example). After all the stuff, you can run it as a regular experiment following the above suggestions.
 
@@ -136,3 +141,4 @@ CUDA_VISIBLE_DEVICES=0 python run_experiment -e \exp_specs\gail\gail_walker.yaml
 | HalfCheetah-v2 | 74.4849 | 12.3917 |
 | Walker2d-v2 | 7.0708 | 0.1292 |
 | Swimmer-v2 | 15.5430 | 6.6655 |
+
