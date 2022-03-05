@@ -81,7 +81,7 @@ def from_numpy(np_array, requires_grad=False):
     return tensor_array
 
 
-def get_numpy(tensor):
+def get_numpy(tensor: torch.Tensor) -> np.ndarray:
     return tensor.to("cpu").detach().numpy()
 
 
