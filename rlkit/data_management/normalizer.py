@@ -2,6 +2,7 @@
 Based on code from Marcin Andrychowicz
 """
 import numpy as np
+import torch
 
 
 class Normalizer(object):
@@ -108,6 +109,8 @@ class FixedNormalizer(object):
         if v.ndim == 2:
             mean = mean.reshape(1, -1)
             std = std.reshape(1, -1)
+        if isinstance(v, torch.Tensor):
+            v = v.detach().cpu().numpy()
         return np.clip((v - mean) / std, -clip_range, clip_range)
 
     def denormalize(self, v):

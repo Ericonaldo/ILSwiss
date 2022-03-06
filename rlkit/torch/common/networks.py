@@ -7,7 +7,7 @@ from ctypes import Union
 import math
 from threading import local
 from turtle import forward
-from typing import Callable, Dict, Iterator, List, Optional, Tuple
+from typing import Callable, Dict, Iterator, List, Optional, OrderedDict, Tuple
 from importlib_metadata import requires
 import numpy as np
 import torch
@@ -166,8 +166,8 @@ class EnsembleLinear(PyTorchModule):
         self.output_size = output_size
         self.ensemble_size = ensemble_size
 
-        self.weight = ptu.zeros([self.ensemble_size, self.input_size, self.output_size])
-        self.bias = ptu.zeros([self.ensemble_size, 1, self.output_size])
+        self.weight = nn.Parameter(torch.zeros([self.ensemble_size, self.input_size, self.output_size]))
+        self.bias = nn.Parameter(torch.zeros([self.ensemble_size, 1, self.output_size]))
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         if len(input.shape) == 2:
@@ -177,6 +177,9 @@ class EnsembleLinear(PyTorchModule):
         else:
             raise ValueError(f"In EnsembleLinear: invalid input dimension {input.shape} to layer shape {self.weight.shape}.")
         return output
+
+    # def state_dict(self) -> OrderedDict[str, torch.Tensor]:
+    #     return OrderedDict(weight=self.weight, bias=self.bias)
 
 
 class BNN(PyTorchModule):
@@ -190,7 +193,7 @@ class BNN(PyTorchModule):
         hidden_activation: Callable = F.silu,
         output_activation: Callable = identity,
         hidden_init: Callable = ptu.fanin_init,
-        b_init_value: float = 0.0,
+        b_init_value: float = 0.1,
         layer_norm: bool = False,
         layer_norm_kwargs: Dict = None,
         batch_norm: bool = False,
@@ -207,7 +210,7 @@ class BNN(PyTorchModule):
         output_size *= 2
         self.output_size = output_size
         self.hidden_activation = hidden_activation
-        self.output_activateion = output_activation
+        self.output_activation = output_activation
         self.layer_norm = layer_norm
         self.batch_norm = batch_norm
         self.batch_norm_before_output_activation = batch_norm_before_output_activation
@@ -245,11 +248,11 @@ class BNN(PyTorchModule):
         self.last_fc.bias.data.uniform_(-init_w, init_w)
         
         self.normalizer = FixedNormalizer(input_size)
-        self.max_log_var = ptu.ones([1, output_size // 2], requires_grad=True) / 2.0
-        self.min_log_var = ptu.ones([1, output_size // 2], requires_grad=True) * 10.0
+        self.max_log_var = ptu.from_numpy(np.ones([1, output_size // 2]) / 2.0)
+        self.min_log_var = ptu.from_numpy(-np.ones([1, output_size // 2]) * 10.0)
 
     def forward(self, input: torch.Tensor, ret_log_var: bool = False) -> Tuple[torch.Tensor, torch.Tensor]:
-        h = self.normalizer.normalize(input)
+        h = ptu.from_numpy(self.normalizer.normalize(input))
         for i, fc in enumerate(self.fcs):
             h = fc(h)
             if self.layer_norm:
@@ -261,7 +264,7 @@ class BNN(PyTorchModule):
         if self.batch_norm_before_output_activation:
             preactivation = self.batch_norms[-1](preactivation)
         mean = preactivation[:, :, :self.output_size // 2]
-        mean = self.output_activateion(mean)
+        mean = self.output_activation(mean)
         var = preactivation[:, :, self.output_size // 2:]
         logvar = self.max_log_var - F.softplus(self.max_log_var - var)
         logvar = self.min_log_var + F.softplus(logvar - self.min_log_var)
@@ -279,7 +282,6 @@ class BNN(PyTorchModule):
         else:
             return mean_fac, std_fac
 
-
     @property
     def num_layers(self) -> int:
         return len(self.fcs) + 1
@@ -287,3 +289,7 @@ class BNN(PyTorchModule):
     @property
     def layers(self) -> List[torch.nn.Module]:
         return self.fcs + [self.last_fc]
+
+    def to(self, device):
+        for net in self.layers:
+            net.to(device)

@@ -22,9 +22,9 @@ class SoftActorCritic(Trainer):
 
     def __init__(
         self,
-        policy,
-        qf1,
-        qf2,
+        policy: nn.Module,
+        qf1: nn.Module,
+        qf2: nn.Module,
         reward_scale=1.0,
         discount=0.99,
         policy_lr=1e-3,
@@ -280,4 +280,5 @@ class SoftActorCritic(Trainer):
 
     def to(self, device):
         self.log_alpha.to(device)
-        super.to(device)
+        for net in self.networks:
+            net.to(device)

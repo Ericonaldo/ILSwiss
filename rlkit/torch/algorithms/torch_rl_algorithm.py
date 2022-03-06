@@ -48,7 +48,9 @@ class TorchRLAlgorithm(TorchBaseAlgorithm):
         self.eval_sampler.policy = self.eval_policy
 
     def evaluate(self, epoch):
-        self.eval_statistics = self.trainer.get_eval_statistics()
+        if self.eval_statistics is None:
+            self.eval_statistics = OrderedDict()
+        self.eval_statistics.update(self.trainer.get_eval_statistics())
         super().evaluate(epoch)
 
     def _end_epoch(self):

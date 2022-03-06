@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
     with open(args.experiment, "r") as spec_file:
         spec_string = spec_file.read()
-        exp_specs = yaml.load(spec_string)
+        exp_specs = yaml.safe_load(spec_string)
 
     # generating the variants
     vg_fn = build_nested_variant_generator(exp_specs)
