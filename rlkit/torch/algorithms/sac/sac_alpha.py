@@ -50,7 +50,7 @@ class SoftActorCritic(Trainer):
         self.policy_std_reg_weight = policy_std_reg_weight
 
         self.train_alpha = train_alpha
-        self.log_alpha = torch.tensor(np.log(alpha), requires_grad=train_alpha)
+        self.log_alpha = torch.tensor(np.log(alpha), requires_grad=train_alpha, device=ptu.device)
         self.alpha = self.log_alpha.detach().exp()
         assert "env" in kwargs.keys(), "env info should be taken into SAC alpha"
         self.target_entropy = target_entropy
@@ -277,7 +277,3 @@ class SoftActorCritic(Trainer):
 
     def end_epoch(self):
         self.eval_statistics = None
-
-    def to(self, device):
-        self.log_alpha.to(device)
-        super.to(device)
