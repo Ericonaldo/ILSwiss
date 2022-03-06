@@ -152,7 +152,7 @@ class BNNTrainer(Trainer):
                 break 
         self._stamp('bnn_train')
 
-        self._set_state(epoch)
+        self._set_state()
         self._stamp('bnn_set_state')
         
         with torch.no_grad():
