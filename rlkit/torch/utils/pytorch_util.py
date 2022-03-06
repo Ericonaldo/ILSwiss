@@ -4,6 +4,7 @@ Replaced using new version of rlkit
 """
 import torch
 import numpy as np
+import os
 
 
 def soft_update_from_to(source, target, tau):
@@ -57,7 +58,12 @@ def set_gpu_mode(mode, gpu_id=0):
     global _gpu_id
     _gpu_id = gpu_id
     _use_gpu = mode
-    device = torch.device("cuda:" + str(gpu_id) if _use_gpu else "cpu")
+    if not _use_gpu:
+        os.environ["CUDA_VISIBLE_DEVICES"] = None
+    else:
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
+    # device = torch.device("cuda:" + str(gpu_id) if _use_gpu else "cpu")
+    device = torch.device("cuda:" + str(0) if _use_gpu else "cpu")
 
 
 def gpu_enabled():

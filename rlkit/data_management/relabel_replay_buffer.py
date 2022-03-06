@@ -52,11 +52,11 @@ class HindsightReplayBuffer(SimpleReplayBuffer):
         self, observation, action, reward, terminal, next_observation, **kwargs
     ):
         assert isinstance(observation, dict), "Observation should be dict!"
-        if isinstance(self._action_space, Discrete):
-            new_action = np.zeros(self._action_dim)
-            new_action[action] = 1
-        else:
-            new_action = action
+        # if isinstance(self._action_space, Discrete):
+        #     new_action = np.zeros(self._action_dim)
+        #     new_action[action] = 1
+        # else:
+        #     new_action = action
         super(HindsightReplayBuffer, self).add_sample(
             observation, action, reward, terminal, next_observation, **kwargs
         )

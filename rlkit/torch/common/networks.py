@@ -135,7 +135,8 @@ class CatagorialMlp(Mlp):
         if self.batch_norm_before_output_activation:
             preactivation = self.batch_norms[-1](preactivation)
         output = self.softmax(self.output_activation(preactivation))
-
+        # output = preactivation
+        
         if return_preactivations:
             return output, preactivation
         else:

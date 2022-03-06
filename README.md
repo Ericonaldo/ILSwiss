@@ -9,7 +9,7 @@ You can easily build experiment codes under this framework in your research. We 
 ## Implementing RL algorithms (for potential researches):
 
 - Contrastive Unsupervised Representation Learning (CURL-SAC, https://github.com/MishaLaskin/curl/)
-- Goal-Conditioned Supervised Learning (GCSL, https://github.com/dibyaghosh/gcsl)
+- Model-Based Policy Optimization (MBPO, https://github.com/jannerm/mbpo)
 
 ## Implemented RL algorithms:
 
@@ -21,6 +21,7 @@ You can easily build experiment codes under this framework in your research. We 
 - DDPG
 - PPO
 - HER (Goal-Condtioned RL, with SAC or TD3)
+- GCSL (Goal-Condtioned RL)
 
 ## Implemented IL algorithms:
 
