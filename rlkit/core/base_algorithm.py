@@ -33,10 +33,10 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         eval_sampler=None,  ##
         num_epochs=100,
         num_steps_per_epoch=10000,
-        num_steps_between_train_calls=1000,
+        num_steps_between_train_calls=20,
         num_steps_per_eval=1000,
         max_path_length=1000,
-        min_steps_before_training=0,
+        min_steps_before_training=5000,
         replay_buffer=None,
         replay_buffer_size=10000,
         freq_saving=1,
@@ -642,7 +642,10 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         average_returns = eval_util.get_average_returns(test_paths)
         statistics["AverageReturn"] = average_returns
         for key, value in statistics.items():
-            logger.record_tabular(key, np.mean(value))
+            try:
+                logger.record_tabular(key, np.mean(value))
+            except:
+                print(f'Log error with key: {key}, value: {value}')
 
         best_statistic = statistics[self.best_key]
         data_to_save = {"epoch": epoch, "statistics": statistics}

@@ -87,7 +87,7 @@ def from_numpy(np_array, requires_grad=False):
     return tensor_array
 
 
-def get_numpy(tensor):
+def get_numpy(tensor: torch.Tensor) -> np.ndarray:
     return tensor.to("cpu").detach().numpy()
 
 
@@ -135,3 +135,18 @@ def tensor(*args, torch_device=None, **kwargs):
 
 def normal(*args, **kwargs):
     return torch.normal(*args, **kwargs).to(device)
+
+
+def tf_like_gather(x: torch.Tensor, i: torch.Tensor) -> torch.Tensor:
+    # perform gather like tensorflow
+    return torch.cat([x[j][None] for j in i])
+
+
+def tf_like_gather_np(x: np.ndarray, i: np.ndarray) -> np.ndarray:
+    return np.concatenate([x[j][None] for j in i])
+
+
+def print_grad_hook(grad):
+    # for debug
+    print(grad)
+    

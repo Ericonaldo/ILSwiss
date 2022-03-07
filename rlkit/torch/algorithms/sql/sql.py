@@ -7,14 +7,14 @@ import torch
 from torch.autograd import Variable
 import torch.nn.functional as F
 
-import rlkit.torch.utils.normalizerpytorch_util as ptu
+import rlkit.torch.utils.pytorch_util as ptu
 from rlkit.core.eval_util import create_stats_ordered_dict
 from rlkit.torch.algorithms.torch_rl_algorithm import (
     TorchRLAlgorithm,
     MetaTorchRLAlgorithm,
     NPMetaTorchRLAlgorithm,
 )
-from rlkit.torch.algorithms.sac.policies import MakeDeterministic
+from rlkit.torch.common.policies import MakeDeterministic
 
 
 def logsumexp(inputs, dim=None, keepdim=False):
