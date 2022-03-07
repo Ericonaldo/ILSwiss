@@ -1,4 +1,5 @@
 # ILSwiss
+[News!] We have implemented MBPO in torch which achieves similar results to the original implementation.
 
 ILSwiss is an Easy-to-run Imitation Learning (IL, or Learning from Demonstration, LfD) framework (template) in PyTorch based on existing code base.
 
@@ -9,7 +10,7 @@ You can easily build experiment codes under this framework in your research. We 
 ## Implementing RL algorithms (for potential researches):
 
 - Contrastive Unsupervised Representation Learning (CURL-SAC, https://github.com/MishaLaskin/curl/)
-- Model-Based Policy Optimization (MBPO, https://github.com/jannerm/mbpo)
+- Reinforcement Learning with Augmented Data (RAD-SAC, https://github.com/MishaLaskin/rad)
 
 ## Implemented RL algorithms:
 
@@ -22,6 +23,7 @@ You can easily build experiment codes under this framework in your research. We 
 - PPO
 - HER (Goal-Condtioned RL, with SAC or TD3)
 - GCSL (Goal-Condtioned RL)
+- Model-Based Policy Optimization (MBPO, https://github.com/jannerm/mbpo)
 
 ## Implemented IL algorithms:
 
@@ -37,7 +39,7 @@ Before running, assign important log and output paths in `\rlkit\launchers\confi
 There are simple multiple processing shcheduling (we use multiple processing to clarify it with multi-processing since it only starts many independent sub-process without communication) for simple hyperparameter grid search.
 
 The main entry is `run_experiments.py`, with the assigned experiment yaml file in `\exp_specs`:
-`python run_experiment.py -g 0 -e your_yaml_path` or `CUDA_VISIBLE_DEVICES=0 python run_experiment.py -e your_yaml_path`.
+`python run_experiment.py -g 0 -e your_yaml_path` or `python run_experiment.py -e your_yaml_path`.
 
 When you run the `run_experiments.py`, it reads the yaml file, and generate small yaml files with only one hyperparameter setting for each. In a yaml file, a script file path is assigned (see `\run_scripts\`), which is specified to run the script with every the small yaml file. See `\exp_specs\sac\bc.yaml` for necessary explaination of each parameter.
 
@@ -51,36 +53,44 @@ For on-policy algorithms (e.g., PPO), we clean the buffer after every training s
 
 ### Example scripts
 
+`-e` means the path to the yaml file, `-g` means gpu id.
+
+run mbpo for hopper:
+
+```
+python run_experiment -e \exp_specs\mbpo\mbpo_hopper.yaml -g 0
+```
+
 run sac-ae for finger_spin:
 
 ```
-CUDA_VISIBLE_DEVICES=0 python run_experiment -e \exp_specs\sac\sac_ae_dmc_finger_spin.yaml
+python run_experiment -e \exp_specs\sac\sac_ae_dmc_finger_spin.yaml -g 0
 ```
 
 
 run sac for hopper:
 
 ```
-CUDA_VISIBLE_DEVICES=0 python run_experiment -e \exp_specs\sac\sac_hopper.yaml
+python run_experiment -e \exp_specs\sac\sac_hopper.yaml -g 0
 ```
 
 
 run ppo for hopper:
 
 ```
-CUDA_VISIBLE_DEVICES=0 python run_experiment -e \exp_specs\ppo\ppo_hopper.yaml
+python run_experiment -e \exp_specs\ppo\ppo_hopper.yaml -g 0
 ```
 
 run td3 for humanoid:
 
 ```
-CUDA_VISIBLE_DEVICES=0 python run_experiment -e \exp_specs\td3\td3_humanoid.yaml
+python run_experiment -e \exp_specs\td3\td3_humanoid.yaml -g 0
 ```
 
 run her for pick with td3:
 
 ```
-CUDA_VISIBLE_DEVICES=0 python run_experiment -e \exp_specs\her\her_pick_td3.yaml
+python run_experiment -e \exp_specs\her\her_pick_td3.yaml -g 0
 ```
 
 ## Running IL algorithms
@@ -94,19 +104,19 @@ If you get the demos ready, write the path for each expert name in `demos_listin
 gen expert data for hopper:
 
 ```
-python run_experiment -e \exp_specs\gen_expert\hopper.yaml
+python run_experiment -e \exp_specs\gen_expert\hopper.yaml -g 0
 ```
 
 run bc for hopper:
 
 ```
-CUDA_VISIBLE_DEVICES=0 python run_experiment -e \exp_specs\bc.yaml
+python run_experiment -e \exp_specs\bc.yaml -g 0
 ```
 
 run gail for walker:
 
 ```
-CUDA_VISIBLE_DEVICES=0 python run_experiment -e \exp_specs\gail\gail_walker.yaml
+python run_experiment -e \exp_specs\gail\gail_walker.yaml -g 0
 ```
 
 ## Current Baseline Reults

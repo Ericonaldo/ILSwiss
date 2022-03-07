@@ -1,6 +1,6 @@
 meta_data:
   script_path: run_scripts/mbpo_exp_script.py
-  exp_name: test_mbpo
+  exp_name: mbpo_hopper
   description: Train an agent using Model-Based Policy Optimization
   num_workers: 1
   using_gpus: true
