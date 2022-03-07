@@ -24,11 +24,11 @@ class EnvReplayBuffer(SimpleReplayBuffer):
     def add_sample(
         self, observation, action, reward, terminal, next_observation, **kwargs
     ):
-        if isinstance(self._action_space, Discrete):
-            new_action = np.zeros(self._action_dim)
-            new_action[action] = 1
-        else:
-            new_action = action
+        # if isinstance(self._action_space, Discrete):
+        #     new_action = np.zeros(self._action_dim)
+        #     new_action[action] = 1
+        # else:
+        #     new_action = action
         super(EnvReplayBuffer, self).add_sample(
             observation, action, reward, terminal, next_observation, **kwargs
         )
@@ -62,9 +62,9 @@ class MetaEnvReplayBuffer(MetaSimpleReplayBuffer):
         )
 
     def add_path(self, path, task_identifier):
-        if isinstance(self._action_space, Discrete):
-            action_array = np.eye(self._action_space.n)[path["actions"][:, 0]]
-            path["actions"] = action_array
+        # if isinstance(self._action_space, Discrete):
+        #     action_array = np.eye(self._action_space.n)[path["actions"][:, 0]]
+        #     path["actions"] = action_array
         super(MetaEnvReplayBuffer, self).add_path(path, task_identifier)
 
 
@@ -74,7 +74,7 @@ def get_dim(space):
             return space.low.shape
         return space.low.size
     elif isinstance(space, Discrete):
-        return space.n
+        return 1 # space.n
     elif isinstance(space, Tuple):
         return sum(get_dim(subspace) for subspace in space.spaces)
     elif isinstance(space, Dict):

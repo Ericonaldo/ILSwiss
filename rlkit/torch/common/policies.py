@@ -776,7 +776,7 @@ class CatagorialPolicy(CatagorialMlp, ExplorationPolicy):
             **kwargs,
         )
         self.action_dim = action_dim
-
+    
     def get_action(self, obs_np, deterministic=False):
         """
         deterministic=False makes no diff, just doing this for
@@ -789,24 +789,63 @@ class CatagorialPolicy(CatagorialMlp, ExplorationPolicy):
         return self.eval_np(obs_np, deterministic=deterministic)[0]
 
     def forward(self, obs, deterministic=False, return_log_prob=False):
-        action_prob = super().forward(obs)
+        action_prob, action_logits = super().forward(obs, return_preactivations=True)
 
         if deterministic:
             action = torch.argmax(action_prob, axis=-1).unsqueeze(-1)
         else:
             action = torch.multinomial(action_prob, 1)
-        assert np.shape(action)[-1] == 1, "action shape mismatch! {}".format(
-            np.shape(action)
-        )
+        assert np.shape(action)[-1] == 1, "action shape mismatch! {}".format(np.shape(action))
         log_prob = None
         if return_log_prob:
             log_prob = torch.log(torch.index_select(action_prob, -1, action))
-
-        return action, action_prob, log_prob
+            
+        return action, action_logits, log_prob
 
     def get_log_prob(self, obs, acts):
         _, action_prob = self.forward(obs)
-
+        
         log_prob = torch.log(torch.index_select(action_prob, -1, acts))
 
         return log_prob
+
+
+class CatagorialConditionPolicy(
+    ConditionPolicy, CatagorialPolicy
+):
+    """
+    Usage:
+
+    ```
+    policy = ReparamTanhMultivariateGaussianPolicy(...)
+    action, mean, log_std, _ = policy(obs)
+    action, mean, log_std, _ = policy(obs, deterministic=True)
+    action, mean, log_std, log_prob = policy(obs, return_log_prob=True)
+    ```
+
+    Here, mean and log_std are the mean and log_std of the Gaussian that is
+    sampled from.
+
+    If deterministic is True, action = tanh(mean).
+    If return_log_prob is False (default), log_prob = None
+        This is done because computing the log_prob can be a bit expensive.
+    """
+
+    def __init__(
+        self,
+        hidden_sizes,
+        obs_dim,
+        condition_dim,
+        action_dim,
+        observation_key="observation",
+        desired_goal_key="desired_goal",
+        achieved_goal_key="achieved_goal",
+        **kwargs
+    ):
+        self.save_init_params(locals())
+        CatagorialPolicy.__init__(
+            self, hidden_sizes, obs_dim+condition_dim, action_dim, **kwargs
+        )
+        ConditionPolicy.__init__(
+            self, obs_dim, condition_dim, action_dim, observation_key, desired_goal_key, achieved_goal_key
+        )

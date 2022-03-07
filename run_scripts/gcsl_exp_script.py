@@ -9,16 +9,19 @@ sys.path.insert(0, parentdir)
 print(sys.path)
 
 import gym
+from torch import tanh
+
 from rlkit.envs import get_env, get_envs
-from rlkit.envs.wrappers import NormalizedBoxEnv, ProxyEnv
+from rlkit.envs.wrappers import DiscretEnv, ProxyEnv
 
 import rlkit.torch.utils.pytorch_util as ptu
-from rlkit.core.logger import load_from_file
 from rlkit.launchers.launcher_util import setup_logger, set_seed
 from rlkit.torch.common.networks import FlattenMlp
-from rlkit.torch.common.policies import ReparamTanhMultivariateGaussianPolicy
-from rlkit.torch.algorithms.sac.sac import SoftActorCritic
+from rlkit.torch.common.policies import MlpGaussianAndEpsilonConditionPolicy, CatagorialConditionPolicy
 from rlkit.torch.algorithms.torch_rl_algorithm import TorchRLAlgorithm
+from rlkit.torch.algorithms.gcsl.rl import GoalHorizonRL
+from rlkit.torch.algorithms.gcsl.gcsl import GCSL
+from rlkit.data_management.relabel_horizon_replay_buffer import HindsightHorizonReplayBuffer
 
 
 def experiment(variant):
@@ -33,55 +36,63 @@ def experiment(variant):
 
     obs_space = env.observation_space
     act_space = env.action_space
-    assert not isinstance(obs_space, gym.spaces.Dict)
-    assert len(obs_space.shape) == 1
-    assert len(act_space.shape) == 1
+    assert isinstance(obs_space, gym.spaces.Dict), "obs is {}".format(obs_space)
 
     env_wrapper = ProxyEnv  # Identical wrapper
     wrapper_kwargs = {}
-
-    if isinstance(act_space, gym.spaces.Box):
-        env_wrapper = NormalizedBoxEnv
-
+    discretize = "discretize" in env_specs and env_specs["discretize"]
+    if discretize:
+        env_wrapper = DiscretEnv  # Discrete wrapper
+        wrapper_kwargs = env_specs["discret_kwargs"]
+    
     env = env_wrapper(env, **wrapper_kwargs)
-
+    print("Act Space: {}\n\n".format(env.action_space))
+    
     kwargs = {}
     if "vec_env_kwargs" in env_specs:
-        kwargs = env_specs["env_kwargs"]["vec_env_kwargs"]
-
+        kwargs = env_specs["vec_env_kwargs"]
     training_env = get_envs(env_specs, env_wrapper, wrapper_kwargs, **kwargs)
     training_env.seed(env_specs["training_env_seed"])
-
-    obs_dim = obs_space.shape[0]
+    
+    try:
+        obs_dim = obs_space.spaces['observation'].shape[0]
+        goal_dim = obs_space.spaces['desired_goal'].shape[0]
+    except BaseException:
+        tmp = env.reset()
+        obs_dim = tmp['observation'].shape[0]
+        goal_dim = tmp['desired_goal'].shape[0]
     action_dim = act_space.shape[0]
 
     net_size = variant["net_size"]
     num_hidden = variant["num_hidden_layers"]
-    qf1 = FlattenMlp(
-        hidden_sizes=num_hidden * [net_size],
-        input_size=obs_dim + action_dim,
-        output_size=1,
-    )
-    qf2 = FlattenMlp(
-        hidden_sizes=num_hidden * [net_size],
-        input_size=obs_dim + action_dim,
-        output_size=1,
-    )
-    vf = FlattenMlp(
-        hidden_sizes=num_hidden * [net_size],
-        input_size=obs_dim,
-        output_size=1,
-    )
-    policy = ReparamTanhMultivariateGaussianPolicy(
-        hidden_sizes=num_hidden * [net_size],
-        obs_dim=obs_dim,
-        action_dim=action_dim,
-    )
+    max_path_length = 0
+    use_horizons = variant['rl_alg_params']['use_horizons']
+    if use_horizons:
+        max_path_length=variant['rl_alg_params']['max_path_length']
 
-    trainer = SoftActorCritic(
-        policy=policy, qf1=qf1, qf2=qf2, vf=vf, **variant["sac_params"]
-    )
-    algorithm = TorchRLAlgorithm(
+    if discretize:
+        assert variant["gcsl_params"]["mode"] == "CLASS"
+        action_dim = env_specs["discret_kwargs"]["granularity"] ** act_space.shape[0]
+        policy = CatagorialConditionPolicy(
+            hidden_sizes=num_hidden * [net_size],
+            action_dim=action_dim,
+            obs_dim=obs_dim,
+            condition_dim=goal_dim+max_path_length, 
+            batch_norm=True
+        )
+    else:
+        policy = MlpGaussianAndEpsilonConditionPolicy(
+            hidden_sizes=num_hidden * [net_size],
+            action_space=env.action_space,
+            obs_dim=obs_dim,
+            condition_dim=goal_dim+max_path_length,
+            action_dim=action_dim,
+            output_activation=tanh,
+            batch_norm=True
+        )
+
+    trainer = GCSL(policy=policy, use_horizons=variant["rl_alg_params"]["use_horizons"], **variant["gcsl_params"])
+    algorithm = GoalHorizonRL(
         trainer=trainer,
         env=env,
         training_env=training_env,
@@ -89,14 +100,9 @@ def experiment(variant):
         **variant["rl_alg_params"]
     )
 
-    epoch = 0
-    if "load_params" in variant:
-        algorithm, epoch = load_from_file(algorithm, **variant["load_params"])
-
     if ptu.gpu_enabled():
         algorithm.to(ptu.device)
-
-    algorithm.train(start_epoch=epoch)
+    algorithm.train()
 
     return 1
 
@@ -116,22 +122,13 @@ if __name__ == "__main__":
         "training_env_seed"
     ] = exp_specs["seed"]
 
-    if exp_specs["using_gpus"] > 0:
+    if exp_specs["using_gpus"]:
         print("\n\nUSING GPU\n\n")
         ptu.set_gpu_mode(True, args.gpu)
     exp_id = exp_specs["exp_id"]
-    exp_prefix = exp_specs["exp_name"]
+    exp_prefix = exp_specs["exp_name"] + "_plr_{}".format(exp_specs["gcsl_params"]["policy_lr"])
     seed = exp_specs["seed"]
     set_seed(seed)
-
-    log_dir = None
-    if "load_params" in exp_specs:
-        load_path = exp_specs["load_params"]["load_path"]
-        if (load_path is not None) and (len(load_path) > 0):
-            log_dir = load_path
-
-    setup_logger(
-        exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs, log_dir=log_dir
-    )
+    setup_logger(exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs)
 
     experiment(exp_specs)

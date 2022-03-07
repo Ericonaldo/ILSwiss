@@ -10,6 +10,7 @@ def rollout(
     render=False,
     render_kwargs={},
     preprocess_func=None,
+    use_horizon=False,
 ):
     path_builder = PathBuilder()
     observation = env.reset()
@@ -17,6 +18,11 @@ def rollout(
     for _ in range(max_path_length):
         if preprocess_func:
             observation = preprocess_func(observation)
+        if use_horizon:
+            horizon = np.arange(max_path_length) >= (max_path_length - 1 - _) # 
+            if isinstance(observation, dict):
+                observation = np.concatenate([observation[policy.stochastic_policy.observation_key], observation[policy.stochastic_policy.desired_goal_key], horizon], axis=-1) 
+
         action, agent_info = policy.get_action(observation)
         if render:
             env.render(**render_kwargs)
@@ -53,6 +59,7 @@ class PathSampler:
         render=False,
         render_kwargs={},
         preprocess_func=None,
+        horizon=False,
     ):
         """
         When obtain_samples is called, the path sampler will generates the
@@ -67,6 +74,7 @@ class PathSampler:
         self.render = render
         self.render_kwargs = render_kwargs
         self.preprocess_func = preprocess_func
+        self.horizon = horizon
 
     def obtain_samples(self, num_steps=None):
         paths = []
@@ -82,6 +90,7 @@ class PathSampler:
                 render=self.render,
                 render_kwargs=self.render_kwargs,
                 preprocess_func=self.preprocess_func,
+                use_horizon=self.horizon,
             )
             paths.append(new_path)
             total_steps += len(new_path["rewards"])

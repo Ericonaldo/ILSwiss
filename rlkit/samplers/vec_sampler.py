@@ -10,54 +10,59 @@ def rollout(
     render=False,
     render_kwargs={},
     preprocess_func=None,
+    use_horizon=False,
 ):
     env_num = len(env)
     path_builder = [PathBuilder() for _ in range(env_num)]
 
     ready_env_ids = np.arange(env_num)
     observations = env.reset(ready_env_ids)
-
+    
+    timesteps = np.array([0 for _ in range(env_num)])
     for _ in range(max_path_length):
         if preprocess_func:
             observation = preprocess_func(observation)
-
+        if use_horizon:
+            horizon = np.arange(max_path_length) >= (max_path_length - 1 - _) # 
+            if isinstance(observation[0], dict):
+                observation = np.array([np.concatenate([observation[idx][policy.stochastic_policy.observation_key], observation[idx][policy.stochastic_policy.desired_goal_key], horizon[ready_env_ids[idx]]], axis=-1) for idx in range(len(observation))])
+            
         actions = policy.get_actions(observations)
         if render:
             env.render(**render_kwargs)
 
-        next_observations, rewards, terminals, env_infos = env.step(
-            actions, ready_env_ids
-        )
+        next_observations, rewards, terminals, env_infos = env.step(actions, ready_env_ids)
+        timesteps += 1
         if no_terminal:
             terminals = [False for _ in range(len(ready_env_ids))]
 
         for idx, (
-            observation,
-            action,
-            reward,
-            next_observation,
-            terminal,
-            env_info,
-        ) in enumerate(
-            zip(
-                observations,
-                actions,
-                rewards,
-                next_observations,
-                terminals,
-                env_infos,
-            )
-        ):
-            env_idx = ready_env_ids[idx]
-            path_builder[env_idx].add_all(
-                observations=observation,
-                actions=action,
-                rewards=np.array([reward]),
-                next_observations=next_observation,
-                terminals=np.array([terminal]),
-                absorbings=np.array([0.0, 0.0]),
-                env_infos=env_info,
-            )
+                observation,
+                action,
+                reward,
+                next_observation,
+                terminal,
+                env_info,
+            ) in enumerate(
+                zip(
+                    observations,
+                    actions,
+                    rewards,
+                    next_observations,
+                    terminals,
+                    env_infos,
+                )
+            ):
+                env_idx = ready_env_ids[idx]
+                path_builder[env_idx].add_all(
+                    observations=observation,
+                    actions=action,
+                    rewards=np.array([reward]),
+                    next_observations=next_observation,
+                    terminals=np.array([terminal]),
+                    absorbings=np.array([0.0, 0.0]),
+                    env_infos=env_info,
+                )
 
         observations = next_observations
 
@@ -66,7 +71,7 @@ def rollout(
             ready_env_ids = np.array(list(set(ready_env_ids) - set(end_env_ids)))
             if len(ready_env_ids) == 0:
                 break
-
+        
     return path_builder
 
 
@@ -81,6 +86,7 @@ class VecPathSampler:
         render=False,
         render_kwargs={},
         preprocess_func=None,
+        horizon=False,
     ):
         """
         When obtain_samples is called, the path sampler will generates the
@@ -95,6 +101,7 @@ class VecPathSampler:
         self.render = render
         self.render_kwargs = render_kwargs
         self.preprocess_func = preprocess_func
+        self.horizon = horizon
 
     def obtain_samples(self, num_steps=None):
         paths = []
@@ -110,6 +117,7 @@ class VecPathSampler:
                 render=self.render,
                 render_kwargs=self.render_kwargs,
                 preprocess_func=self.preprocess_func,
+                use_horizon=self.horizon,
             )
             paths.extend(new_paths)
             total_steps += sum([len(new_path) for new_path in new_paths])

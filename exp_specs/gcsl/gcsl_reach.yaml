@@ -1,25 +1,28 @@
 meta_data:
-  script_path: run_scripts/her_sac_exp_script.py
-  exp_name: her_fetch_push_sac
-  description: Train an her agent using SAC
-  num_workers: 3
+  script_path: run_scripts/gcsl_exp_script.py
+  exp_name: gcsl_fetch_reach
+  description: Train an her agent using GCSL
+  num_workers: 2
   using_gpus: true
 # -----------------------------------------------------------------------------
 variables:
   seed: [0]
-  
+  rl_alg_params:
+    relabel_type: ["future"] # "final", 
+  gcsl_params:
+    mode: ["MSE"]
+
 # -----------------------------------------------------------------------------
 constants:
   net_size: 300
   num_hidden_layers: 2
-  policy_noise: 1.0
-  policy_noise_clip: 0.5
   
   # method of goal generation
   # goal_gen: 'interval' # ['vanilla', 'fixobj', 'interval', 'reach']
 
   rl_alg_params:
-    num_epochs: 100
+    use_horizons: true
+    num_epochs: 282
     num_steps_per_epoch: 1000
     num_steps_between_train_calls: 1
     num_train_steps_per_train_call: 1
@@ -29,28 +32,21 @@ constants:
 
     eval_deterministic: true
 
-    batch_size: 2048
-    replay_buffer_size: 1000000
+    batch_size: 128
+    replay_buffer_size: 100000
     no_terminal: false
     wrap_absorbing: false
 
     save_best: false
     freq_saving: 10
     save_replay_buffer: false
-    # save_environment: false
-    # save_environment: false
 
-    relabel_type: "future"
-    her_ratio: 0.8
-
-  sac_params:
+  gcsl_params:
     reward_scale: 1.0
     discount: 0.99
     soft_target_tau: 0.005
     policy_lr: 0.0003
-    qf_lr: 0.0003
 
   env_specs:
-    env_name: 'fetch-push'
+    env_name: 'fetch-reach'
     env_kwargs: {}
-    env_num: 4

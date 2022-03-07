@@ -101,7 +101,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     with open(args.experiment, "r") as spec_file:
         spec_string = spec_file.read()
-        exp_specs = yaml.load(spec_string)
+        exp_specs = yaml.safe_load(spec_string)
 
     # make all seeds the same.
     exp_specs["env_specs"]["eval_env_seed"] = exp_specs["env_specs"][
