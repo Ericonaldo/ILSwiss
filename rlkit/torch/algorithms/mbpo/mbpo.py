@@ -19,8 +19,6 @@ from rlkit.torch.algorithms.sac.sac_alpha import SoftActorCritic
 from rlkit.torch.algorithms.torch_rl_algorithm import TorchRLAlgorithm
 from rlkit.torch.core import np_to_pytorch_batch
 
-import rlkit.torch.utils.pytorch_util as ptu
-
 
 class MBPO(TorchRLAlgorithm):
     
@@ -32,18 +30,6 @@ class MBPO(TorchRLAlgorithm):
         is_terminal: Callable, # for fake_env
         model_replay_buffer: SimpleReplayBuffer = None,
         model_replay_buffer_size: int = 10000,
-
-        # SAC params
-        # reward_scale: float = 1.0,
-        # discount: float = 0.99,
-        # policy_lr: float = 3e-4,
-        # qf_lr: float = 3e-4,
-        # tau: float = 5e-3,
-        # optimizer_class: Type[optim.Optimizer] = optim.Adam,
-        # beta_1: float = 0.9,
-        # target_entropy: float = None,
-        target_update_interval: int = 1,
-        action_prior: str = 'uniform',
 
         # model utilization params
         deterministic: bool = False,
@@ -68,26 +54,7 @@ class MBPO(TorchRLAlgorithm):
         else:
             assert self.max_path_length < model_replay_buffer._max_replay_buffer_size
         self.model_replay_buffer = model_replay_buffer
-
-        # self.reward_scale = reward_scale
-        # self.discount = discount
-        # self.policy_lr = policy_lr
-        # self.qf_lr = qf_lr
-        # self.tau = tau
-        # self.target_update_interval = target_update_interval
-        self.action_prior = action_prior
-        # self.target_entropy: float = target_entropy if target_entropy else -np.prod(kwargs['env'].action_space.shape) / 2.0
         logger.log(f'MBPO | Target entorpy: {self.algo.target_entropy}')
-
-        # self.policy_optimizer = optimizer_class(
-        #     self.policy.parameters(), lr=policy_lr, betas=(beta_1, 0.999)
-        # )
-        # self.qf1_optimizer = optimizer_class(
-        #     self.qf1.parameters(), lr=qf_lr, betas=(beta_1, 0.999)
-        # )
-        # self.qf2_optimizer = optimizer_class(
-        #     self.qf2.parameters(), lr=qf_lr, betas=(beta_1, 0.999)
-        # )
 
         self.deterministic = deterministic
         self.model_train_freq = model_train_freq
@@ -116,9 +83,10 @@ class MBPO(TorchRLAlgorithm):
             total_rews = np.zeros(num_ready_envs)
             self._n_env_steps_this_epoch = 0
             start_env_steps = self._n_env_steps_total
+            cur_env_steps = 0
             for i in count():
                 if self._can_train():
-                    cur_env_steps = self._n_env_steps_total - start_env_steps
+                    cur_env_steps = self._n_env_steps_total - start_env_steps - 1
                     if cur_env_steps >= self.num_env_steps_per_epoch:
                         break
                     if cur_env_steps % self.model_train_freq == 0 and self.real_ratio < 1.0:
