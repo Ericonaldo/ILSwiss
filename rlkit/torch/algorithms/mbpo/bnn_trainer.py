@@ -63,7 +63,6 @@ class BNNTrainer(Trainer):
         opt_param_groups = [{'params': fc.parameters(), 'weight_decay': wd} for fc, wd in zip(self.bnn.layers, self.fc_weight_decays)]
         opt_param_groups += [{'params': [self.bnn.min_log_var, self.bnn.max_log_var]}]
         self.optimizer = optimizer_class(opt_param_groups, lr=lr)
-        # self.optimizer = optimizer_class(list(self.bnn.parameters()) + [self.bnn.max_log_var, self.bnn.min_log_var], lr=lr)
 
     def compute_loss(self, inputs: torch.Tensor, targets: torch.Tensor, add_var_loss: bool = True) -> torch.Tensor:
         mean, log_var = self.bnn(inputs, ret_log_var=True)

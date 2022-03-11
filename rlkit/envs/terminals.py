@@ -104,8 +104,8 @@ class AntTerminalFunc(TerminalFunc):
         assert obs.ndim == next_obs.ndim == act.ndim == 2
         x = next_obs[:, 0]
         not_done = np.all(np.isfinite(next_obs), axis=-1) \
-        			 (x >= 0.2) \
-        			 (x <= 1.0)
+        		   * (x >= 0.2) \
+        		   * (x <= 1.0)
         done = ~not_done
         done = done[:, None]
         return done

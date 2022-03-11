@@ -3,23 +3,16 @@ General networks for pytorch.
 
 Algorithm-specific networks should go else-where.
 """
-from ctypes import Union
-import math
-from threading import local
-from turtle import forward
-from typing import Callable, Dict, Iterator, List, Optional, OrderedDict, Tuple
-from importlib_metadata import requires
+from typing import Callable, Dict, List, Tuple
 import numpy as np
 import torch
 from torch import nn as nn
 from torch.nn import functional as F
 from torch.nn import BatchNorm1d
-from rlkit.data_management.normalizer import FixedNormalizer
 
-from rlkit.policies.base import Policy
+from rlkit.data_management.normalizer import FixedNormalizer
 from rlkit.torch.utils import pytorch_util as ptu
 from rlkit.torch.core import PyTorchModule
-from rlkit.torch.utils.normalizer import TorchFixedNormalizer
 from rlkit.torch.common.modules import LayerNorm
 
 
@@ -178,9 +171,6 @@ class EnsembleLinear(PyTorchModule):
         else:
             raise ValueError(f"In EnsembleLinear: invalid input dimension {input.shape} to layer shape {self.weight.shape}.")
         return output
-
-    # def state_dict(self) -> OrderedDict[str, torch.Tensor]:
-    #     return OrderedDict(weight=self.weight, bias=self.bias)
 
 
 class BNN(PyTorchModule):
