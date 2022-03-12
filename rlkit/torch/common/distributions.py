@@ -89,7 +89,7 @@ class ReparamTanhMultivariateNormal:
         normal_log_prob = self.normal.log_prob(pre_tanh_value)
         # print(torch.max(normal_log_prob))
         jacobi_term = torch.sum(
-            torch.log(1 - value ** 2 + self.epsilon), 1, keepdim=True
+            torch.log(1 - value**2 + self.epsilon), 1, keepdim=True
         )
         # print(torch.min(jacobi_term))
         log_prob = normal_log_prob - jacobi_term

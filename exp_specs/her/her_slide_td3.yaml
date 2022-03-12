@@ -1,6 +1,6 @@
 meta_data:
   script_path: run_scripts/her_td3_exp_script.py
-  exp_name: her_fetch_slide_td3
+  exp_name: her_fetch_slide_td3_tunefreq
   description: Train an her agent using TD3
   num_workers: 4
   using_gpus: true
@@ -9,7 +9,7 @@ variables:
   seed: [0]
   td3_params:
     policy_lr: [0.0003]
-    qf_lr: [0.0006]
+    qf_lr: [0.0006, 0.0003]
 
 # -----------------------------------------------------------------------------
 constants:
@@ -22,15 +22,15 @@ constants:
   rl_alg_params:
     num_epochs: 10000
     num_steps_per_epoch: 10000
-    num_steps_between_train_calls: 2
+    num_steps_between_train_calls: 8
     num_train_steps_per_train_call: 1
     num_steps_per_eval: 1000
     max_path_length: 50
-    min_steps_before_training: 2000
+    min_steps_before_training: 5000
 
     eval_deterministic: true
 
-    batch_size: 2048
+    batch_size: 4096 
     replay_buffer_size: 1000000
     no_terminal: false
     wrap_absorbing: false

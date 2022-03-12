@@ -1,5 +1,5 @@
 meta_data:
-  script_path: run_scripts/sac_exp_script.py
+  script_path: run_scripts/sac_alpha_exp_script.py
   exp_name: test_sac_pendulum
   description: Train an agent using Soft-Actor-Critic
   num_workers: 1
@@ -14,18 +14,18 @@ constants:
   num_hidden_layers: 2
 
   rl_alg_params:
-    num_epochs: 101
-    num_steps_per_epoch: 10000
+    num_epochs: 51
+    num_steps_per_epoch: 1000
     num_steps_between_train_calls: 1000
     num_train_steps_per_train_call: 1000
     num_steps_per_eval: 10000
     max_path_length: 1000
-    min_steps_before_training: 0
+    min_steps_before_training: 1000
 
     eval_deterministic: true
 
     batch_size: 256
-    replay_buffer_size: 1000000
+    replay_buffer_size: 10000
     no_terminal: false
     wrap_absorbing: false
 
@@ -37,11 +37,11 @@ constants:
 
   sac_params:
     alpha: 0.2
-    reward_scale: 1.0
+    reward_scale: 2.0
     discount: 0.99
     soft_target_tau: 0.005
     policy_lr: 0.0003
-    qf_lr: 0.0003
+    qf_lr: 0.001
     vf_lr: 0.0003
     policy_mean_reg_weight: 0.001
     policy_std_reg_weight: 0.001

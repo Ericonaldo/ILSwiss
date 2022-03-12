@@ -1,6 +1,6 @@
 meta_data:
   script_path: run_scripts/mbpo_exp_script.py
-  exp_name: mbpo_hopper_base
+  exp_name: humanoid_base
   description: Train an agent using Model-Based Policy Optimization
   num_workers: 1
   using_gpus: true
@@ -29,18 +29,18 @@ constants:
     wrap_absorbing: false
 
     target_update_interval: 1
-    model_train_freq: 250
-    model_retrain_epochs: 1
+    model_train_freq: 1000
+    model_retrain_epochs: 5
     rollout_batch_size: 100000
-    real_ratio: 0.05
-    rollout_schedule: [20, 150, 1, 15]
+    real_ratio: 0.95
+    rollout_schedule: [20, 300, 1, 25]
 
     save_best: false
     freq_saving: 10
     save_replay_buffer: false
 
   bnn_params:
-    net_size: 200
+    net_size: 400
     num_hidden_layers: 4
     num_nets: 7
     lr: 0.001
@@ -64,8 +64,8 @@ constants:
     vf_lr: 0.0003
     policy_mean_reg_weight: 0.001
     policy_std_reg_weight: 0.001
-    target_entropy: -1.0
+    target_entropy: -2.0
 
   env_specs:
-    env_name: 'hopper'
+    env_name: 'humanoid_trunc_obs'
     env_kwargs: {}

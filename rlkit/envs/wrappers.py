@@ -404,7 +404,7 @@ class Discretized(gym.spaces.Discrete):
     def __init__(self, n, n_dims, granularity):
         self.n_dims = n_dims
         self.granularity = granularity
-        assert n == granularity ** n_dims
+        assert n == granularity**n_dims
         super(Discretized, self).__init__(n)
 
 

@@ -20,7 +20,7 @@ def get_pos_act(cur_pos, reach_pos):
     potentials = possible_actions.copy() * 0.03
     potentials += cur_pos[None, :]
     potentials -= reach_pos[None, :]
-    potentials = np.sum(potentials ** 2, axis=1) ** 0.5
+    potentials = np.sum(potentials**2, axis=1) ** 0.5
     potentials *= -1.0
     potentials = np.exp(potentials * INV_TEMP).flatten()
     potentials = potentials / np.sum(potentials)

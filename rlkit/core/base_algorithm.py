@@ -558,7 +558,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         n_rollouts_total,
         n_train_steps_total,
         n_prev_train_env_steps,
-        **kwargs
+        **kwargs,
     ):
         self._n_env_steps_total = n_env_steps_total
         self._n_rollouts_total = n_rollouts_total
@@ -645,7 +645,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
             try:
                 logger.record_tabular(key, np.mean(value))
             except:
-                print(f'Log error with key: {key}, value: {value}')
+                print(f"Log error with key: {key}, value: {value}")
 
         best_statistic = statistics[self.best_key]
         data_to_save = {"epoch": epoch, "statistics": statistics}

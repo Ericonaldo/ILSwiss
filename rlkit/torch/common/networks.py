@@ -139,7 +139,7 @@ class CatagorialMlp(Mlp):
             preactivation = self.batch_norms[-1](preactivation)
         output = self.softmax(self.output_activation(preactivation))
         # output = preactivation
-        
+
         if return_preactivations:
             return output, preactivation
         else:
@@ -147,20 +147,16 @@ class CatagorialMlp(Mlp):
 
 
 class EnsembleLinear(PyTorchModule):
-
-    def __init__(
-        self,
-        input_size: int,
-        output_size: int,
-        ensemble_size: int = 1
-    ):
+    def __init__(self, input_size: int, output_size: int, ensemble_size: int = 1):
         self.save_init_params(locals())
         super().__init__()
         self.input_size = input_size
         self.output_size = output_size
         self.ensemble_size = ensemble_size
 
-        self.weight = nn.Parameter(torch.zeros([self.ensemble_size, self.input_size, self.output_size]))
+        self.weight = nn.Parameter(
+            torch.zeros([self.ensemble_size, self.input_size, self.output_size])
+        )
         self.bias = nn.Parameter(torch.zeros([self.ensemble_size, 1, self.output_size]))
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
@@ -169,12 +165,13 @@ class EnsembleLinear(PyTorchModule):
         elif len(input.shape) == 3 and input.shape[0] == self.ensemble_size:
             output = torch.matmul(input, self.weight) + self.bias
         else:
-            raise ValueError(f"In EnsembleLinear: invalid input dimension {input.shape} to layer shape {self.weight.shape}.")
+            raise ValueError(
+                f"In EnsembleLinear: invalid input dimension {input.shape} to layer shape {self.weight.shape}."
+            )
         return output
 
 
 class BNN(PyTorchModule):
-
     def __init__(
         self,
         hidden_sizes: List,
@@ -189,14 +186,13 @@ class BNN(PyTorchModule):
         layer_norm_kwargs: Dict = None,
         batch_norm: bool = False,
         batch_norm_before_output_activation: bool = False,
-
         num_nets: int = 1,
     ):
         self.save_init_params(locals())
         super().__init__()
         if layer_norm_kwargs is None:
             layer_norm_kwargs = dict()
-        
+
         self.input_size = input_size
         output_size *= 2
         self.output_size = output_size
@@ -206,7 +202,7 @@ class BNN(PyTorchModule):
         self.batch_norm = batch_norm
         self.batch_norm_before_output_activation = batch_norm_before_output_activation
         self.num_nets = num_nets
-        
+
         self.fcs = []
         self.layer_norms = []
         self.batch_norms = []
@@ -228,7 +224,7 @@ class BNN(PyTorchModule):
                 bn = BatchNorm1d(next_size)
                 self.__setattr__(f"batch_norm{i}", bn)
                 self.batch_norms.append(bn)
-        
+
         if self.batch_norm_before_output_activation:
             bn = BatchNorm1d(output_size)
             self.__setattr__("batch_norm_last", bn)
@@ -237,12 +233,14 @@ class BNN(PyTorchModule):
         self.last_fc = EnsembleLinear(in_size, output_size, num_nets)
         self.last_fc.weight.data.uniform_(-init_w, init_w)
         self.last_fc.bias.data.uniform_(-init_w, init_w)
-        
+
         self.normalizer = FixedNormalizer(input_size)
         self.max_log_var = ptu.from_numpy(np.ones([1, output_size // 2]) / 2.0)
         self.min_log_var = ptu.from_numpy(-np.ones([1, output_size // 2]) * 10.0)
 
-    def forward(self, input: torch.Tensor, ret_log_var: bool = False) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(
+        self, input: torch.Tensor, ret_log_var: bool = False
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         h = ptu.from_numpy(self.normalizer.normalize(input))
         for i, fc in enumerate(self.fcs):
             h = fc(h)
@@ -254,9 +252,9 @@ class BNN(PyTorchModule):
         preactivation = self.last_fc(h)
         if self.batch_norm_before_output_activation:
             preactivation = self.batch_norms[-1](preactivation)
-        mean = preactivation[:, :, :self.output_size // 2]
+        mean = preactivation[:, :, : self.output_size // 2]
         mean = self.output_activation(mean)
-        var = preactivation[:, :, self.output_size // 2:]
+        var = preactivation[:, :, self.output_size // 2 :]
         logvar = self.max_log_var - F.softplus(self.max_log_var - var)
         logvar = self.min_log_var + F.softplus(logvar - self.min_log_var)
         if ret_log_var:
@@ -264,7 +262,9 @@ class BNN(PyTorchModule):
         else:
             return mean, torch.exp(logvar)
 
-    def predict(self, input: torch.Tensor, factored: bool = False) -> Tuple[torch.Tensor, torch.Tensor]:
+    def predict(
+        self, input: torch.Tensor, factored: bool = False
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         mean_fac, std_fac = self.forward(input)
         if input.ndim == 2 and not factored:
             mean = torch.mean(mean_fac, dim=0)

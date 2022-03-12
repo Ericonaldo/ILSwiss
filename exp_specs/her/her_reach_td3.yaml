@@ -54,5 +54,5 @@ constants:
   env_specs:
     env_name: 'fetch-reach'
     env_kwargs: {}
-    vec_env_kwargs: 
-      "norm_obs": True
+    # vec_env_kwargs: 
+    #   "norm_obs": True

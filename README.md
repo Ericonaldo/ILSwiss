@@ -119,7 +119,9 @@ run gail for walker:
 python run_experiment -e \exp_specs\gail\gail_walker.yaml -g 0
 ```
 
-## Current Baseline Reults
+## Some qualitive baseline reults
+
+See exp_specs for detailed curve results.
 
 ### SAC
 
@@ -138,7 +140,8 @@ python run_experiment -e \exp_specs\gail\gail_walker.yaml -g 0
 
 | Envs | Mean | Std
 | ----  | ----  | ----  |
-| Finger_Spin (600K) | 983.4286 | 5.8274 |
+| Finger_Spin (600K) | 983.42 | 5.82 |
+| Reach_Easy (1600K) | 782.8 | 23.86 |
 
 ### Random
 

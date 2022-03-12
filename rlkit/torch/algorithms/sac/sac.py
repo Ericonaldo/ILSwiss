@@ -156,8 +156,8 @@ class SoftActorCritic(Trainer):
 
         self.policy_optimizer.zero_grad()
         policy_loss = torch.mean(self.alpha * log_pi - q_new_actions)  ##
-        mean_reg_loss = self.policy_mean_reg_weight * (policy_mean ** 2).mean()
-        std_reg_loss = self.policy_std_reg_weight * (policy_log_std ** 2).mean()
+        mean_reg_loss = self.policy_mean_reg_weight * (policy_mean**2).mean()
+        std_reg_loss = self.policy_std_reg_weight * (policy_log_std**2).mean()
         policy_reg_loss = mean_reg_loss + std_reg_loss
         policy_loss = policy_loss + policy_reg_loss
         policy_loss.backward()

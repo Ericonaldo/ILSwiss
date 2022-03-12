@@ -74,7 +74,7 @@ def get_dim(space):
             return space.low.shape
         return space.low.size
     elif isinstance(space, Discrete):
-        return 1 # space.n
+        return 1  # space.n
     elif isinstance(space, Tuple):
         return sum(get_dim(subspace) for subspace in space.spaces)
     elif isinstance(space, Dict):

@@ -19,9 +19,16 @@ def rollout(
         if preprocess_func:
             observation = preprocess_func(observation)
         if use_horizon:
-            horizon = np.arange(max_path_length) >= (max_path_length - 1 - _) # 
+            horizon = np.arange(max_path_length) >= (max_path_length - 1 - _)  #
             if isinstance(observation, dict):
-                observation = np.concatenate([observation[policy.stochastic_policy.observation_key], observation[policy.stochastic_policy.desired_goal_key], horizon], axis=-1) 
+                observation = np.concatenate(
+                    [
+                        observation[policy.stochastic_policy.observation_key],
+                        observation[policy.stochastic_policy.desired_goal_key],
+                        horizon,
+                    ],
+                    axis=-1,
+                )
 
         action, agent_info = policy.get_action(observation)
         if render:

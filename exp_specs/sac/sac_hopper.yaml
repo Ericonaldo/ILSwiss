@@ -14,7 +14,7 @@ constants:
   num_hidden_layers: 2
 
   rl_alg_params:
-    num_epochs: 582
+    num_epochs: 102
     num_steps_per_epoch: 10000
     num_steps_between_train_calls: 1000
     num_train_steps_per_train_call: 1000
@@ -24,7 +24,7 @@ constants:
 
     eval_deterministic: true
 
-    batch_size: 256
+    batch_size: 512
     replay_buffer_size: 1000000
     no_terminal: false
     wrap_absorbing: false

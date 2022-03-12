@@ -116,7 +116,7 @@ def do_the_thing(data_path, save_path, plot_obs_histogram=False):
 
 
 with open(EXPERT_LISTING_YAML_PATH, "r") as f:
-    listings = yaml.load(f.read())
+    listings = yaml.safe_load(f.read())
 
 for i, expert in enumerate(["hopper_mul_4_demos_sub_20"]):
     data_path = osp.join(listings[expert]["file_paths"][0])

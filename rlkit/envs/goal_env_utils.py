@@ -11,10 +11,10 @@ def goal_distance_obs(obs, distance_threshold=0.05):
     )
 
 
-def compute_reward(self, achieved, goal, info, distance_threshold=0.05):
+def compute_reward(achieved, goal, info, distance_threshold=0.05):
     dis = goal_distance(achieved, goal)
     return -(dis > self.distance_threshold).astype(np.float32)
 
 
-def compute_distance(self, achieved, goal):
+def compute_distance(achieved, goal):
     return np.sqrt(np.sum(np.square(achieved - goal)))

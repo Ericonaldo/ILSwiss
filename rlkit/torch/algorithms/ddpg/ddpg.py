@@ -116,7 +116,7 @@ class DDPG(Trainer):
                 obs,
                 return_preactivations=True,
             )
-            pre_activation_policy_loss = (pre_tanh_value ** 2).sum(dim=1).mean()
+            pre_activation_policy_loss = (pre_tanh_value**2).sum(dim=1).mean()
             q_output = self.qf(obs, policy_actions)
             raw_policy_loss = -q_output.mean()
             policy_loss = (
@@ -165,7 +165,7 @@ class DDPG(Trainer):
 
         if self.qf_weight_decay > 0:
             reg_loss = self.qf_weight_decay * sum(
-                torch.sum(param ** 2) for param in self.qf.regularizable_parameters()
+                torch.sum(param**2) for param in self.qf.regularizable_parameters()
             )
             qf_loss = raw_qf_loss + reg_loss
         else:

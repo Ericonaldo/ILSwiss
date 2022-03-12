@@ -211,7 +211,7 @@ def _sample_color_within_radius(center, radius):
     x /= np.linalg.norm(x, axis=-1)
     r = radius
     u = np.random.uniform()
-    sampled_color = r * (u ** 0.5) * x + center
+    sampled_color = r * (u**0.5) * x + center
     return np.clip(sampled_color, -1.0, 1.0)
 
 

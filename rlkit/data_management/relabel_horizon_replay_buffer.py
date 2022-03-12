@@ -1,8 +1,6 @@
 from inspect import Attribute
 import numpy as np
-from rlkit.data_management.relabel_replay_buffer import (
-    HindsightReplayBuffer
-)
+from rlkit.data_management.relabel_replay_buffer import HindsightReplayBuffer
 from rlkit.data_management.env_replay_buffer import get_dim
 from rlkit.envs.goal_env_utils import compute_reward, compute_distance
 from gym.spaces import Box, Discrete, Tuple, Dict
@@ -10,14 +8,15 @@ from gym.spaces import Box, Discrete, Tuple, Dict
 import pickle
 import copy
 
+
 class HindsightHorizonReplayBuffer(HindsightReplayBuffer):
     def __init__(self, max_path_length=50, *args, **kwargs):
         """
         :param max_replay_buffer_size:
         :param env:
         """
-        
-        super().__init__(her_ratio=1.0, *args, **kwargs) # all relabel
+
+        super().__init__(her_ratio=1.0, *args, **kwargs)  # all relabel
 
         self.max_path_length = max_path_length
         self.all_data = None
@@ -47,13 +46,11 @@ class HindsightHorizonReplayBuffer(HindsightReplayBuffer):
                     "rewards",
                     "horizons",
                     "terminals",
-                    "next_observations"
+                    "next_observations",
                 ]
             )
         keys_list = list(self._traj_endpoints.keys())
-        starts = self._np_choice(
-            keys_list, size=len(keys_list), replace=False
-        )
+        starts = self._np_choice(keys_list, size=len(keys_list), replace=False)
         ends = list(map(lambda k: self._traj_endpoints[k], starts))
 
         traj_indice = range(len(starts))
@@ -61,37 +58,58 @@ class HindsightHorizonReplayBuffer(HindsightReplayBuffer):
         indices_relabel = []
         indices_subgoal = []
         for i in traj_indice:
-            traj_len = (ends[i]-starts[i]) % self._size
+            traj_len = (ends[i] - starts[i]) % self._size
             for j in range(traj_len):
                 step = (j + starts[i]) % self._size
-                
+
                 try:
                     step_her = {
-                        'final': ends[i]-1,
-                        'future': np.random.randint(step, (traj_len + starts[i])) % self._size
+                        "final": ends[i] - 1,
+                        "future": np.random.randint(step, (traj_len + starts[i]))
+                        % self._size,
                     }[self.relabel_type]
                 except BaseException as err:
                     print(err, starts[i], ends[i], step, ends[i])
                     exit(0)
-        
+
                 # print("her:", traj_len, starts[i], ends[i], step, step_her)
                 indices.append(step)
                 indices_relabel.append(step_her)
-        
+
         batch_to_return = self._get_batch_using_indices(indices, keys=keys)
         # relabel
         if relabel:
             relabel_num = len(indices)
-            batch_to_relabel = self._get_batch_using_indices(indices_relabel, keys=["observations", "next_observations"])
+            batch_to_relabel = self._get_batch_using_indices(
+                indices_relabel, keys=["observations", "next_observations"]
+            )
             if "observations" in keys:
-                batch_to_return["observations"][self.desired_goal_key][:relabel_num] = copy.deepcopy(batch_to_relabel["next_observations"][self.achieved_goal_key][:relabel_num])
+                batch_to_return["observations"][self.desired_goal_key][
+                    :relabel_num
+                ] = copy.deepcopy(
+                    batch_to_relabel["next_observations"][self.achieved_goal_key][
+                        :relabel_num
+                    ]
+                )
             if "next_observations" in keys:
-                batch_to_return["next_observations"][self.desired_goal_key][:relabel_num] = copy.deepcopy(batch_to_relabel["next_observations"][self.achieved_goal_key][:relabel_num])
+                batch_to_return["next_observations"][self.desired_goal_key][
+                    :relabel_num
+                ] = copy.deepcopy(
+                    batch_to_relabel["next_observations"][self.achieved_goal_key][
+                        :relabel_num
+                    ]
+                )
 
         if "observations" in keys:
-            batch_to_return["achieved_goals"] = batch_to_return["observations"][self.achieved_goal_key]
-            batch_to_return["desired_goals"] = batch_to_return["observations"][self.desired_goal_key]
-            batch_to_return["observations"] = batch_to_return["observations"][self.observation_key]
+            batch_to_return["achieved_goals"] = batch_to_return["observations"][
+                self.achieved_goal_key
+            ]
+            batch_to_return["desired_goals"] = batch_to_return["observations"][
+                self.desired_goal_key
+            ]
+            batch_to_return["observations"] = batch_to_return["observations"][
+                self.observation_key
+            ]
 
         if "horizons" in keys:
             lengths = np.array(indices_relabel) - np.array(indices)
@@ -101,20 +119,27 @@ class HindsightHorizonReplayBuffer(HindsightReplayBuffer):
             # print("encoding horizon", horizons)
 
         if "next_observations" in keys:
-            batch_to_return["next_achieved_goals"] = batch_to_return["next_observations"][self.achieved_goal_key]
-            batch_to_return["next_desired_goals"] = batch_to_return["next_observations"][self.desired_goal_key]
-            batch_to_return["next_observations"] = batch_to_return["next_observations"][self.observation_key]
-        
+            batch_to_return["next_achieved_goals"] = batch_to_return[
+                "next_observations"
+            ][self.achieved_goal_key]
+            batch_to_return["next_desired_goals"] = batch_to_return[
+                "next_observations"
+            ][self.desired_goal_key]
+            batch_to_return["next_observations"] = batch_to_return["next_observations"][
+                self.observation_key
+            ]
+
         if relabel:
             if "next_achieved_goals" in batch_to_return.keys():
-                batch_to_return["rewards"] = self.compute_reward(batch_to_return["next_achieved_goals"], batch_to_return["desired_goals"], info=None).reshape(-1, 1)
+                batch_to_return["rewards"] = self.compute_reward(
+                    batch_to_return["next_achieved_goals"],
+                    batch_to_return["desired_goals"],
+                    info=None,
+                ).reshape(-1, 1)
 
         return batch_to_return
 
-
-    def random_batch(
-        self, batch_size, keys=None, relabel=True, **kwargs
-    ):        
+    def random_batch(self, batch_size, keys=None, relabel=True, **kwargs):
         relabel = (self.relabel_type is not None) & relabel
         assert (keys is None) or ("observations" in keys)
         if keys is None:
@@ -125,51 +150,70 @@ class HindsightHorizonReplayBuffer(HindsightReplayBuffer):
                     "rewards",
                     "horizons",
                     "terminals",
-                    "next_observations"
+                    "next_observations",
                 ]
             )
 
         keys_list = list(self._traj_endpoints.keys())
-        starts = self._np_choice(
-            keys_list, size=len(keys_list), replace=False
-        )
+        starts = self._np_choice(keys_list, size=len(keys_list), replace=False)
         ends = list(map(lambda k: self._traj_endpoints[k], starts))
-        
+
         traj_indice = self._np_randint(0, len(starts), batch_size)
         indices = []
         indices_relabel = []
         indices_subgoal = []
         for i in traj_indice:
-            traj_len = (ends[i]-starts[i]) % self._size
+            traj_len = (ends[i] - starts[i]) % self._size
             step = (self._np_randint(0, traj_len, 1)[0] + starts[i]) % self._size
-            
+
             try:
                 step_her = {
-                    'final': ends[i]-1,
-                    'future': np.random.randint(step, (traj_len + starts[i])) % self._size
+                    "final": ends[i] - 1,
+                    "future": np.random.randint(step, (traj_len + starts[i]))
+                    % self._size,
                 }[self.relabel_type]
             except BaseException as err:
                 print(err, starts[i], ends[i], step, ends[i])
                 exit(0)
-            
+
             # print("her:", traj_len, starts[i], ends[i], step, step_her)
             indices.append(step)
             indices_relabel.append(step_her)
         batch_to_return = self._get_batch_using_indices(indices, keys=keys)
-        
+
         # relabel
         if relabel:
             relabel_num = int(self.her_ratio * batch_size)
-            batch_to_relabel = self._get_batch_using_indices(indices_relabel, keys=["observations", "next_observations"])
+            batch_to_relabel = self._get_batch_using_indices(
+                indices_relabel, keys=["observations", "next_observations"]
+            )
             if "observations" in keys:
-                batch_to_return["observations"][self.desired_goal_key][:relabel_num] = copy.deepcopy(batch_to_relabel["next_observations"][self.achieved_goal_key][:relabel_num])
+                batch_to_return["observations"][self.desired_goal_key][
+                    :relabel_num
+                ] = copy.deepcopy(
+                    batch_to_relabel["next_observations"][self.achieved_goal_key][
+                        :relabel_num
+                    ]
+                )
             if "next_observations" in keys:
-                batch_to_return["next_observations"][self.desired_goal_key][:relabel_num] = copy.deepcopy(batch_to_relabel["next_observations"][self.achieved_goal_key][:relabel_num])
+                batch_to_return["next_observations"][self.desired_goal_key][
+                    :relabel_num
+                ] = copy.deepcopy(
+                    batch_to_relabel["next_observations"][self.achieved_goal_key][
+                        :relabel_num
+                    ]
+                )
 
         if "observations" in keys:
-            batch_to_return["achieved_goals"] = batch_to_return["observations"][self.achieved_goal_key]
-            batch_to_return["desired_goals"] = batch_to_return["observations"][self.desired_goal_key]
-            batch_to_return["observations"] = batch_to_return["observations"][self.observation_key]
+            batch_to_return["achieved_goals"] = batch_to_return["observations"][
+                self.achieved_goal_key
+            ]
+            batch_to_return["desired_goals"] = batch_to_return["observations"][
+                self.desired_goal_key
+            ]
+            batch_to_return["observations"] = batch_to_return["observations"][
+                self.observation_key
+            ]
 
         if "horizons" in keys:
             lengths = np.array(indices_relabel) - np.array(indices)
@@ -179,13 +223,23 @@ class HindsightHorizonReplayBuffer(HindsightReplayBuffer):
             # print("encoding horizon", horizons)
 
         if "next_observations" in keys:
-            batch_to_return["next_achieved_goals"] = batch_to_return["next_observations"][self.achieved_goal_key]
-            batch_to_return["next_desired_goals"] = batch_to_return["next_observations"][self.desired_goal_key]
-            batch_to_return["next_observations"] = batch_to_return["next_observations"][self.observation_key]
-        
+            batch_to_return["next_achieved_goals"] = batch_to_return[
+                "next_observations"
+            ][self.achieved_goal_key]
+            batch_to_return["next_desired_goals"] = batch_to_return[
+                "next_observations"
+            ][self.desired_goal_key]
+            batch_to_return["next_observations"] = batch_to_return["next_observations"][
+                self.observation_key
+            ]
+
         if relabel:
             if "next_achieved_goals" in batch_to_return.keys():
-                batch_to_return["rewards"] = self.compute_reward(batch_to_return["next_achieved_goals"], batch_to_return["desired_goals"], info=None).reshape(-1, 1)
+                batch_to_return["rewards"] = self.compute_reward(
+                    batch_to_return["next_achieved_goals"],
+                    batch_to_return["desired_goals"],
+                    info=None,
+                ).reshape(-1, 1)
 
         return batch_to_return
 

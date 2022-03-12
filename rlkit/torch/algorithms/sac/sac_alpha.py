@@ -50,7 +50,9 @@ class SoftActorCritic(Trainer):
         self.policy_std_reg_weight = policy_std_reg_weight
 
         self.train_alpha = train_alpha
-        self.log_alpha = torch.tensor(np.log(alpha), requires_grad=train_alpha, device=ptu.device)
+        self.log_alpha = torch.tensor(
+            np.log(alpha), requires_grad=train_alpha, device=ptu.device
+        )
         self.alpha = self.log_alpha.detach().exp()
         assert "env" in kwargs.keys(), "env info should be taken into SAC alpha"
         self.target_entropy = target_entropy
@@ -147,8 +149,8 @@ class SoftActorCritic(Trainer):
 
         self.policy_optimizer.zero_grad()
         policy_loss = torch.mean(self.alpha * log_pi - q_new_actions)  ##
-        mean_reg_loss = self.policy_mean_reg_weight * (policy_mean ** 2).mean()
-        std_reg_loss = self.policy_std_reg_weight * (policy_log_std ** 2).mean()
+        mean_reg_loss = self.policy_mean_reg_weight * (policy_mean**2).mean()
+        std_reg_loss = self.policy_std_reg_weight * (policy_log_std**2).mean()
         policy_reg_loss = mean_reg_loss + std_reg_loss
         policy_loss = policy_loss + policy_reg_loss
         policy_loss.backward()

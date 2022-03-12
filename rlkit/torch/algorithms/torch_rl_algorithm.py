@@ -50,7 +50,9 @@ class TorchRLAlgorithm(TorchBaseAlgorithm):
     def evaluate(self, epoch):
         if self.eval_statistics is None:
             self.eval_statistics = OrderedDict()
-        self.eval_statistics.update(self.trainer.get_eval_statistics())
+        trainer_stats = self.trainer.get_eval_statistics()
+        if trainer_stats is not None:
+            self.eval_statistics.update(trainer_stats)
         super().evaluate(epoch)
 
     def _end_epoch(self):

@@ -149,4 +149,3 @@ def tf_like_gather_np(x: np.ndarray, i: np.ndarray) -> np.ndarray:
 def print_grad_hook(grad):
     # for debug
     print(grad)
-    

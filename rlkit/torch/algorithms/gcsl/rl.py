@@ -12,9 +12,12 @@ import rlkit.torch.utils.pytorch_util as ptu
 from rlkit.torch.core import np_to_pytorch_batch
 from rlkit.torch.algorithms.torch_rl_algorithm import TorchRLAlgorithm
 from rlkit.data_management.relabel_replay_buffer import HindsightReplayBuffer
-from rlkit.data_management.relabel_horizon_replay_buffer import HindsightHorizonReplayBuffer
+from rlkit.data_management.relabel_horizon_replay_buffer import (
+    HindsightHorizonReplayBuffer,
+)
 from rlkit.data_management.path_builder import PathBuilder
 from rlkit.samplers import PathSampler
+
 
 class GoalHorizonRL(TorchRLAlgorithm):
     """
@@ -30,9 +33,13 @@ class GoalHorizonRL(TorchRLAlgorithm):
         **kwargs
     ):
         if replay_buffer is None:
-            assert kwargs['max_path_length'] < kwargs['replay_buffer_size']
+            assert kwargs["max_path_length"] < kwargs["replay_buffer_size"]
             replay_buffer = HindsightHorizonReplayBuffer(
-                max_replay_buffer_size=kwargs['replay_buffer_size'], max_path_length=kwargs['max_path_length'], env=kwargs['env'], random_seed=np.random.randint(10000), relabel_type=relabel_type
+                max_replay_buffer_size=kwargs["replay_buffer_size"],
+                max_path_length=kwargs["max_path_length"],
+                env=kwargs["env"],
+                random_seed=np.random.randint(10000),
+                relabel_type=relabel_type,
             )
 
         super().__init__(replay_buffer=replay_buffer, **kwargs)
@@ -54,7 +61,19 @@ class GoalHorizonRL(TorchRLAlgorithm):
         """
         self.exploration_policy.set_num_steps_total(self._n_env_steps_total)
         if isinstance(observation[0], dict):
-            observation = np.array([np.concatenate([observation[i][self.exploration_policy.observation_key], observation[i][self.exploration_policy.desired_goal_key], horizon[i]], axis=-1) for i in range(len(observation))])
+            observation = np.array(
+                [
+                    np.concatenate(
+                        [
+                            observation[i][self.exploration_policy.observation_key],
+                            observation[i][self.exploration_policy.desired_goal_key],
+                            horizon[i],
+                        ],
+                        axis=-1,
+                    )
+                    for i in range(len(observation))
+                ]
+            )
 
         return self.exploration_policy.get_actions(
             observation,
@@ -79,7 +98,13 @@ class GoalHorizonRL(TorchRLAlgorithm):
             total_rews = np.array([0.0 for _ in range(len(self.ready_env_ids))])
             timesteps = np.array([0 for _ in range(len(self.ready_env_ids))])
             for steps_this_epoch in range(self.num_env_steps_per_epoch // self.env_num):
-                horizon = np.array([np.arange(self.max_path_length) >= (self.max_path_length - 1 - timestep) for timestep in timesteps]) # Temperature encoding of horizon
+                horizon = np.array(
+                    [
+                        np.arange(self.max_path_length)
+                        >= (self.max_path_length - 1 - timestep)
+                        for timestep in timesteps
+                    ]
+                )  # Temperature encoding of horizon
                 actions = self._get_action_and_info(observations, horizon)
 
                 if type(actions) is tuple:
@@ -94,7 +119,7 @@ class GoalHorizonRL(TorchRLAlgorithm):
                 timesteps += 1
                 if self.no_terminal:
                     terminals = [False for _ in range(len(self.ready_env_ids))]
-                
+
                 self._n_env_steps_total += len(self.ready_env_ids)
 
                 rewards = raw_rewards
@@ -189,7 +214,9 @@ class GoalHorizonRL(TorchRLAlgorithm):
 
                 observations = next_obs
 
-                if (self._n_env_steps_total - self._n_prev_train_env_steps) >= self.num_steps_between_train_calls:
+                if (
+                    self._n_env_steps_total - self._n_prev_train_env_steps
+                ) >= self.num_steps_between_train_calls:
                     gt.stamp("sample")
                     self._try_to_train(epoch)
                     gt.stamp("train")

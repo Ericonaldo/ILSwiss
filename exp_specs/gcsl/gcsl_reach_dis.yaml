@@ -1,6 +1,6 @@
 meta_data:
   script_path: run_scripts/gcsl_exp_script.py
-  exp_name: gcsl_fetch_reach
+  exp_name: gcsl_fetch_reach_discrete
   description: Train an her agent using GCSL
   num_workers: 2
   using_gpus: true
