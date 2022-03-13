@@ -129,6 +129,6 @@ if __name__ == "__main__":
     exp_prefix = exp_specs["exp_name"] + "_plr_{}".format(exp_specs["gcsl_params"]["policy_lr"])
     seed = exp_specs["seed"]
     set_seed(seed)
-    setup_logger(exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs)
+    setup_logger(exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs, seed=seed)
 
     experiment(exp_specs)

@@ -117,6 +117,6 @@ if __name__ == "__main__":
     )
     seed = exp_specs["seed"]
     set_seed(seed)
-    setup_logger(exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs)
+    setup_logger(exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs, seed=seed)
 
     experiment(exp_specs)

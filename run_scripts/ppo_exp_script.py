@@ -146,7 +146,7 @@ if __name__ == "__main__":
             log_dir = load_path
 
     setup_logger(
-        exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs, log_dir=log_dir
+        exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs, seed=seed, log_dir=log_dir
     )
 
     experiment(exp_specs)
