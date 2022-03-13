@@ -394,7 +394,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
     def _end_epoch(self):
         self.eval_statistics = None
         logger.log("Epoch Duration: {0}".format(time.time() - self._epoch_start_time))
-        logger.log("Started Training: {0}".format(self._can_train()))
+        logger.log("Started Training: {0}".format(self._can_evaluate()))
         logger.pop_prefix()
 
     def _start_new_rollout(self, env_ind_local):

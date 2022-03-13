@@ -18,30 +18,29 @@ def rollout(
     ready_env_ids = np.arange(env_num)
     observations = env.reset(ready_env_ids)
 
-    timesteps = np.array([0 for _ in range(env_num)])
     for _ in range(max_path_length):
-        if preprocess_func:
-            observation = preprocess_func(observation)
-        if use_horizon:
-            horizon = np.arange(max_path_length) >= (max_path_length - 1 - _)  #
-            if isinstance(observation[0], dict):
-                observation = np.array(
-                    [
-                        np.concatenate(
-                            [
-                                observation[idx][
-                                    policy.stochastic_policy.observation_key
-                                ],
-                                observation[idx][
-                                    policy.stochastic_policy.desired_goal_key
-                                ],
-                                horizon[ready_env_ids[idx]],
-                            ],
-                            axis=-1,
-                        )
-                        for idx in range(len(observation))
-                    ]
-                )
+        # if preprocess_func:
+        #     observation = preprocess_func(observation)
+        # if use_horizon:
+        #     horizon = np.arange(max_path_length) >= (max_path_length - 1 - _)  #
+        #     if isinstance(observation[0], dict):
+        #         observation = np.array(
+        #             [
+        #                 np.concatenate(
+        #                     [
+        #                         observation[idx][
+        #                             policy.stochastic_policy.observation_key
+        #                         ],
+        #                         observation[idx][
+        #                             policy.stochastic_policy.desired_goal_key
+        #                         ],
+        #                         horizon[ready_env_ids[idx]],
+        #                     ],
+        #                     axis=-1,
+        #                 )
+        #                 for idx in range(len(observation))
+        #             ]
+        #         )
 
         actions = policy.get_actions(observations)
         if render:
@@ -50,7 +49,6 @@ def rollout(
         next_observations, rewards, terminals, env_infos = env.step(
             actions, ready_env_ids
         )
-        timesteps += 1
         if no_terminal:
             terminals = [False for _ in range(len(ready_env_ids))]
 
@@ -82,7 +80,7 @@ def rollout(
                 env_infos=env_info,
             )
 
-        observations = next_observations
+        observations = next_observations[terminals == False]
 
         if np.any(terminals):
             end_env_ids = ready_env_ids[np.where(terminals)[0]]
