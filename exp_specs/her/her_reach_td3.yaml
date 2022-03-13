@@ -40,7 +40,7 @@ constants:
     # save_environment: false
     # save_environment: false
 
-    relabel_type: "final"
+    # relabel_type: "final"
     her_ratio: 0.8
 
   td3_params:
@@ -54,5 +54,5 @@ constants:
   env_specs:
     env_name: 'fetch-reach'
     env_kwargs: {}
-    # vec_env_kwargs: 
-    #   "norm_obs": True
+    vec_env_kwargs: 
+      "norm_obs": true

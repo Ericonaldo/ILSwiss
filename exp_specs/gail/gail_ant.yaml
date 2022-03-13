@@ -1,13 +1,13 @@
 meta_data:
   script_path: run_scripts/adv_irl_exp_script.py
-  exp_name: gail_walker
+  exp_name: gail_ant
   description: Train an adversarial IRL model
   num_workers: 2 # 64
   using_gpus: true
 # -----------------------------------------------------------------------------
 variables:
   adv_irl_params:
-    grad_pen_weight: [8.0] # [0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]
+    grad_pen_weight: [0.5] # [0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]
   sac_params:
     reward_scale: [2.0] # [0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]
   # seed: [723894, 23789]
@@ -15,7 +15,7 @@ variables:
 
 # -----------------------------------------------------------------------------
 constants:
-  expert_name: 'walker_sac'
+  expert_name: 'ant_sac'
   expert_idx: 0
   traj_num: 4
   scale_env_with_demo_stats: true
@@ -34,7 +34,7 @@ constants:
     mode: 'gail2'
     state_only: false
 
-    num_epochs: 562
+    num_epochs: 162
     num_steps_per_epoch: 10000
     num_steps_between_train_calls: 1000
     max_path_length: 1000
@@ -65,7 +65,6 @@ constants:
     freq_saving: 20
     save_replay_buffer: false
     # save_environment: false
-    # save_environment: false
 
   sac_params:
     alpha: 0.2
@@ -80,6 +79,6 @@ constants:
     policy_std_reg_weight: 0.001
 
   env_specs:
-    env_name: 'walker'
+    env_name: 'ant'
     env_kwargs: {}
-    env_num: 10
+    env_num: 4

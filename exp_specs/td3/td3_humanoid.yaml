@@ -12,17 +12,17 @@ variables:
 constants:
   net_size: 256
   num_hidden_layers: 2
-  policy_noise: 0.1
+  policy_noise: 0.2
   policy_noise_clip: 0.5
 
   rl_alg_params:
-    num_epochs: 282
+    num_epochs: 152
     num_steps_per_epoch: 10000
     num_steps_between_train_calls: 1
     num_train_steps_per_train_call: 1
     num_steps_per_eval: 10000
     max_path_length: 1000
-    min_steps_before_training: 25000
+    min_steps_before_training: 5000
 
     eval_deterministic: true
 

@@ -12,7 +12,7 @@ variables:
 constants:
   net_size: 256
   num_hidden_layers: 2
-  policy_noise: 0.1
+  policy_noise: 0.2
   policy_noise_clip: 0.5
 
   rl_alg_params:

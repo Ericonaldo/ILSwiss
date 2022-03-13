@@ -97,10 +97,7 @@ def experiment(variant):
         output_size=obs_dim + rew_dim,
         num_nets=bnn_num_nets,
     )
-    bnn_trainer = BNNTrainer(
-        bnn=bnn,
-        **bnn_params
-    )
+    bnn_trainer = BNNTrainer(bnn=bnn, **bnn_params)
 
     # MBPO params
     is_terminal = get_terminal_func(env_specs["env_name"])

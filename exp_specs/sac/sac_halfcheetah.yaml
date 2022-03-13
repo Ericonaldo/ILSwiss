@@ -17,8 +17,8 @@ constants:
   rl_alg_params:
     num_epochs: 582
     num_steps_per_epoch: 5000
-    num_steps_between_train_calls: 1000
-    num_train_steps_per_train_call: 1000
+    num_steps_between_train_calls: 1
+    num_train_steps_per_train_call: 1
     num_steps_per_eval: 10000
     max_path_length: 1000
     min_steps_before_training: 5000
@@ -46,6 +46,7 @@ constants:
     vf_lr: 0.0003
     policy_mean_reg_weight: 0.001
     policy_std_reg_weight: 0.001
+    target_entropy: -3
 
   env_specs:
     env_name: 'halfcheetah'

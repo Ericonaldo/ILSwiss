@@ -2,7 +2,7 @@
 
 ## InvertedDoublePendulum
 
-![SAC InvertedDoublePendulum](/files/sac_inv_double_pendlulum.png)
+![SAC InvertedDoublePendulum](/files/sac_inv_double_pendulum.png)
 
 ## Hopper
 
@@ -31,4 +31,4 @@
 
 ## Pendulum
 
-![SAC Pendulum](/files/sac_pendlulum.png)
+![SAC Pendulum](/files/sac_pendulum.png)

@@ -21,16 +21,14 @@ from rlkit.torch.core import np_to_pytorch_batch
 
 
 class MBPO(TorchRLAlgorithm):
-    
     def __init__(
         self,
         env,
         model: BNNTrainer,
-        algo: SoftActorCritic, # model-free algorithm to train policy
-        is_terminal: Callable, # for fake_env
+        algo: SoftActorCritic,  # model-free algorithm to train policy
+        is_terminal: Callable,  # for fake_env
         model_replay_buffer: SimpleReplayBuffer = None,
         model_replay_buffer_size: int = 10000,
-
         # model utilization params
         deterministic: bool = False,
         model_train_freq: int = 250,
@@ -39,22 +37,26 @@ class MBPO(TorchRLAlgorithm):
         real_ratio: float = 0.1,
         rollout_schedule: List = None,
         max_model_t: float = None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(env=env, trainer=algo, **kwargs)
         self.training_env: BaseVectorEnv
         self.model = model
         self.algo = algo
         self.is_terminal = is_terminal
-        self.fake_env = FakeEnv(self.model, self.is_terminal, self.model.get_random_model_index)
+        self.fake_env = FakeEnv(
+            self.model, self.is_terminal, self.model.get_random_model_index
+        )
         self.model_replay_buffer_size = model_replay_buffer_size
         if model_replay_buffer is None:
             assert self.max_path_length < model_replay_buffer_size
-            model_replay_buffer = EnvReplayBuffer(model_replay_buffer_size, self.env, random_seed=np.random.randint(10000))
+            model_replay_buffer = EnvReplayBuffer(
+                model_replay_buffer_size, self.env, random_seed=np.random.randint(10000)
+            )
         else:
             assert self.max_path_length < model_replay_buffer._max_replay_buffer_size
         self.model_replay_buffer = model_replay_buffer
-        logger.log(f'MBPO | Target entorpy: {self.algo.target_entropy}')
+        logger.log(f"MBPO | Target entorpy: {self.algo.target_entropy}")
 
         self.deterministic = deterministic
         self.model_train_freq = model_train_freq
@@ -70,11 +72,9 @@ class MBPO(TorchRLAlgorithm):
         self.ready_env_ids = np.arange(self.env_num)
         num_ready_envs = len(self.ready_env_ids)
         obs = self._start_new_rollout(self.ready_env_ids)
-        self._current_path_builder = [
-            PathBuilder() for _ in range(num_ready_envs)
-        ]
+        self._current_path_builder = [PathBuilder() for _ in range(num_ready_envs)]
 
-        logger.log(f'MBPO | Presampling for {self.min_steps_before_training} steps')
+        logger.log(f"MBPO | Presampling for {self.min_steps_before_training} steps")
         for epoch in gt.timed_for(
             range(start_epoch, self.num_epochs),
             save_itrs=True,
@@ -89,21 +89,28 @@ class MBPO(TorchRLAlgorithm):
                     cur_env_steps = self._n_env_steps_total - start_env_steps - 1
                     if cur_env_steps >= self.num_env_steps_per_epoch:
                         break
-                    if cur_env_steps % self.model_train_freq == 0 and self.real_ratio < 1.0:
-                        logger.log(f'MBPO | Training model: freq {self.model_train_freq} | timestep {cur_env_steps} (total: {self._n_env_steps_total}) | epoch train steps: {self._n_env_steps_this_epoch} (total: {self.num_env_steps_per_epoch})')
+                    if (
+                        cur_env_steps % self.model_train_freq == 0
+                        and self.real_ratio < 1.0
+                    ):
+                        logger.log(
+                            f"MBPO | Training model: freq {self.model_train_freq} | timestep {cur_env_steps} (total: {self._n_env_steps_total}) | epoch train steps: {self._n_env_steps_this_epoch} (total: {self.num_env_steps_per_epoch})"
+                        )
                         self._train_model()
-                        gt.stamp('model_train')
-                        self._set_rollout_length(epoch)        
+                        gt.stamp("model_train")
+                        self._set_rollout_length(epoch)
                         self._extend_model_replay_buffer()
                         self._rollout_stat = self._rollout_model(self.deterministic)
-                        gt.stamp('model_rollout')
+                        gt.stamp("model_rollout")
                 else:
                     start_env_steps = self._n_env_steps_total
-                
+
                 actions = self._get_action_and_info(obs)
                 if isinstance(actions, tuple):
                     actions = actions[0]
-                next_obs, rewards, terminals, infos = self.training_env.step(actions, self.ready_env_ids)
+                next_obs, rewards, terminals, infos = self.training_env.step(
+                    actions, self.ready_env_ids
+                )
                 if self.no_terminal:
                     terminals = [False] * num_ready_envs
                 self._n_env_steps_total += num_ready_envs
@@ -116,7 +123,7 @@ class MBPO(TorchRLAlgorithm):
                     next_obs,
                     terminals,
                     absorbings=[np.array([0.0, 0.0]) for _ in range(num_ready_envs)],
-                    env_infos=infos
+                    env_infos=infos,
                 )
                 if np.any(terminals):
                     env_ind_local = np.where(terminals)[0]
@@ -124,14 +131,16 @@ class MBPO(TorchRLAlgorithm):
                     self._handle_vec_rollout_ending(env_ind_local)
                     reset_obs = self._start_new_rollout(env_ind_local)
                     next_obs[env_ind_local] = reset_obs
-                elif np.any(env_ind_local := (
-                    np.array(
-                        [
-                            len(self._current_path_builder[i])
-                            for i in range(num_ready_envs)
-                        ]
+                elif np.any(
+                    env_ind_local := (
+                        np.array(
+                            [
+                                len(self._current_path_builder[i])
+                                for i in range(num_ready_envs)
+                            ]
+                        )
+                        >= self.max_path_length
                     )
-                    >= self.max_path_length)
                 ):
                     env_ind_local = np.where(env_ind_local)[0]
                     self._handle_vec_rollout_ending(env_ind_local)
@@ -139,10 +148,13 @@ class MBPO(TorchRLAlgorithm):
                     next_obs[env_ind_local] = reset_obs
                 obs = next_obs
 
-                if self._n_env_steps_total - self._n_prev_train_env_steps >= self.num_steps_between_train_calls:
-                    gt.stamp('sample')
+                if (
+                    self._n_env_steps_total - self._n_prev_train_env_steps
+                    >= self.num_steps_between_train_calls
+                ):
+                    gt.stamp("sample")
                     self._try_to_train(epoch)
-                    gt.stamp('train')
+                    gt.stamp("train")
 
             gt.stamp("sample")
             self._try_to_eval(epoch)
@@ -162,7 +174,10 @@ class MBPO(TorchRLAlgorithm):
         real_batch = self.replay_buffer.random_batch(real_batch_size)
         if model_batch_size > 0:
             model_batch = self.model_replay_buffer.random_batch(model_batch_size)
-            batch = {k: np.concatenate([real_batch[k], model_batch[k]], axis=0) for k in real_batch.keys()}
+            batch = {
+                k: np.concatenate([real_batch[k], model_batch[k]], axis=0)
+                for k in real_batch.keys()
+            }
         else:
             batch = real_batch
         return np_to_pytorch_batch(batch)
@@ -185,21 +200,31 @@ class MBPO(TorchRLAlgorithm):
             dx = min(dx, 1)
             l = dx * (max_length - min_length) + min_length
         self.rollout_length = int(l)
-        logger.log(f'Model Rollout | Epoch {epoch} (min: {min_epoch}, max: {max_epoch}) | Length: {self.rollout_length} (min: {min_length}, max: {max_length})')
+        logger.log(
+            f"Model Rollout | Epoch {epoch} (min: {min_epoch}, max: {max_epoch}) | Length: {self.rollout_length} (min: {min_length}, max: {max_length})"
+        )
 
     def _extend_model_replay_buffer(self) -> bool:
-        rollout_per_epoch = self.rollout_batch_size * self.max_path_length / self.model_train_freq
+        rollout_per_epoch = (
+            self.rollout_batch_size * self.max_path_length / self.model_train_freq
+        )
         model_steps_per_epoch = int(self.rollout_length * rollout_per_epoch)
         new_pool_size = self.model_retrain_epochs * model_steps_per_epoch
         if self.model_replay_buffer._max_replay_buffer_size < new_pool_size:
-            logger.log(f'Extend model replay buffer | {self.model_replay_buffer._max_replay_buffer_size:.2e} -> {new_pool_size:.2e}')
+            logger.log(
+                f"Extend model replay buffer | {self.model_replay_buffer._max_replay_buffer_size:.2e} -> {new_pool_size:.2e}"
+            )
             try:
                 samples = self.model_replay_buffer.get_all()
-                new_buffer = EnvReplayBuffer(new_pool_size, self.env, np.random.randint(10000))
+                new_buffer = EnvReplayBuffer(
+                    new_pool_size, self.env, np.random.randint(10000)
+                )
                 new_buffer.add_path(samples)
             except MemoryError as me:
                 print(traceback.format_exc())
-                logger.log('Error: extending model replay buffer failed. Out of memory. Retrain the original size.')
+                logger.log(
+                    "Error: extending model replay buffer failed. Out of memory. Retrain the original size."
+                )
                 return False
             del self.model_replay_buffer
             gc.collect()
@@ -207,26 +232,38 @@ class MBPO(TorchRLAlgorithm):
         return True
 
     def _rollout_model(self, deterministic: bool = False) -> Dict[str, float]:
-        logger.log(f'Model Rollout | Rollout length: {self.rollout_length} | Batch size: {self.rollout_batch_size}')
+        logger.log(
+            f"Model Rollout | Rollout length: {self.rollout_length} | Batch size: {self.rollout_batch_size}"
+        )
         batch = self.replay_buffer.random_batch(self.rollout_batch_size)
-        obs = batch['observations']
+        obs = batch["observations"]
         steps = []
         for i in range(self.rollout_length):
             act = self.algo.policy.get_actions(obs)
             next_obs, rew, term, _ = self.fake_env.step(obs, act, deterministic)
             steps.append(len(next_obs))
-            samples = {'observations': obs, 'actions': act, 'next_observations': next_obs, 'rewards': rew, 'terminals': term}
+            samples = {
+                "observations": obs,
+                "actions": act,
+                "next_observations": next_obs,
+                "rewards": rew,
+                "terminals": term,
+            }
             self.model_replay_buffer.add_path(samples)
             terminal = np.squeeze(term, -1)
             if np.all(terminal):
-                logger.log(f'Model Rollout | Breaking early at {i}: all episodes terminate')
+                logger.log(
+                    f"Model Rollout | Breaking early at {i}: all episodes terminate"
+                )
                 break
             obs = next_obs[~terminal]
 
         total_steps = np.sum(steps)
         mean_len = total_steps / self.rollout_batch_size
-        logger.log(f'Model Rollout | Added: {total_steps:.1e} | Model pool: {self.model_replay_buffer._size:.1e} (max {self.model_replay_buffer._max_replay_buffer_size:.1e}) | Mean length: {mean_len} | Train rep: {self.num_train_steps_per_train_call}')
-        return {'mean_rollout_length': mean_len}
+        logger.log(
+            f"Model Rollout | Added: {total_steps:.1e} | Model pool: {self.model_replay_buffer._size:.1e} (max {self.model_replay_buffer._max_replay_buffer_size:.1e}) | Mean length: {mean_len} | Train rep: {self.num_train_steps_per_train_call}"
+        )
+        return {"mean_rollout_length": mean_len}
 
     @property
     def networks(self) -> List[nn.Module]:

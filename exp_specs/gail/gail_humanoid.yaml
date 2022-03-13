@@ -1,6 +1,6 @@
 meta_data:
   script_path: run_scripts/adv_irl_exp_script.py
-  exp_name: gail2_humanoid_hype_search
+  exp_name: gail2_humanoid
   description: Train an adversarial IRL model
   num_workers: 4 # 64
   using_gpus: true
@@ -17,7 +17,7 @@ constants:
   expert_name: 'humanoid_sac'
   expert_idx: 0
   traj_num: 4
-  scale_env_with_demo_stats: True
+  scale_env_with_demo_stats: true
   minmax_env_with_demo_stats: false
 
   disc_num_blocks: 2
@@ -64,7 +64,6 @@ constants:
     freq_saving: 20
     save_replay_buffer: false
     # save_environment: false
-    # save_environment: false
 
   sac_params:
     alpha: 0.2
@@ -77,6 +76,7 @@ constants:
     vf_lr: 0.0003
     policy_mean_reg_weight: 0.001
     policy_std_reg_weight: 0.001
+    target_entropy: -4
 
   env_specs:
     env_name: 'humanoid'

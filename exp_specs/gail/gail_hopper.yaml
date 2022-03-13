@@ -18,7 +18,7 @@ constants:
   expert_name: 'hopper_sac'
   expert_idx: 0
   traj_num: 4
-  scale_env_with_demo_stats: false
+  scale_env_with_demo_stats: true
   minmax_env_with_demo_stats: false
 
   disc_num_blocks: 2
@@ -31,7 +31,7 @@ constants:
   policy_num_hidden_layers: 2
 
   adv_irl_params:
-    mode: 'gail'
+    mode: 'gail2'
     state_only: false
 
     num_epochs: 162

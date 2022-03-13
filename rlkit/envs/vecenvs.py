@@ -68,6 +68,7 @@ class BaseVectorEnv(Env):
         timeout: Optional[float] = None,
         norm_obs: bool = False,
         obs_rms: Optional[RunningMeanStd] = None,
+        goal_rms: Optional[RunningMeanStd] = None,
         update_obs_rms: bool = True,
     ) -> None:
         self._env_fns = env_fns
@@ -102,6 +103,7 @@ class BaseVectorEnv(Env):
         self.norm_obs = norm_obs
         self.update_obs_rms = update_obs_rms
         self.obs_rms = RunningMeanStd() if obs_rms is None and norm_obs else obs_rms
+        self.goal_rms = RunningMeanStd() if goal_rms is None and norm_obs else goal_rms
         self.__eps = np.finfo(np.float32).eps.item()
 
     def _assert_is_not_closed(self) -> None:
@@ -171,7 +173,11 @@ class BaseVectorEnv(Env):
         except ValueError:  # different len(obs)
             obs = np.array(obs_list, dtype=object)
         if self.obs_rms and self.update_obs_rms:
-            self.obs_rms.update(obs)
+            if type(obs_list[0]) == dict:
+                self.obs_rms.update(np.stack([_["observation"] for _ in obs_list]))
+                self.goal_rms.update(np.stack([_["achieved_goal"] for _ in obs_list]))
+            else:
+                self.obs_rms.update(obs)
         return self.normalize_obs(obs)
 
     def step(
@@ -243,7 +249,11 @@ class BaseVectorEnv(Env):
             np.stack, [rew_list, done_list, info_list]
         )
         if self.obs_rms and self.update_obs_rms:
-            self.obs_rms.update(obs_stack)
+            if type(obs_list[0]) == dict:
+                self.obs_rms.update(np.stack([_["observation"] for _ in obs_list]))
+                self.goal_rms.update(np.stack([_["achieved_goal"] for _ in obs_list]))
+            else:
+                self.obs_rms.update(obs_stack)
         return self.normalize_obs(obs_stack), rew_stack, done_stack, info_stack
 
     def seed(
@@ -291,8 +301,29 @@ class BaseVectorEnv(Env):
         if self.obs_rms and self.norm_obs:
             clip_max = 10.0  # this magic number is from openai baselines
             # see baselines/common/vec_env/vec_normalize.py#L10
-            obs = (obs - self.obs_rms.mean) / np.sqrt(self.obs_rms.var + self.__eps)
-            obs = np.clip(obs, -clip_max, clip_max)
+            if type(obs[0]) == dict:
+                for _ in obs:
+                    _["observation"] = np.clip(
+                        (_["observation"] - self.obs_rms.mean)
+                        / np.sqrt(self.obs_rms.var + self.__eps),
+                        -clip_max,
+                        clip_max,
+                    )
+                    _["achieved_goal"] = np.clip(
+                        (_["achieved_goal"] - self.goal_rms.mean)
+                        / np.sqrt(self.goal_rms.var + self.__eps),
+                        -clip_max,
+                        clip_max,
+                    )
+                    _["desired_goal"] = np.clip(
+                        (_["desired_goal"] - self.goal_rms.mean)
+                        / np.sqrt(self.goal_rms.var + self.__eps),
+                        -clip_max,
+                        clip_max,
+                    )
+            else:
+                obs = (obs - self.obs_rms.mean) / np.sqrt(self.obs_rms.var + self.__eps)
+                obs = np.clip(obs, -clip_max, clip_max)
         return obs
 
 
