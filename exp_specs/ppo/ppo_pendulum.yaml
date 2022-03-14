@@ -6,7 +6,7 @@ meta_data:
   using_gpus: true
 # -----------------------------------------------------------------------------
 variables:
-  seed: [7294]
+  seed: [0, 1, 2, 3, 4]
 
 # -----------------------------------------------------------------------------
 constants:
@@ -35,8 +35,6 @@ constants:
     save_best: false
     freq_saving: 10
     save_replay_buffer: false
-    # save_environment: false
-    # save_environment: false
 
   ppo_params:
     clip_eps: 0.2
@@ -53,4 +51,5 @@ constants:
   env_specs:
     env_name: "Pendulum-v0"
     env_kwargs: {}
-    env_num: 1
+    training_env_num: 1
+    eval_env_num: 1

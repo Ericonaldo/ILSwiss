@@ -18,7 +18,6 @@ def rollout(
     ready_env_ids = np.arange(env_num)
     observations = env.reset(ready_env_ids)
 
-    timesteps = np.array([0 for _ in range(env_num)])
     for _ in range(max_path_length):
         if preprocess_func:
             observations = preprocess_func(observations)
@@ -50,7 +49,6 @@ def rollout(
         next_observations, rewards, terminals, env_infos = env.step(
             actions, ready_env_ids
         )
-        timesteps += 1
         if no_terminal:
             terminals = [False for _ in range(len(ready_env_ids))]
 
@@ -82,7 +80,7 @@ def rollout(
                 env_infos=env_info,
             )
 
-        observations = next_observations
+        observations = next_observations[terminals == False]
 
         if np.any(terminals):
             end_env_ids = ready_env_ids[np.where(terminals)[0]]

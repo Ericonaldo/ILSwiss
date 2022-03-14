@@ -1,6 +1,6 @@
 meta_data:
   script_path: run_scripts/ppo_exp_script.py
-  exp_name: ppo_hopper
+  exp_name: ppo_walker
   description: Train an agent using Proximal Policy Optimization
   num_workers: 2
   using_gpus: true
@@ -14,9 +14,9 @@ constants:
   num_hidden_layers: 2
 
   rl_alg_params:
-    num_epochs: 200
+    num_epochs: 500
     num_steps_per_epoch: 10000
-    num_steps_between_train_calls: 4096
+    num_steps_between_train_calls: 2048
     num_train_steps_per_train_call: 1
     num_steps_per_eval: 10000
     max_path_length: 1000
@@ -49,7 +49,7 @@ constants:
     update_epoch: 10
 
   env_specs:
-    env_name: "hopper"
+    env_name: "walker"
     env_kwargs: {}
-    training_env_num: 10
-    eval_env_num: 5
+    training_env_num: 20
+    eval_env_num: 10

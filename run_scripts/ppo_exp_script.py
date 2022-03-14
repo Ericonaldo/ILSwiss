@@ -47,13 +47,32 @@ def experiment(variant):
         env_wrapper = NormalizedBoxEnv
 
     env = env_wrapper(env, **wrapper_kwargs)
-
     kwargs = {}
     if "vec_env_kwargs" in env_specs:
         kwargs = env_specs["env_kwargs"]["vec_env_kwargs"]
 
-    training_env = get_envs(env_specs, env_wrapper, wrapper_kwargs, **kwargs)
+    if "env_num" not in env_specs:
+        env_specs["env_num"] = 1
+
+    if "training_env_num" in env_specs:
+        env_specs["env_num"] = env_specs["training_env_num"]
+
+    print("Creating {} training environments ...".format(env_specs["env_num"]))
+    training_env = get_envs(env_specs, env_wrapper, wrapper_kwargs, norm_obs=True, **kwargs)
     training_env.seed(env_specs["training_env_seed"])
+
+    if "eval_env_num" in env_specs:
+        env_specs["env_num"] = env_specs["eval_env_num"]
+
+    print("Creating {} evaluation environments ...".format(env_specs["env_num"]))
+    eval_env = get_envs(
+        env_specs,
+        env_wrapper,
+        obs_rms=training_env.obs_rms,
+        norm_obs=True,
+        update_obs_rms=False,
+    )
+    eval_env.seed(env_specs["eval_env_seed"])
 
     obs_dim = obs_space.shape[0]
     action_dim = act_space.shape[0]
@@ -66,7 +85,7 @@ def experiment(variant):
         output_size=1,
         hidden_activation=torch.tanh,
     )
-    #  policy = ReparamTanhMultivariateGaussianPolicy(
+    # PPO use unbounded gaussian, and just clip the sampled action.
     policy = ReparamMultivariateGaussianPolicy(
         hidden_sizes=num_hidden * [net_size],
         obs_dim=obs_dim,
@@ -84,6 +103,7 @@ def experiment(variant):
     algorithm = TorchRLAlgorithm(
         trainer=trainer,
         env=env,
+        eval_env=eval_env,
         training_env=training_env,
         exploration_policy=policy,
         **variant["rl_alg_params"],
@@ -126,7 +146,7 @@ if __name__ == "__main__":
             log_dir = load_path
 
     setup_logger(
-        exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs, log_dir=log_dir
+        exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs, seed=seed, log_dir=log_dir
     )
 
     experiment(exp_specs)

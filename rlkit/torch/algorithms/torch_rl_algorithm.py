@@ -28,7 +28,7 @@ class TorchRLAlgorithm(TorchBaseAlgorithm):
 
     def _do_training(self, epoch):
         for _ in range(self.num_train_steps_per_train_call):
-            if hasattr(self.trainer, "on_policy") and self.trainer.on_policy:
+            if getattr(self.trainer, "on_policy", False):
                 self.trainer.train_step(self.get_all_trajs())
                 self.clear_buffer()
             else:

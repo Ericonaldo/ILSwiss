@@ -34,9 +34,9 @@ def experiment(variant):
 
     obs_space = env.observation_space
     act_space = env.action_space
-    # assert not isinstance(obs_space, gym.spaces.Dict)
-    # assert len(obs_space.shape) == 2
-    # assert len(act_space.shape) == 1
+    assert not isinstance(obs_space, gym.spaces.Dict)
+    assert len(obs_space.shape) == 2
+    assert len(act_space.shape) == 1
 
     env_wrapper = ProxyEnv  # Identical wrapper
     kwargs = {}
