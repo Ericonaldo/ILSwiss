@@ -1,16 +1,12 @@
 meta_data:
   script_path: run_scripts/her_td3_exp_script.py
-  exp_name: her_fetch_pick_td3
+  exp_name: her_fetch_pick_td3_norm
   description: Train an her agent using TD3
   num_workers: 3
   using_gpus: true
 # -----------------------------------------------------------------------------
 variables:
   seed: [0]
-  td3_params:
-    policy_lr: [0.0003] 
-    qf_lr: [0.0003]
-
 
 # -----------------------------------------------------------------------------
 constants:
@@ -50,10 +46,12 @@ constants:
     reward_scale: 1.0
     discount: 0.99
     soft_target_tau: 0.005
-    # policy_lr: 0.0003
-    # qf_lr: 0.0006
+    policy_lr: 0.0006
+    qf_lr: 0.0003
 
   env_specs:
     env_name: 'fetch-pick-place'
     env_kwargs: {}
     env_num: 8
+    vec_env_kwargs: 
+      "norm_obs": true

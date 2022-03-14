@@ -49,7 +49,7 @@ def experiment(variant):
 
     kwargs = {}
     if "vec_env_kwargs" in env_specs:
-        kwargs = env_specs["env_kwargs"]["vec_env_kwargs"]
+        kwargs = env_specs["vec_env_kwargs"]
 
     training_env = get_envs(env_specs, env_wrapper, wrapper_kwargs, **kwargs)
     training_env.seed(env_specs["training_env_seed"])

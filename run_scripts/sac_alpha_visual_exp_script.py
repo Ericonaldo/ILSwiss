@@ -58,11 +58,11 @@ def experiment(variant):
             )
         if "translate" in data_augs:
             # first crop the center with pre_image_size
-            eval_preprocess_func = (
-                lambda x: rad.center_crop_image(x, pre_transform_image_size) / 255.0
-            )
+            crop_func = lambda x: rad.center_crop_image(x, pre_transform_image_size)
             # then translate cropped to center
-            eval_preprocess_func = lambda x: rad.center_translate(x, image_size) / 255.0
+            eval_preprocess_func = (
+                lambda x: rad.center_translate(crop_func(x), image_size) / 255.0
+            )
 
     env = get_env(env_specs)
     env.seed(env_specs["eval_env_seed"])
@@ -89,6 +89,7 @@ def experiment(variant):
             random_seed=np.random.randint(10000),
             pre_image_size=pre_image_size,
             image_size=image_size,
+            data_augs=data_augs,
         )
 
     obs_space = env.observation_space

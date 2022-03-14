@@ -81,4 +81,4 @@ constants:
   env_specs:
     env_name: 'ant'
     env_kwargs: {}
-    env_num: 4
+    env_num: 1

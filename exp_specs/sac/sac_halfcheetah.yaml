@@ -1,6 +1,6 @@
 meta_data:
   script_path: run_scripts/sac_alpha_exp_script.py
-  exp_name: test_sac_halfcheetah
+  exp_name: test_sac_halfcheetah_norm
   description: Train an agent using Soft-Actor-Critic
   num_workers: 2
   using_gpus: true
@@ -52,3 +52,5 @@ constants:
     env_name: 'halfcheetah'
     env_kwargs: {}
     env_num: 1
+    vec_env_kwargs:
+      norm_obs: true
