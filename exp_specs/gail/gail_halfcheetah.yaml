@@ -1,21 +1,21 @@
 meta_data:
   script_path: run_scripts/adv_irl_exp_script.py
-  exp_name: gail_hopper
+  exp_name: gail_halfcheetah
   description: Train an adversarial IRL model
   num_workers: 2 # 64
   using_gpus: true
 # -----------------------------------------------------------------------------
 variables:
   adv_irl_params:
-    grad_pen_weight: [4.0] # [0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]
+    grad_pen_weight: [0.5] # [0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]
   sac_params:
     reward_scale: [2.0] # [0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]
-  
+  # seed: [723894, 23789]
   seed: [0]
 
 # -----------------------------------------------------------------------------
 constants:
-  expert_name: 'hopper_sac'
+  expert_name: 'halfcheetah_sac'
   expert_idx: 0
   traj_num: 4
   scale_env_with_demo_stats: true
@@ -34,7 +34,7 @@ constants:
     mode: 'gail2'
     state_only: false
 
-    num_epochs: 162
+    num_epochs: 562
     num_steps_per_epoch: 10000
     num_steps_between_train_calls: 1000
     max_path_length: 1000
@@ -65,7 +65,6 @@ constants:
     freq_saving: 20
     save_replay_buffer: false
     # save_environment: false
-    # save_environment: false
 
   sac_params:
     # reward_scale: 8.0
@@ -77,10 +76,9 @@ constants:
     vf_lr: 0.0003
     policy_mean_reg_weight: 0.001
     policy_std_reg_weight: 0.001
+    target_entropy: -3
 
   env_specs:
-    env_name: 'hopper'
+    env_name: 'halfcheetah'
     env_kwargs: {}
-    env_num: 1 # This parameter define how many vec envs are created
-    eval_env_seed: 0 # These two seeds are no longer needed since in our implementation we makes all seeds the same, see the script file, however you can change the script to make it valid
-    training_env_seed: 0
+    env_num: 1

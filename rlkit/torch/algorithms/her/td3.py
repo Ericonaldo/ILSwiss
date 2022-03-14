@@ -36,6 +36,8 @@ class TD3(Trainer):
         policy_and_target_update_period=2,
         soft_target_tau=0.005,
         qf_criterion=None,
+        clip_return_l=None,
+        clip_return_r=None,
         optimizer_class=optim.Adam,
         **kwargs
     ):
@@ -75,6 +77,14 @@ class TD3(Trainer):
 
         self._n_train_steps_total = 0
 
+        self.clip_return_l = clip_return_l
+        self.clip_return_r = clip_return_r
+        gamma_sum = 1.0 / (1.0 - discount)
+        if self.clip_return_l is None:
+            self.clip_return_l = -gamma_sum
+        if self.clip_return_r is None:
+            self.clip_return_r = 0.0
+
     def train_step(self, batch):
 
         rewards = self.reward_scale * batch["rewards"]
@@ -97,7 +107,11 @@ class TD3(Trainer):
 
         target_q1_values = self.target_qf1(target_input, noisy_next_actions)
         target_q2_values = self.target_qf2(target_input, noisy_next_actions)
-        target_q_values = torch.min(target_q1_values, target_q2_values)
+        target_q_values = torch.clip(
+            torch.min(target_q1_values, target_q2_values),
+            self.clip_return_l,
+            self.clip_return_r,
+        )
 
         q_target = rewards + (1.0 - terminals) * self.discount * target_q_values
         q_target = q_target.detach()

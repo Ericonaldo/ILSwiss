@@ -1,6 +1,6 @@
 meta_data:
   script_path: run_scripts/her_td3_exp_script.py
-  exp_name: her_fetch_push_td3
+  exp_name: her_fetch_push_td3_norm
   description: Train an her agent using TD3
   num_workers: 3
   using_gpus: true
@@ -20,7 +20,7 @@ constants:
   # goal_gen: 'interval' # ['vanilla', 'fixobj', 'interval', 'reach']
 
   rl_alg_params:
-    num_epochs: 2000
+    num_epochs: 1000
     num_steps_per_epoch: 1000
     num_steps_between_train_calls: 2
     num_train_steps_per_train_call: 1
@@ -39,7 +39,6 @@ constants:
     freq_saving: 10
     save_replay_buffer: false
     # save_environment: false
-    # save_environment: false
 
     relabel_type: "future"
     her_ratio: 0.8
@@ -56,3 +55,5 @@ constants:
     env_name: 'fetch-push'
     env_kwargs: {}
     env_num: 8
+    vec_env_kwargs: 
+      "norm_obs": true

@@ -46,6 +46,18 @@ def experiment(variant):
         kwargs = env_specs["vec_env_kwargs"]
     training_env = get_envs(env_specs, env_wrapper, wrapper_kwargs, **kwargs)
     training_env.seed(env_specs["training_env_seed"])
+    if "vec_env_kwargs" in env_specs:
+        kwargs.update(
+            {
+                "obs_rms": training_env.obs_rms,
+                "goal_rms": training_env.goal_rms,
+                "norm_obs": True,
+                "update_obs_rms": False,
+            }
+        )
+
+    eval_env = get_envs(env_specs, env_wrapper, **wrapper_kwargs, **kwargs)
+    eval_env.seed(env_specs["eval_env_seed"])
 
     try:
         obs_dim = obs_space.spaces["observation"].shape[0]
@@ -82,6 +94,7 @@ def experiment(variant):
         trainer=trainer,
         env=env,
         training_env=training_env,
+        eval_env=eval_env,
         exploration_policy=policy,
         **variant["rl_alg_params"]
     )

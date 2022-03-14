@@ -17,11 +17,16 @@ from rlkit.envs.wrappers import DiscretEnv, ProxyEnv
 import rlkit.torch.utils.pytorch_util as ptu
 from rlkit.launchers.launcher_util import setup_logger, set_seed
 from rlkit.torch.common.networks import FlattenMlp
-from rlkit.torch.common.policies import MlpGaussianAndEpsilonConditionPolicy, CatagorialConditionPolicy
+from rlkit.torch.common.policies import (
+    MlpGaussianAndEpsilonConditionPolicy,
+    CatagorialConditionPolicy,
+)
 from rlkit.torch.algorithms.torch_rl_algorithm import TorchRLAlgorithm
 from rlkit.torch.algorithms.gcsl.rl import GoalHorizonRL
 from rlkit.torch.algorithms.gcsl.gcsl import GCSL
-from rlkit.data_management.relabel_horizon_replay_buffer import HindsightHorizonReplayBuffer
+from rlkit.data_management.relabel_horizon_replay_buffer import (
+    HindsightHorizonReplayBuffer,
+)
 
 
 def experiment(variant):
@@ -44,31 +49,31 @@ def experiment(variant):
     if discretize:
         env_wrapper = DiscretEnv  # Discrete wrapper
         wrapper_kwargs = env_specs["discret_kwargs"]
-    
+
     env = env_wrapper(env, **wrapper_kwargs)
     print("Act Space: {}\n\n".format(env.action_space))
-    
+
     kwargs = {}
     if "vec_env_kwargs" in env_specs:
         kwargs = env_specs["vec_env_kwargs"]
     training_env = get_envs(env_specs, env_wrapper, wrapper_kwargs, **kwargs)
     training_env.seed(env_specs["training_env_seed"])
-    
+
     try:
-        obs_dim = obs_space.spaces['observation'].shape[0]
-        goal_dim = obs_space.spaces['desired_goal'].shape[0]
+        obs_dim = obs_space.spaces["observation"].shape[0]
+        goal_dim = obs_space.spaces["desired_goal"].shape[0]
     except BaseException:
         tmp = env.reset()
-        obs_dim = tmp['observation'].shape[0]
-        goal_dim = tmp['desired_goal'].shape[0]
+        obs_dim = tmp["observation"].shape[0]
+        goal_dim = tmp["desired_goal"].shape[0]
     action_dim = act_space.shape[0]
 
     net_size = variant["net_size"]
     num_hidden = variant["num_hidden_layers"]
     max_path_length = 0
-    use_horizons = variant['rl_alg_params']['use_horizons']
+    use_horizons = variant["rl_alg_params"]["use_horizons"]
     if use_horizons:
-        max_path_length=variant['rl_alg_params']['max_path_length']
+        max_path_length = variant["rl_alg_params"]["max_path_length"]
 
     if discretize:
         assert variant["gcsl_params"]["mode"] == "CLASS"
@@ -77,21 +82,25 @@ def experiment(variant):
             hidden_sizes=num_hidden * [net_size],
             action_dim=action_dim,
             obs_dim=obs_dim,
-            condition_dim=goal_dim+max_path_length, 
-            batch_norm=True
+            condition_dim=goal_dim + max_path_length,
+            batch_norm=True,
         )
     else:
         policy = MlpGaussianAndEpsilonConditionPolicy(
             hidden_sizes=num_hidden * [net_size],
             action_space=env.action_space,
             obs_dim=obs_dim,
-            condition_dim=goal_dim+max_path_length,
+            condition_dim=goal_dim + max_path_length,
             action_dim=action_dim,
             output_activation=tanh,
-            batch_norm=True
+            batch_norm=True,
         )
 
-    trainer = GCSL(policy=policy, use_horizons=variant["rl_alg_params"]["use_horizons"], **variant["gcsl_params"])
+    trainer = GCSL(
+        policy=policy,
+        use_horizons=variant["rl_alg_params"]["use_horizons"],
+        **variant["gcsl_params"]
+    )
     algorithm = GoalHorizonRL(
         trainer=trainer,
         env=env,
@@ -126,7 +135,9 @@ if __name__ == "__main__":
         print("\n\nUSING GPU\n\n")
         ptu.set_gpu_mode(True, args.gpu)
     exp_id = exp_specs["exp_id"]
-    exp_prefix = exp_specs["exp_name"] + "_plr_{}".format(exp_specs["gcsl_params"]["policy_lr"])
+    exp_prefix = exp_specs["exp_name"] + "_plr_{}".format(
+        exp_specs["gcsl_params"]["policy_lr"]
+    )
     seed = exp_specs["seed"]
     set_seed(seed)
     setup_logger(exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs, seed=seed)
