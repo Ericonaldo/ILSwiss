@@ -18,7 +18,7 @@ constants:
   expert_name: 'walker_sac'
   expert_idx: 0
   traj_num: 4
-  scale_env_with_demo_stats: true
+  scale_env_with_demo_stats: false
   minmax_env_with_demo_stats: false
 
   disc_num_blocks: 2
@@ -36,7 +36,7 @@ constants:
 
     num_epochs: 562
     num_steps_per_epoch: 10000
-    num_steps_between_train_calls: 100
+    num_steps_between_train_calls: 1000
     max_path_length: 1000
     min_steps_before_training: 5000
 

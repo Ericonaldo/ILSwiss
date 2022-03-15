@@ -7,6 +7,9 @@ meta_data:
 # -----------------------------------------------------------------------------
 variables:
   seed: [0]
+  td3_params:
+    policy_lr: [0.0006, 0.001]
+    qf_lr: [0.0006]
 
 # -----------------------------------------------------------------------------
 constants:
@@ -23,7 +26,7 @@ constants:
     num_train_steps_per_train_call: 1
     num_steps_per_eval: 1000
     max_path_length: 50
-    min_steps_before_training: 1000
+    min_steps_before_training: 5000
 
     eval_deterministic: true
 
@@ -46,8 +49,8 @@ constants:
     reward_scale: 1.0
     discount: 0.99
     soft_target_tau: 0.005
-    policy_lr: 0.0006
-    qf_lr: 0.0003
+    # policy_lr: 0.0003
+    # qf_lr: 0.0003
 
   env_specs:
     env_name: 'fetch-pick-place'

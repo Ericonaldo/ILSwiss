@@ -7,9 +7,6 @@ meta_data:
 # -----------------------------------------------------------------------------
 variables:
   seed: [0]
-  td3_params:
-    policy_lr: [0.001] #, 0.0009, 0.001]
-    qf_lr: [0.0003]
 
 # -----------------------------------------------------------------------------
 constants:
@@ -48,8 +45,8 @@ constants:
     reward_scale: 1.0
     discount: 0.99
     soft_target_tau: 0.005
-    # policy_lr: 0.0003
-    # qf_lr: 0.0006
+    policy_lr: 0.001
+    qf_lr: 0.0003
 
   env_specs:
     env_name: 'fetch-push'
