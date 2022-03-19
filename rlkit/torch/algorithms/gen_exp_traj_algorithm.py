@@ -1,5 +1,4 @@
 from rlkit.torch.algorithms.torch_rl_algorithm import TorchRLAlgorithm
-from rlkit.data_management.expert_replay_buffer import ExpertReplayBuffer
 from rlkit.data_management.env_replay_buffer import MetaEnvReplayBuffer
 
 

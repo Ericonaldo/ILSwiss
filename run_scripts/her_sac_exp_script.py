@@ -1,6 +1,5 @@
 import yaml
 import argparse
-import numpy as np
 import os, inspect, sys
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -9,10 +8,8 @@ sys.path.insert(0, parentdir)
 print(sys.path)
 
 import gym
-from torch import tanh
-
 from rlkit.envs import get_env, get_envs
-from rlkit.envs.wrappers import NormalizedBoxEnv, ProxyEnv
+from rlkit.envs.wrappers import ProxyEnv
 
 import rlkit.torch.utils.pytorch_util as ptu
 from rlkit.launchers.launcher_util import setup_logger, set_seed
@@ -57,13 +54,13 @@ def experiment(variant):
             }
         )
 
-    eval_env = get_envs(env_specs, env_wrapper, **wrapper_kwargs, **kwargs)
+    eval_env = get_envs(env_specs, env_wrapper, wrapper_kwargs, **kwargs)
     eval_env.seed(env_specs["eval_env_seed"])
 
     try:
         obs_dim = obs_space.spaces["observation"].shape[0]
         goal_dim = obs_space.spaces["desired_goal"].shape[0]
-    except BaseException:
+    except Exception:
         tmp = env.reset()
         obs_dim = tmp["observation"].shape[0]
         goal_dim = tmp["desired_goal"].shape[0]

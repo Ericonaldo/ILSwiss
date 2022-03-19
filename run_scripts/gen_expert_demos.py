@@ -1,7 +1,5 @@
 import yaml
 import argparse
-import os
-from os import path
 import joblib
 import pickle
 from random import randint
@@ -12,9 +10,7 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 print(sys.path)
 
-
 import numpy as np
-from time import time
 import rlkit.torch.utils.pytorch_util as ptu
 
 from rlkit.core import logger
@@ -26,7 +22,7 @@ from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.data_management.path_builder import PathBuilder
 from rlkit.torch.common.policies import MakeDeterministic
 from rlkit.envs.wrappers import FrameStackEnv, ProxyEnv
-from gym.wrappers.monitor import Monitor
+# from gym.wrappers.monitor import Monitor
 
 
 def fill_buffer(
@@ -170,7 +166,6 @@ def experiment(specs):
 
     env_wrapper = ProxyEnv  # Identical wrapper
     wrapper_kwargs = {}
-    kwargs = {}
     if ("frame_stack" in env_specs) and (env_specs["frame_stack"] is not None):
         env_wrapper = FrameStackEnv
         wrapper_kwargs = {"k": env_specs["frame_stack"]}
@@ -186,7 +181,6 @@ def experiment(specs):
         There was an intial implementation for this in v1.0
         in gen_irl_expert_trajs.py
         """
-        raise NotImplementedError()
         _max_buffer_size = (max_path_length + 2) * specs["num_rollouts"]
     else:
         _max_buffer_size = max_path_length * specs["num_rollouts"]

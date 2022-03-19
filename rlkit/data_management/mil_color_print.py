@@ -183,7 +183,7 @@ def get_color_code(fname):
 
 
 def color_string(msg, color=None):
-    if color == None:
+    if color is None:
         fname, lineno, method, _ = tb.extract_stack()[-2]  # Get caller
         color = get_color_code(fname)
     return _COLOR_MAP[color][0] + msg + Fore.RESET

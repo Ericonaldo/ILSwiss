@@ -1,18 +1,8 @@
 import numpy as np
-from collections import OrderedDict
 
-import torch
-import torch.optim as optim
-from torch import nn
-import torch.nn.functional as F
-import gtimer as gt
-
-import rlkit.torch.utils.pytorch_util as ptu
 from rlkit.torch.core import np_to_pytorch_batch
 from rlkit.torch.algorithms.torch_rl_algorithm import TorchRLAlgorithm
 from rlkit.data_management.relabel_replay_buffer import HindsightReplayBuffer
-from rlkit.data_management.path_builder import PathBuilder
-from rlkit.samplers import PathSampler
 
 
 class HER(TorchRLAlgorithm):

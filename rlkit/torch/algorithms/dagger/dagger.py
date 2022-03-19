@@ -1,8 +1,3 @@
-import numpy as np
-from collections import OrderedDict
-
-import rlkit.torch.utils.pytorch_util as ptu
-from rlkit.torch.core import np_to_pytorch_batch
 from rlkit.torch.algorithms.bc.bc import BC
 
 

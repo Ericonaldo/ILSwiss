@@ -5,7 +5,6 @@ from typing import Dict, List, Tuple, Union, Type
 
 import numpy as np
 import torch
-from torch import nn as nn
 import torch.optim as optim
 
 import rlkit.torch.utils.pytorch_util as ptu
@@ -92,7 +91,7 @@ class BNNTrainer(Trainer):
         obs = batch["observations"]
         actions = batch["actions"]
         rewards = self.reward_scale * batch["rewards"]
-        terminals = batch["terminals"]
+        # terminals = batch["terminals"]
         next_obs = batch["next_observations"]
         inputs = torch.cat((obs, actions), dim=-1)
         targets = torch.cat((rewards, next_obs - obs), dim=-1)

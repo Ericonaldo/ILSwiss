@@ -3,9 +3,7 @@ from collections import OrderedDict
 import numpy as np
 import torch
 from torch import nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
-import itertools
 
 import rlkit.torch.utils.pytorch_util as ptu
 from rlkit.core.trainer import Trainer
@@ -24,10 +22,10 @@ class SoftActorCritic(Trainer):
 
     def __init__(
         self,
-        policy,
-        qf1,
-        qf2,
-        vf,
+        policy: nn.Module,
+        qf1: nn.Module,
+        qf2: nn.Module,
+        vf: nn.Module,
         reward_scale=1.0,
         discount=0.99,
         alpha=1.0,

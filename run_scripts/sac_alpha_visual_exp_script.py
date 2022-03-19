@@ -1,9 +1,7 @@
 import yaml
 import argparse
-import joblib
 import numpy as np
 import os, sys, inspect
-import pickle
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
@@ -12,7 +10,7 @@ print(sys.path)
 
 import gym
 from rlkit.envs import get_env, get_envs
-from rlkit.envs.wrappers import NormalizedBoxEnv, ProxyEnv, FrameStackEnv
+from rlkit.envs.wrappers import ProxyEnv, FrameStackEnv
 
 import rlkit.torch.utils.pytorch_util as ptu
 from rlkit.core.logger import load_from_file

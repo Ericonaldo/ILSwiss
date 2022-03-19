@@ -1,5 +1,3 @@
-import numpy as np
-
 from rlkit.policies.base import SerializablePolicy
 
 

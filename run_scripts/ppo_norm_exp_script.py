@@ -1,6 +1,5 @@
 import yaml
 import argparse
-import numpy as np
 import os, inspect, sys
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -70,7 +69,7 @@ def experiment(variant):
     try:
         obs_dim = obs_space.spaces["observation"].shape[0]
         goal_dim = obs_space.spaces["desired_goal"].shape[0]
-    except BaseException:
+    except Exception:
         tmp = env.reset()
         obs_dim = tmp["observation"].shape[0]
         goal_dim = tmp["desired_goal"].shape[0]

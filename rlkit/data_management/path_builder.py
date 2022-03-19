@@ -45,10 +45,10 @@ class PathBuilder(dict):
 
     def get_all_stacked(self):
         raise NotImplementedError("Does not handle dict obs")
-        output_dict = dict()
-        for k, v in self.items():
-            output_dict[k] = stack_list(v)
-        return output_dict
+        # output_dict = dict()
+        # for k, v in self.items():
+        #     output_dict[k] = stack_list(v)
+        # return output_dict
 
     def get_stacked(self, key):
         v = self.__getitem__(key)

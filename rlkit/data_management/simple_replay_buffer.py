@@ -1,13 +1,6 @@
-from collections import defaultdict
-import random as python_random
-from random import sample
 from itertools import starmap
-from functools import partial
-
 import numpy as np
 import pickle
-
-import torch
 from rlkit.data_management.replay_buffer import ReplayBuffer
 
 
@@ -448,101 +441,6 @@ class SimpleReplayBuffer(ReplayBuffer):
         self._cur_start = 0
         self._traj_endpoints = {}  # start->end means [start, end)
 
-
-class SimpleReplayBufferDict(dict):
-    def __init__(self, max_size, obs_dim, act_dim, seed):
-        super().__init__()
-        self.max_size = max_size
-        self.obs_dim = obs_dim
-        self.act_dim = act_dim
-        self._py_rand_state = python_random.Random(seed)
-
-    def __missing__(self, k):
-        rand_seed = self._py_rand_state.randint(0, 10000)
-        self[k] = SimpleReplayBuffer(
-            self.max_size, self.obs_dim, self.act_dim, rand_seed
-        )
-        return self[k]
-
-
-class MetaSimpleReplayBuffer:
-    def __init__(
-        self, max_rb_size_per_task, observation_dim, action_dim, random_seed=2001
-    ):
-        self._py_rand_state = python_random.Random(random_seed)
-
-        self._obs_dim = observation_dim
-        self._act_dim = action_dim
-        self._max_rb_size_per_task = max_rb_size_per_task
-        self.task_replay_buffers = SimpleReplayBufferDict(
-            max_rb_size_per_task,
-            observation_dim,
-            action_dim,
-            self._py_rand_state.randint(0, 10000),
-        )
-
-    def add_path(self, path, task_identifier):
-        self.task_replay_buffers[task_identifier].add_path(path)
-
-    def add_sample(
-        self,
-        observation,
-        action,
-        reward,
-        terminal,
-        next_observation,
-        task_identifier,
-        **kwargs
-    ):
-        self.task_replay_buffers[task_identifier].add_sample(
-            observation, action, reward, terminal, next_observation, **kwargs
-        )
-
-    def terminate_episode(self, task_identifier):
-        self.task_replay_buffers[task_identifier].terminate_episode()
-
-    def sample_trajs(
-        self,
-        task_identifiers,
-        num_trajs_per_task,
-        samples_per_traj=None,
-        keys=None,
-    ):
-        # if task_identifiers is None:
-        # sample_params = list(sample(self.task_replay_buffers.keys(), num_tasks))
-        batch_list = [
-            self.task_replay_buffers[p].sample_trajs(
-                num_trajs_per_task, keys=keys, samples_per_traj=samples_per_traj
-            )
-            for p in task_identifiers
-        ]
-        return batch_list, sample_params
-
-    def sample_trajs_from_task(
-        self, task_identifier, num_trajs, keyes=None, samples_per_traj=None
-    ):
-        return self.task_replay_buffers[task_identifier].sample_trajs(
-            num_trajs, keys=keys, samples_per_traj=samples_per_traj
-        )
-
-    def sample_random_batch_from_task(self, task_identifier, num_samples, keys=None):
-        return self.task_replay_buffers[task_identifier].random_batch(
-            num_samples, keys=keys
-        )
-
-    def random_batch(self, task_identifiers, batch_size_per_task, keys=None):
-        batch_list = [
-            self.task_replay_buffers[p].random_batch(batch_size_per_task, keys=keys)
-            for p in task_identifiers
-        ]
-        return batch_list
-
-    def num_steps_can_sample(self):
-        return sum(
-            map(lambda rb: rb.num_steps_can_sample(), self.task_replay_buffers.values())
-        )
-
-
 def concat_nested_dicts(d1, d2):
     # two dicts that have the exact same nesting structure
     # and contain leaf values that are numpy arrays of the same
@@ -553,11 +451,3 @@ def concat_nested_dicts(d1, d2):
         else concat_nested_dicts(d1[k], d2[k])
         for k in d1
     }
-
-
-class LRUMetaSimpleReplayBuffer:
-    def __init__(self, *args, max_tasks=-1, **kwargs):
-        super().__init__(*args, **kwargs)
-        raise NotImplementedError()
-
-        assert max_tasks > 0

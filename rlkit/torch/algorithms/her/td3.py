@@ -8,7 +8,6 @@ from torch import nn as nn
 import rlkit.torch.utils.pytorch_util as ptu
 from rlkit.core.trainer import Trainer
 from rlkit.core.eval_util import create_stats_ordered_dict
-from rlkit.torch.algorithms.torch_rl_algorithm import TorchRLAlgorithm
 
 
 class TD3(Trainer):
@@ -111,7 +110,7 @@ class TD3(Trainer):
             torch.min(target_q1_values, target_q2_values),
             self.clip_return_l,
             self.clip_return_r,
-        )
+        ) # This is an important clip trick by HER for faster learning!!!
 
         q_target = rewards + (1.0 - terminals) * self.discount * target_q_values
         q_target = q_target.detach()

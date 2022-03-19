@@ -213,9 +213,9 @@ def plot_experiment_returns(
                     arr_list.append(returns)
                     names.append(c_name + "_" + sub_exp_dir)
                 # print(csv_full_path)
-            except:
+            except Exception:
                 pass
-        except:
+        except Exception:
             pass
 
     if plot_mean:
@@ -225,7 +225,7 @@ def plot_experiment_returns(
         mean = np.mean(returns, 0)
         std = np.std(returns, 0)
         x = np.arange(min_len)
-        # save_plot(x, mean, title, save_path, color='cyan', x_axis_lims=x_axis_lims, y_axis_lims=y_axis_lims)
+        save_plot(x, mean, title, save_path, color='cyan', x_axis_lims=x_axis_lims, y_axis_lims=y_axis_lims)
         plot_returns_on_same_plot(
             [mean, mean + std, mean - std],
             ["mean", "mean+std", "mean-std"],

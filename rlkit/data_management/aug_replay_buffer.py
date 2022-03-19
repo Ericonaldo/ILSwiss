@@ -1,8 +1,7 @@
-import numpy as np
 from rlkit.data_management.env_replay_buffer import (
     EnvReplayBuffer,
 )
-from gym.spaces import Box, Discrete, Tuple, Dict
+# from gym.spaces import Box, Discrete, Tuple, Dict
 import rlkit.data_management.data_augmentation as rad
 
 aug_to_func = {

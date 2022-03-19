@@ -84,7 +84,7 @@ class MBPO(TorchRLAlgorithm):
             self._n_env_steps_this_epoch = 0
             start_env_steps = self._n_env_steps_total
             cur_env_steps = 0
-            for i in count():
+            for _ in count():
                 if self._can_train():
                     cur_env_steps = self._n_env_steps_total - start_env_steps - 1
                     if cur_env_steps >= self.num_env_steps_per_epoch:

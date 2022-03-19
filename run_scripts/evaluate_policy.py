@@ -3,7 +3,7 @@ import argparse
 import joblib
 import numpy as np
 import os, sys, inspect
-import pickle, random
+import pickle
 from pathlib import Path
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -11,7 +11,6 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 print(sys.path)
 
-from gym.spaces import Dict
 from rlkit.envs import get_env
 
 import rlkit.torch.utils.pytorch_util as ptu
@@ -22,7 +21,6 @@ from rlkit.envs.wrappers import ScaledEnv
 from rlkit.samplers import PathSampler
 from rlkit.torch.common.policies import (
     MakeDeterministic,
-    ReparamTanhMultivariateGaussianLfOPolicy,
 )
 from .video import save_video
 
@@ -40,8 +38,8 @@ def experiment(variant):
     obs_space = env.observation_space
     act_space = env.action_space
 
-    obs_dim = obs_space.shape[0]
-    action_dim = act_space.shape[0]
+    # obs_dim = obs_space.shape[0]
+    # action_dim = act_space.shape[0]
 
     if variant["scale_env_with_demo_stats"]:
         with open("expert_demos_listing.yaml", "r") as f:
@@ -74,8 +72,7 @@ def experiment(variant):
         variant["max_path_length"],
         no_terminal=variant["no_terminal"],
         render=variant["render"],
-        render_kwargs=variant["render_kwargs"],
-        render_mode=variant["render_mode"],
+        render_kwargs=variant["render_kwargs"]
     )
     test_paths = eval_sampler.obtain_samples()
     average_returns = eval_util.get_average_returns(test_paths)

@@ -1,8 +1,6 @@
 import abc
-import pickle
 import time
 from collections import OrderedDict
-from copy import deepcopy
 
 import gtimer as gt
 import numpy as np
@@ -13,8 +11,6 @@ from rlkit.data_management.path_builder import PathBuilder
 from rlkit.policies.base import ExplorationPolicy
 from rlkit.torch.common.policies import MakeDeterministic
 from rlkit.samplers import PathSampler, VecPathSampler
-
-from gym.spaces import Dict
 
 
 class BaseAlgorithm(metaclass=abc.ABCMeta):
@@ -60,7 +56,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         self.env_num = 1
         try:
             self.env_num = len(training_env)
-        except BaseException:
+        except Exception:
             pass
         self.training_env = training_env
         self.exploration_policy = exploration_policy
@@ -612,7 +608,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         try:
             statistics.update(self.eval_statistics)
             self.eval_statistics = None
-        except BaseException as e:
+        except Exception as e:
             print("No Stats to Eval", str(e))
 
         logger.log("Collecting samples for evaluation")
@@ -644,7 +640,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         for key, value in statistics.items():
             try:
                 logger.record_tabular(key, np.mean(value))
-            except:
+            except Exception:
                 print(f"Log error with key: {key}, value: {value}")
 
         best_statistic = statistics[self.best_key]

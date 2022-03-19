@@ -1,6 +1,5 @@
 import yaml
 import argparse
-import numpy as np
 import os, inspect, sys
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -16,17 +15,12 @@ from rlkit.envs.wrappers import DiscretEnv, ProxyEnv
 
 import rlkit.torch.utils.pytorch_util as ptu
 from rlkit.launchers.launcher_util import setup_logger, set_seed
-from rlkit.torch.common.networks import FlattenMlp
 from rlkit.torch.common.policies import (
     MlpGaussianAndEpsilonConditionPolicy,
     CatagorialConditionPolicy,
 )
-from rlkit.torch.algorithms.torch_rl_algorithm import TorchRLAlgorithm
 from rlkit.torch.algorithms.gcsl.rl import GoalHorizonRL
 from rlkit.torch.algorithms.gcsl.gcsl import GCSL
-from rlkit.data_management.relabel_horizon_replay_buffer import (
-    HindsightHorizonReplayBuffer,
-)
 
 
 def experiment(variant):

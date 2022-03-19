@@ -17,7 +17,6 @@ You can easily build experiment codes under this framework in your research. We 
 - Soft-Actor-Critic (SAC)
 - Soft-Actor-Critic (SAC) (Auto Learning Alpha version)
 - Soft-Actor-Critic-Auto-Encoder (SAC-AE)
-- Soft Q Learning (SQL)
 - TD3
 - DDPG
 - PPO
@@ -30,11 +29,11 @@ You can easily build experiment codes under this framework in your research. We 
 - Adversarial Inverse Reinforcement Learning
     - AIRL / GAIL / FAIRL / Discriminator-Actor-Critic (DAC) (Different reward signals for AIRL / GAIL / FAIRL, and absorbing state for DAC)
 - Behaviour Cloning (BC)
-- DAgger
+- Dagger
 
 # Running Notes:
 
-Before running, assign important log and output paths in `\rlkit\launchers\config.py` (Just rename the example [config_example.py](https://github.com/Ericonaldo/ILSwiss/blob/main/rlkit/launchers/config_example.py) as `config.py` and define the paths.).
+Before running, assign important log and output paths in `\rlkit\launchers\config.py`.
 
 There are simple multiple processing shcheduling (we use multiple processing to clarify it with multi-processing since it only starts many independent sub-process without communication) for simple hyperparameter grid search.
 

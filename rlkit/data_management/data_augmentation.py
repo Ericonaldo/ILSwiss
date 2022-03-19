@@ -3,7 +3,6 @@ Copy from https://github.com/MishaLaskin/rad/blob/master/data_augs.py
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 from rlkit.torch.utils.transform_layer import ColorJitterLayer

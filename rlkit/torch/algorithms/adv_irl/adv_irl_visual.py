@@ -8,8 +8,6 @@ from torch import autograd
 import torch.nn.functional as F
 
 import rlkit.torch.utils.pytorch_util as ptu
-from rlkit.torch.core import np_to_pytorch_batch
-from rlkit.torch.algorithms.torch_base_algorithm import TorchBaseAlgorithm
 import rlkit.torch.algorithms.irl.adv_irl as adv_irl
 
 

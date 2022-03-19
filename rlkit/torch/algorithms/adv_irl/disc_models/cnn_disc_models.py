@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
-from rlkit.torch.utils import pytorch_util as ptu
 from rlkit.torch.common.encoders import OUT_DIM, OUT_DIM_64
 
 
@@ -88,4 +86,4 @@ class ResNetCNNDisc(nn.Module):
     ):
         super().__init__()
 
-        raise not NotImplementedError
+        raise NotImplementedError

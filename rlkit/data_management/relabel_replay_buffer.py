@@ -3,7 +3,7 @@ import numpy as np
 from rlkit.data_management.simple_replay_buffer import SimpleReplayBuffer
 from rlkit.data_management.env_replay_buffer import get_dim
 from rlkit.envs.goal_env_utils import compute_reward, compute_distance
-from gym.spaces import Box, Discrete, Tuple, Dict
+from gym.spaces import Discrete
 
 import pickle
 import copy
@@ -85,7 +85,7 @@ class HindsightReplayBuffer(SimpleReplayBuffer):
                     "future": np.random.randint(step, (traj_len + starts[i]))
                     % self._size,
                 }[self.relabel_type]
-            except BaseException as err:
+            except Exception as err:
                 print(err, starts[i], ends[i], step, ends[i])
                 exit(0)
 

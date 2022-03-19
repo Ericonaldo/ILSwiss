@@ -1,14 +1,11 @@
 from collections import OrderedDict
 
-import numpy as np
 import torch
 import torch.optim as optim
 from torch import nn as nn
 
 import rlkit.torch.utils.pytorch_util as ptu
 from rlkit.core.trainer import Trainer
-from rlkit.core.eval_util import create_stats_ordered_dict
-from rlkit.torch.algorithms.torch_rl_algorithm import TorchRLAlgorithm
 
 
 class GCSL(Trainer):
@@ -51,16 +48,11 @@ class GCSL(Trainer):
         self.use_horizons = use_horizons
 
     def train_step(self, batch):
-
-        rewards = self.reward_scale * batch["rewards"]
-        terminals = batch["terminals"]
+        
         obs = batch["observations"]
         actions = batch["actions"]
-        next_obs = batch["next_observations"]
         horizons = batch["horizons"]
-
         goals = batch["desired_goals"]
-        next_goals = batch["next_desired_goals"]
 
         if self.use_horizons:
             concat_input = torch.cat([obs, goals, horizons], axis=-1)
@@ -108,7 +100,6 @@ class GCSL(Trainer):
         return dict(
             policy=self.policy,
         )
-        return snapshot
 
     @property
     def networks(self):

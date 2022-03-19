@@ -8,7 +8,6 @@ from torch import nn as nn
 import rlkit.torch.utils.pytorch_util as ptu
 from rlkit.core.trainer import Trainer
 from rlkit.core.eval_util import create_stats_ordered_dict
-from rlkit.torch.algorithms.torch_rl_algorithm import TorchRLAlgorithm
 
 
 class TD3(Trainer):
@@ -20,9 +19,9 @@ class TD3(Trainer):
 
     def __init__(
         self,
-        policy,
-        qf1,
-        qf2,
+        policy: nn.Module,
+        qf1: nn.Module,
+        qf2: nn.Module,
         reward_scale=1.0,
         discount=0.99,
         target_policy_noise=0.2,
@@ -195,7 +194,6 @@ class TD3(Trainer):
             qf1_optimizer=self.qf1_optimizer,
             qf2_optimizer=self.qf2_optimizer,
         )
-        return snapshot
 
     def load_snapshot(self, snapshot):
         self.qf1 = snapshot["qf1"]

@@ -2,7 +2,6 @@ import abc
 from collections import OrderedDict
 from typing import Iterable
 
-import numpy as np
 from torch.autograd import Variable
 
 import rlkit.core.eval_util

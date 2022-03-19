@@ -1,22 +1,8 @@
-from collections import defaultdict
-import random as python_random
-from random import sample
-from itertools import starmap
-from functools import partial
-
 import numpy as np
-import random
-import gc
 
 from rlkit.data_management.replay_buffer import ReplayBuffer
 from rlkit.data_management.t_step_replay_buffer import TStepReplayBuffer
 from rlkit.data_management.simple_replay_buffer import SimpleReplayBuffer
-import rlkit.torch.pytorch_util as ptu
-from rlkit.core import logger
-
-import copy
-
-import torch
 
 
 class EpisodicReplayBuffer(ReplayBuffer):
@@ -177,11 +163,3 @@ class EpisodicReplayBuffer(ReplayBuffer):
     def add_path(self, path):
         for i in range(self.max_step):
             self.t_step_buffers[i].add_path(path)
-
-    def terminate_episode(self):
-        """
-        Let the replay buffer know that the episode has terminated in case some
-        special book-keeping has to happen.
-        :return:
-        """
-        pass

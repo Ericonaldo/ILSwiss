@@ -1,4 +1,3 @@
-import numpy as np
 from collections import OrderedDict
 
 from rlkit.torch.core import np_to_pytorch_batch

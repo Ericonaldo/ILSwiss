@@ -14,20 +14,17 @@ import dateutil.tz
 import csv
 import joblib
 import json
-import pickle
 import base64
 import errno
+# import pickle
 
-import pickle
-
+# from rlkit.envs import load
 from rlkit.core.tabulate import tabulate
 from rlkit.data_management.replay_buffer import ReplayBuffer
-from rlkit.envs import load
 from torch.utils.tensorboard import SummaryWriter
 
 
 def load_from_file(algorithm, load_replay_buffer, load_model, load_path=None):
-    algorithm = algorithm
     if (load_path is not None) and (len(load_path) > 0):
         load_extra_data_path = load_path + "/extra_data.pkl"
         load_model_path = load_path + "/params.pkl"
@@ -262,8 +259,6 @@ class TerminalTablePrinter(object):
         self.refresh()
 
     def refresh(self):
-        import os
-
         rows, columns = os.popen("stty size", "r").read().split()
         tabulars = self.tabulars[-(int(rows) - 3) :]
         sys.stdout.write("\x1b[2J\x1b[H")

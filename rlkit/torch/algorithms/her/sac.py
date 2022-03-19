@@ -2,10 +2,7 @@ from collections import OrderedDict
 
 import numpy as np
 import torch
-from torch import nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
-import itertools
 
 import rlkit.torch.utils.pytorch_util as ptu
 from rlkit.core.trainer import Trainer

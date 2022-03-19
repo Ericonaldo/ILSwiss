@@ -9,7 +9,6 @@ from rlkit.core.trainer import Trainer
 from rlkit.core.eval_util import create_stats_ordered_dict
 from rlkit.policies.simple import RandomPolicy
 from rlkit.samplers import rollout
-from rlkit.torch.algorithms.torch_rl_algorithm import TorchRLAlgorithm
 from rlkit.torch.utils.normalizer import TorchFixedNormalizer
 from torch import nn as nn
 

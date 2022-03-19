@@ -53,7 +53,7 @@ def experiment(variant):
     traj_list = random.sample(traj_list, variant["traj_num"])
 
     obs = np.vstack([traj_list[i]["observations"] for i in range(len(traj_list))])
-    acts = np.vstack([traj_list[i]["actions"] for i in range(len(traj_list))])
+    # acts = np.vstack([traj_list[i]["actions"] for i in range(len(traj_list))])
     obs_mean, obs_std = np.mean(obs, axis=0), np.std(obs, axis=0)
     # acts_mean, acts_std = np.mean(acts, axis=0), np.std(acts, axis=0)
     acts_mean, acts_std = None, None
@@ -112,30 +112,30 @@ def experiment(variant):
                 traj_list[i]["next_observations"] - obs_min
             ) / (obs_max - obs_min + EPS)
 
-    for i in range(len(traj_list)):
-        expert_replay_buffer.add_path(
-            traj_list[i], absorbing=variant["adv_irl_params"]["wrap_absorbing"], env=env
-        )
-
     obs_space = env.observation_space
     act_space = env.action_space
     assert not isinstance(obs_space, gym.spaces.Dict)
     assert len(obs_space.shape) == 1
     assert len(act_space.shape) == 1
 
-    if isinstance(act_space, gym.spaces.Box) and (
-        (acts_mean is None) and (acts_std is None)
-    ):
-        print("\nWARNING: Using Normalized Box Env wrapper")
-        env_wrapper = lambda *args, **kwargs: NormalizedBoxEnv(
-            tmp_env_wrapper(*args, **kwargs)
-        )
+    # if isinstance(act_space, gym.spaces.Box) and (
+    #     (acts_mean is None) and (acts_std is None)
+    # ):
+    #     print("\nWARNING: Using Normalized Box Env wrapper")
+    #     env_wrapper = lambda *args, **kwargs: NormalizedBoxEnv(
+    #         tmp_env_wrapper(*args, **kwargs)
+    #     )
 
     env = env_wrapper(env, **wrapper_kwargs)
     training_env = get_envs(
         env_specs, env_wrapper, wrapper_kwargs=wrapper_kwargs, **kwargs
     )
     training_env.seed(env_specs["training_env_seed"])
+
+    for i in range(len(traj_list)):
+        expert_replay_buffer.add_path(
+            traj_list[i], absorbing=variant["adv_irl_params"]["wrap_absorbing"], env=env
+        )
 
     obs_dim = obs_space.shape[0]
     action_dim = act_space.shape[0]
@@ -153,11 +153,7 @@ def experiment(variant):
         input_size=obs_dim + action_dim,
         output_size=1,
     )
-    vf = FlattenMlp(
-        hidden_sizes=num_hidden * [net_size],
-        input_size=obs_dim,
-        output_size=1,
-    )
+    
     policy = ReparamTanhMultivariateGaussianPolicy(
         hidden_sizes=num_hidden * [net_size],
         obs_dim=obs_dim,
@@ -181,7 +177,7 @@ def experiment(variant):
 
     # set up the algorithm
     trainer = SoftActorCritic(
-        policy=policy, qf1=qf1, qf2=qf2, vf=vf, env=env, **variant["sac_params"]
+        policy=policy, qf1=qf1, qf2=qf2, env=env, **variant["sac_params"]
     )
     algorithm = AdvIRL(
         env=env,

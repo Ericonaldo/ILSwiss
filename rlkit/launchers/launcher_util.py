@@ -4,13 +4,10 @@ import os.path as osp
 import pickle
 import random
 import sys
-import time
-import uuid
 import inspect
 from collections import namedtuple
 from copy import deepcopy
 
-import __main__ as main
 import datetime
 import dateutil.tz
 import numpy as np
@@ -411,8 +408,8 @@ def flatten_dict(dic):
     for k, v in dic.items():
         if isinstance(v, dict):
             sub_dict = flatten_dict(v)
-            for sub_k, v in sub_dict.items():
-                new_dic[".".join([k, sub_k])] = v
+            for sub_k, sub_v in sub_dict.items():
+                new_dic[".".join([k, sub_k])] = sub_v
         else:
             new_dic[k] = v
 

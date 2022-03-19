@@ -19,7 +19,6 @@ import rlkit.torch.utils.pytorch_util as ptu
 from rlkit.launchers.launcher_util import setup_logger, set_seed
 from rlkit.torch.common.networks import FlattenMlp
 from rlkit.torch.common.policies import ReparamMultivariateGaussianPolicy
-from rlkit.torch.common.policies import ReparamTanhMultivariateGaussianPolicy
 from rlkit.torch.algorithms.ppo.ppo import PPO
 from rlkit.torch.algorithms.torch_rl_algorithm import TorchRLAlgorithm
 

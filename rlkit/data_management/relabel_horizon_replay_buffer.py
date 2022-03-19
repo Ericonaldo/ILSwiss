@@ -1,9 +1,6 @@
 from inspect import Attribute
 import numpy as np
 from rlkit.data_management.relabel_replay_buffer import HindsightReplayBuffer
-from rlkit.data_management.env_replay_buffer import get_dim
-from rlkit.envs.goal_env_utils import compute_reward, compute_distance
-from gym.spaces import Box, Discrete, Tuple, Dict
 
 import pickle
 import copy
@@ -31,7 +28,7 @@ class HindsightHorizonReplayBuffer(HindsightReplayBuffer):
         # else:
         #     new_action = action
         # new_action = action
-        super(HindsightReplayBuffer, self).add_sample(
+        super().add_sample(
             observation, action, reward, terminal, next_observation, **kwargs
         )
 
@@ -56,7 +53,7 @@ class HindsightHorizonReplayBuffer(HindsightReplayBuffer):
         traj_indice = range(len(starts))
         indices = []
         indices_relabel = []
-        indices_subgoal = []
+        # indices_subgoal = []
         for i in traj_indice:
             traj_len = (ends[i] - starts[i]) % self._size
             for j in range(traj_len):
@@ -68,7 +65,7 @@ class HindsightHorizonReplayBuffer(HindsightReplayBuffer):
                         "future": np.random.randint(step, (traj_len + starts[i]))
                         % self._size,
                     }[self.relabel_type]
-                except BaseException as err:
+                except Exception as err:
                     print(err, starts[i], ends[i], step, ends[i])
                     exit(0)
 
@@ -161,7 +158,7 @@ class HindsightHorizonReplayBuffer(HindsightReplayBuffer):
         traj_indice = self._np_randint(0, len(starts), batch_size)
         indices = []
         indices_relabel = []
-        indices_subgoal = []
+        # indices_subgoal = []
         for i in traj_indice:
             traj_len = (ends[i] - starts[i]) % self._size
             step = (self._np_randint(0, traj_len, 1)[0] + starts[i]) % self._size
@@ -172,7 +169,7 @@ class HindsightHorizonReplayBuffer(HindsightReplayBuffer):
                     "future": np.random.randint(step, (traj_len + starts[i]))
                     % self._size,
                 }[self.relabel_type]
-            except BaseException as err:
+            except Exception as err:
                 print(err, starts[i], ends[i], step, ends[i])
                 exit(0)
 

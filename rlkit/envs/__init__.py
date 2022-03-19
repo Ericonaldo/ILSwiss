@@ -4,7 +4,7 @@ import importlib
 
 try:
     import dmc2gym
-except:
+except Exception:
     pass
 
 from rlkit.envs.envs_dict import envs_dict
@@ -147,7 +147,7 @@ def get_task_params_samplers(task_specs):
 
 class EnvFactory(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def __get__(self, task_params):
+    def __get__(self, task_params, type=None):
         """
         Implements returning and environment corresponding to given task params
         """

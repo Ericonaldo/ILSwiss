@@ -1,9 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-
-from rlkit.torch.utils import pytorch_util as ptu
-
 
 class RNNDisc(nn.Module):
     def __init__(
