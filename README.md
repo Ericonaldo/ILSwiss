@@ -1,4 +1,6 @@
 # ILSwiss
+[News!] We now support experiments logging using [wandb](https://wandb.ai).
+
 [News!] We have implemented MBPO in torch which achieves similar results to the original implementation.
 
 ILSwiss is an Easy-to-run Imitation Learning (IL, or Learning from Demonstration, LfD) framework (template) in PyTorch based on existing code base.
@@ -117,6 +119,10 @@ run gail for walker:
 ```
 python run_experiment -e \exp_specs\gail\gail_walker.yaml -g 0
 ```
+
+## Notes on wandb logging
+
+The project name in wandb can be configured in `\rlkit\launchers\config.py`. And the experiment name for each trial shown in wandb UI is the same as `exp_name` in the yaml file.
 
 ## Some qualitive baseline reults
 

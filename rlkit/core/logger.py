@@ -17,8 +17,9 @@ import json
 import errno
 try:
     import wandb
+    _wandb_installed = True
 except ImportError:
-    pass
+    _wandb_installed = False
 
 from rlkit.core.tabulate import tabulate
 from rlkit.launchers import config
@@ -141,10 +142,15 @@ def set_snapshot_dir(dir_name, variant, log_tboard=True, log_wandb=True):
     global _snapshot_dir, _log_tboard, _log_wandb
     _snapshot_dir = dir_name
     _log_tboard = log_tboard
-    _log_wandb = log_wandb
-    if log_tboard:
+    if _log_wandb and not _wandb_installed:
+        print("\nWandb not installed. Not logging to wandb.")
+        print("Please install wandb with 'pip install wandb', or turn off wandb logging\n")
+        _log_wandb = False
+    else:
+        _log_wandb = log_wandb
+    if _log_tboard:
         set_tboard(dir_name)
-    if log_wandb:
+    if _log_wandb:
         set_wandb(dir_name, variant)
 
 
