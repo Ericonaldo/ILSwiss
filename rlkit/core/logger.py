@@ -14,13 +14,14 @@ import dateutil.tz
 import csv
 import joblib
 import json
-import base64
 import errno
-# import pickle
+try:
+    import wandb
+except ImportError:
+    pass
 
-# from rlkit.envs import load
 from rlkit.core.tabulate import tabulate
-from rlkit.data_management.replay_buffer import ReplayBuffer
+from rlkit.launchers import config
 from torch.utils.tensorboard import SummaryWriter
 
 
@@ -77,6 +78,7 @@ _snapshot_gap = 1
 _log_tabular_only = False
 _header_printed = False
 _log_tboard = True
+_log_wandb = True
 _step_key = "Epoch"
 
 _summary_writer = None
@@ -126,12 +128,24 @@ def set_tboard(dir_name, name="tboard"):
     _summary_writer = SummaryWriter(log_path)
 
 
-def set_snapshot_dir(dir_name, log_tboard=True):
-    global _snapshot_dir, _log_tboard
+def set_wandb(dir_name, variant):
+    wandb.init(
+        project=config.PROJECT_NAME,
+        dir=dir_name,
+        config=variant,
+        name=variant["exp_name"],
+    )
+
+
+def set_snapshot_dir(dir_name, variant, log_tboard=True, log_wandb=True):
+    global _snapshot_dir, _log_tboard, _log_wandb
     _snapshot_dir = dir_name
     _log_tboard = log_tboard
+    _log_wandb = log_wandb
     if log_tboard:
         set_tboard(dir_name)
+    if log_wandb:
+        set_wandb(dir_name, variant)
 
 
 def get_snapshot_dir():
@@ -176,6 +190,10 @@ def get_log_tboard():
 
 def record_tboard(key, x, y, **kwargs) -> None:
     _summary_writer.add_scalar(key, y, global_step=x)
+
+
+def record_wandb(key, x, y, **kwargs) -> None:
+    wandb.log({key: y}, step=int(x))
 
 
 def log(s, with_prefix=True, with_timestamp=True):
@@ -297,6 +315,15 @@ def dump_tabular(*args, **kwargs):
             for key in tabular_dict.keys():
                 if key != _step_key:
                     record_tboard(key, step, np.array(tabular_dict[key]))
+
+        if _log_wandb:
+            assert wandb.run is not None, "wandb is not setup"
+            step = tabular_dict[_step_key]
+            for key in tabular_dict.keys():
+                if key != _step_key:
+                    record_wandb(
+                        key, step, np.array(tabular_dict[key], dtype=np.float32)
+                    )
 
 
 def pop_prefix():
