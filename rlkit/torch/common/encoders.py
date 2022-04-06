@@ -13,6 +13,8 @@ def tie_weights(src, trg):
 OUT_DIM = {2: 39, 4: 35, 6: 31}
 # for 64 x 64 inputs
 OUT_DIM_64 = {2: 29, 4: 25, 6: 21}
+# for 108 x 108 inputs
+OUT_DIM_108 = {4: 47}
 
 
 def make_encoder(
@@ -49,7 +51,14 @@ class PixelEncoder(PyTorchModule):
         for i in range(num_layers - 1):
             self.convs.append(nn.Conv2d(num_filters, num_filters, 3, stride=1))
 
-        out_dim = OUT_DIM_64[num_layers] if obs_shape[-1] == 64 else OUT_DIM[num_layers]
+        if obs_shape[-1] == 108:
+            assert num_layers in OUT_DIM_108
+            out_dim = OUT_DIM_108[num_layers]
+        elif obs_shape[-1] == 64:
+            out_dim = OUT_DIM_64[num_layers]
+        else:
+            out_dim = OUT_DIM[num_layers]
+        self.out_dim = out_dim
         self.fc = nn.Linear(num_filters * out_dim * out_dim, self.feature_dim)
         self.ln = nn.LayerNorm(self.feature_dim)
 
@@ -127,7 +136,15 @@ class PixelDecoder(PyTorchModule):
 
         self.num_layers = num_layers
         self.num_filters = num_filters
-        self.out_dim = OUT_DIM[num_layers]
+
+        if obs_shape[-1] == 108:
+            assert num_layers in OUT_DIM_108
+            out_dim = OUT_DIM_108[num_layers]
+        elif obs_shape[-1] == 64:
+            out_dim = OUT_DIM_64[num_layers]
+        else:
+            out_dim = OUT_DIM[num_layers]
+        self.out_dim = out_dim
 
         self.fc = nn.Linear(feature_dim, num_filters * self.out_dim * self.out_dim)
 

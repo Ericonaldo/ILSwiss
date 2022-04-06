@@ -1,7 +1,9 @@
 # ILSwiss
+[News!] We have implemented CURL and RAD in torch for potential imgae-based researches, see yaml file in `exp_specs`.
+
 [News!] We now support experiments logging using [wandb](https://wandb.ai).
 
-[News!] We have implemented MBPO in torch which achieves similar results to the original implementation.
+[News!] We have implemented MBPO in torch which achieves similar results to the original implementation, see yaml file in `exp_specs`.
 
 ILSwiss is an Easy-to-run Imitation Learning (IL, or Learning from Demonstration, LfD) framework (template) in PyTorch based on existing code base.
 
@@ -12,7 +14,6 @@ You can easily build experiment codes under this framework in your research. We 
 ## Implementing RL algorithms (for potential researches):
 
 - Contrastive Unsupervised Representation Learning (CURL-SAC, https://github.com/MishaLaskin/curl/)
-- Reinforcement Learning with Augmented Data (RAD-SAC, https://github.com/MishaLaskin/rad)
 
 ## Implemented RL algorithms:
 
@@ -25,6 +26,7 @@ You can easily build experiment codes under this framework in your research. We 
 - HER (Goal-Condtioned RL, with SAC or TD3)
 - GCSL (Goal-Condtioned RL)
 - Model-Based Policy Optimization (MBPO, https://github.com/jannerm/mbpo)
+- Reinforcement Learning with Augmented Data (RAD-SAC, https://github.com/MishaLaskin/rad)
 
 ## Implemented IL algorithms:
 

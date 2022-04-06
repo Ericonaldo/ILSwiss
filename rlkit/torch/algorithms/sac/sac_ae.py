@@ -65,7 +65,7 @@ class SoftActorCritic(Trainer):
         self.encdec_update_freq = encdec_update_freq
 
         self.train_alpha = train_alpha
-        self.log_alpha = torch.tensor(np.log(alpha), requires_grad=train_alpha)
+        self.log_alpha = torch.tensor(np.log(alpha), requires_grad=train_alpha, device=ptu.device)
         self.alpha = self.log_alpha.detach().exp()
         assert "env" in kwargs.keys(), "env info should be taken into SAC alpha"
         self.target_entropy = -np.prod(kwargs["env"].action_space.shape)
@@ -278,7 +278,7 @@ class SoftActorCritic(Trainer):
 
         if self.total_train_step % self.ac_update_freq == 0:
             self.train_ac(batch)
-        if self.total_train_step % self.encdec_update_freq == 0:
+        if self.encdec_update_freq > 0 and self.total_train_step % self.encdec_update_freq == 0:
             self.train_encdec(batch)
 
         self.total_train_step += 1
@@ -299,7 +299,7 @@ class SoftActorCritic(Trainer):
     def _update_target_network(self):
         ptu.soft_update_from_to(self.qf1, self.target_qf1, self.soft_target_tau)
         ptu.soft_update_from_to(self.qf2, self.target_qf2, self.soft_target_tau)
-        ptu.soft_update_from_to(self.encoder, self.target_encoder, self.soft_target_tau)
+        ptu.soft_update_from_to(self.encoder, self.target_encoder, self.enc_soft_target_tau)
 
     def get_snapshot(self):
         return dict(
@@ -334,5 +334,4 @@ class SoftActorCritic(Trainer):
         self.eval_statistics = None
 
     def to(self, device):
-        self.log_alpha.to(device)
         super.to(device)

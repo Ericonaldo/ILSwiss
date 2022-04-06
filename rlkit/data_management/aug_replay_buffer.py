@@ -72,8 +72,7 @@ class AugmentImageEnvReplayBuffer(EnvReplayBuffer):
                         batch_data["observations"], rndm_idxs = func(
                             og_obses, self.image_size, return_random_idxs=True
                         )
-                        batch_data["observations"] = batch_data["observations"] / 255.0
-
+                    
                     if "next_observations" in keys:
                         og_next_obses = rad.center_crop_images(
                             batch_data["next_observations"], self.pre_image_size
@@ -84,10 +83,7 @@ class AugmentImageEnvReplayBuffer(EnvReplayBuffer):
                             return_random_idxs=(rndm_idxs is None),
                             **rndm_idxs
                         )
-                        batch_data["next_observations"] = (
-                            batch_data["next_observations"] / 255.0
-                        )
-
+                        
                     # augmentations go here
                     else:
                         if "observations" in keys:
@@ -98,5 +94,9 @@ class AugmentImageEnvReplayBuffer(EnvReplayBuffer):
                             batch_data["next_observations"] = func(
                                 batch_data["next_observations"]
                             )
+        
+        # Decrepted: Done in encoder
+        # batch_data["observations"] = batch_data["observations"] / 255.0
+        # batch_data["next_observations"] = batch_data["next_observations"] / 255.0
 
         return batch_data

@@ -62,7 +62,7 @@ class HindsightReplayBuffer(SimpleReplayBuffer):
         )
 
     def random_batch(self, batch_size, keys=None, **kwargs):
-        relabel = self.relabel_type is not None
+        relabel = (self.relabel_type is not None) and (self.her_ratio > 0)
         assert (keys is None) or ("observations" in keys)
         if keys is None:
             keys = set(
@@ -78,20 +78,21 @@ class HindsightReplayBuffer(SimpleReplayBuffer):
         for i in traj_indice:
             traj_len = (ends[i] - starts[i]) % self._size
             step = (self._np_randint(0, traj_len, 1)[0] + starts[i]) % self._size
-
-            try:
-                step_her = {
-                    "final": ends[i] - 1,
-                    "future": np.random.randint(step, (traj_len + starts[i]))
-                    % self._size,
-                }[self.relabel_type]
-            except Exception as err:
-                print(err, starts[i], ends[i], step, ends[i])
-                exit(0)
-
-            # print("her:", traj_len, starts[i], ends[i], step, step_her)
             indices.append(step)
-            indices_relabel.append(step_her)
+            
+            if relabel:
+                try:
+                    step_her = {
+                        "final": ends[i] - 1,
+                        "future": np.random.randint(step, (traj_len + starts[i]))
+                        % self._size,
+                    }[self.relabel_type]
+                except Exception as err:
+                    print(err, starts[i], ends[i], step, ends[i])
+                    exit(0)
+
+                indices_relabel.append(step_her)
+                
         batch_to_return = self._get_batch_using_indices(indices, keys=keys)
 
         # relabel

@@ -1,6 +1,6 @@
 meta_data:
   script_path: run_scripts/her_td3_exp_script.py
-  exp_name: her_fetch_slide_td3_norm
+  exp_name: her_fetch_slide_td3_norm_trainfreq
   description: Train an her agent using TD3
   num_workers: 4
   using_gpus: true
@@ -46,7 +46,7 @@ constants:
     reward_scale: 1.0
     discount: 0.99
     soft_target_tau: 0.005
-    policy_lr: 0.001
+    policy_lr: 0.003
     qf_lr: 0.0003
 
   env_specs:

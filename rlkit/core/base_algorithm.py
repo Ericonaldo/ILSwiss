@@ -377,6 +377,8 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         :return:
         """
         self.exploration_policy.set_num_steps_total(self._n_env_steps_total)
+        if not self._can_train:
+            return [self.action_space.sample() for _ in range(len(observation))]
         return self.exploration_policy.get_actions(
             observation,
         )

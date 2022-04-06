@@ -52,15 +52,16 @@ def experiment(variant):
         # preprocess obs func for eval
         if "crop" in data_augs:
             eval_preprocess_func = (
-                lambda x: rad.center_crop_image(x, image_size) / 255.0
+                lambda x: rad.center_crop_image(x, image_size)
             )
         if "translate" in data_augs:
             # first crop the center with pre_image_size
             crop_func = lambda x: rad.center_crop_image(x, pre_transform_image_size)
             # then translate cropped to center
             eval_preprocess_func = (
-                lambda x: rad.center_translate(crop_func(x), image_size) / 255.0
+                lambda x: rad.center_translate(crop_func(x), image_size)
             )
+            # Potential bug: env's obs shape is not the same to the encoder input shape during sampling, not a problem for correct parameters
 
     env = get_env(env_specs)
     env.seed(env_specs["eval_env_seed"])

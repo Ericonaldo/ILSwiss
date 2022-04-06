@@ -1,13 +1,13 @@
 meta_data:
   script_path: run_scripts/sac_alpha_exp_script.py
-  exp_name: test_sac_halfcheetah_norm
+  exp_name: test_sac_halfcheetah
   description: Train an agent using Soft-Actor-Critic
   num_workers: 2
   using_gpus: true
   # num_gpu_workers: 1
 # -----------------------------------------------------------------------------
 variables:
-  seed: [723894]
+  seed: [0]
 
 # -----------------------------------------------------------------------------
 constants:
@@ -15,17 +15,17 @@ constants:
   num_hidden_layers: 2
 
   rl_alg_params:
-    num_epochs: 582
-    num_steps_per_epoch: 5000
-    num_steps_between_train_calls: 1
-    num_train_steps_per_train_call: 1
-    num_steps_per_eval: 10000
+    num_epochs: 202
+    num_steps_per_epoch: 10000
+    num_steps_between_train_calls: 1000
+    num_train_steps_per_train_call: 1000
     max_path_length: 1000
     min_steps_before_training: 5000
 
     eval_deterministic: true
+    num_steps_per_eval: 20000
 
-    batch_size: 512
+    batch_size: 256
     replay_buffer_size: 1000000
     no_terminal: false
     wrap_absorbing: false
@@ -37,20 +37,19 @@ constants:
     # save_environment: false
 
   sac_params:
-    alpha: 0.2
     reward_scale: 1.0
     discount: 0.99
     soft_target_tau: 0.005
+    beta_1: 0.25
     policy_lr: 0.0003
     qf_lr: 0.0003
     vf_lr: 0.0003
     policy_mean_reg_weight: 0.001
     policy_std_reg_weight: 0.001
-    target_entropy: -3
 
   env_specs:
     env_name: 'halfcheetah'
     env_kwargs: {}
     env_num: 1
-    vec_env_kwargs:
-      norm_obs: true
+    # vec_env_kwargs:
+    #   norm_obs: true

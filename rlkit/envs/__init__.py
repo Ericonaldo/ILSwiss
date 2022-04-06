@@ -108,7 +108,7 @@ def get_envs(env_specs, env_wrapper=None, wrapper_kwargs={}, **kwargs):
     else:
         envs = SubprocVectorEnv(
             [
-                lambda: env_wrapper(env_class(**env_specs["env_kwargs"]))
+                lambda: env_wrapper(env_class(**env_specs["env_kwargs"]), **wrapper_kwargs)
                 for _ in range(env_specs["env_num"])
             ],
             **kwargs
@@ -117,7 +117,7 @@ def get_envs(env_specs, env_wrapper=None, wrapper_kwargs={}, **kwargs):
         if domain in env_overwrite:
             envs = SubprocVectorEnv(
                 [
-                    lambda: env_wrapper(env_overwrite[domain]())
+                    lambda: env_wrapper(env_overwrite[domain](), **wrapper_kwargs)
                     for _ in range(env_specs["env_num"])
                 ],
                 **kwargs
