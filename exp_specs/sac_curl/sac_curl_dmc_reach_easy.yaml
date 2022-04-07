@@ -1,6 +1,6 @@
 meta_data:
   script_path: run_scripts/sac_alpha_visual_exp_script.py
-  exp_name: test_sac_rad_dmc_reach_easy
+  exp_name: test_sac_curl_dmc_reach_easy
   description: Train an agent using Soft-Actor-Critic
   num_workers: 2
   using_gpus: true
@@ -31,7 +31,7 @@ constants:
     wrap_absorbing: false
 
     save_best: true
-    freq_saving: 1
+    freq_saving: 10
     save_replay_buffer: false
 
   encoder_params:
@@ -42,8 +42,9 @@ constants:
     num_filters: 32
 
   augmentation_params:
-    data_augs: 'translate'
-    image_size: 108
+    cpc: true
+    data_augs: 'crop'
+    image_size: 84
     pre_transform_image_size: 100
 
   sac_params:
@@ -60,6 +61,7 @@ constants:
     policy_std_reg_weight: 0.001
     ac_update_freq: 2
     encdec_update_freq: 0 # So that we do not use reconstruction error to update encdec
+    cpc_update_freq: 1 # For curl
 
   env_specs:
     env_name: 'dmc'

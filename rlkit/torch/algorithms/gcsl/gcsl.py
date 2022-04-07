@@ -48,7 +48,7 @@ class GCSL(Trainer):
         self.use_horizons = use_horizons
 
     def train_step(self, batch):
-        
+
         obs = batch["observations"]
         actions = batch["actions"]
         horizons = batch["horizons"]

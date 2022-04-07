@@ -14,6 +14,7 @@ from rlkit.core.eval_util import create_stats_ordered_dict
 
 class SoftActorCritic(Trainer):
     """
+    SAC-AE with RAD and CURL for image-based tasks.
     version that:
         - uses reparameterization trick
         - has two Q functions
@@ -45,6 +46,8 @@ class SoftActorCritic(Trainer):
         decoder_weight_lambda=1e-7,  # decoder lr decay, not used by now
         ac_update_freq=2,
         encdec_update_freq=1,
+        cpc_update_freq=0,  # default not use CURL
+        target_update_freq=2,
         **kwargs
     ):
         self.encoder = encoder
@@ -63,9 +66,13 @@ class SoftActorCritic(Trainer):
 
         self.ac_update_freq = ac_update_freq
         self.encdec_update_freq = encdec_update_freq
+        self.cpc_update_freq = cpc_update_freq
+        self.target_update_freq = target_update_freq
 
         self.train_alpha = train_alpha
-        self.log_alpha = torch.tensor(np.log(alpha), requires_grad=train_alpha, device=ptu.device)
+        self.log_alpha = torch.tensor(
+            np.log(alpha), requires_grad=train_alpha, device=ptu.device
+        )
         self.alpha = self.log_alpha.detach().exp()
         assert "env" in kwargs.keys(), "env info should be taken into SAC alpha"
         self.target_entropy = -np.prod(kwargs["env"].action_space.shape)
@@ -98,8 +105,71 @@ class SoftActorCritic(Trainer):
             lr=encdec_lr,
             betas=(beta_1, 0.999),
         )
+        self.enc_optimizer = optimizer_class(
+            self.encoder.parameters(),
+            lr=encdec_lr,
+            betas=(beta_1, 0.999),
+        )
+
+        # Contrastive part
+        feature_dim = encoder.feature_dim
+        self.W = torch.tensor(
+            np.random.rand(feature_dim, feature_dim),
+            requires_grad=True,
+            device=ptu.device,
+            dtype=torch.float32,
+        )
+
+        self.cpc_optimizer = optimizer_class(
+            list(self.encoder.parameters()) + [self.W], lr=encdec_lr
+        )
 
         self.total_train_step = 0
+
+    def compute_contrastive_logits(self, z_a, z_pos):
+        """
+        Directly copy from https://github.com/MishaLaskin/curl/blob/master/curl_sac.py
+        Uses logits trick for CURL:
+        - compute (B,B) matrix z_a (W z_pos.T)
+        - positives are all diagonal elements
+        - negatives are all other elements
+        - to compute loss use multiclass cross entropy with identity matrix for labels
+        """
+        Wz = torch.matmul(self.W, z_pos.T)  # (z_dim, B)
+        logits = torch.matmul(z_a, Wz)  # (B,B)
+        logits = logits - torch.max(logits, 1)[0][:, None]
+        return logits
+
+    def train_cpc(self, batch):
+        obs_anchor = batch["observations_anchor"]
+        obs_pos = batch["observations_pos"]
+
+        z_a = self.encoder(obs_anchor)
+        z_pos = self.target_encoder(obs_pos)
+
+        logits = self.compute_contrastive_logits(z_a, z_pos)
+        labels = torch.arange(logits.shape[0]).long().to(ptu.device)
+        loss = nn.CrossEntropyLoss()(logits, labels)
+
+        self.enc_optimizer.zero_grad()
+        self.cpc_optimizer.zero_grad()
+
+        loss.backward()
+
+        self.enc_optimizer.step()
+        self.cpc_optimizer.step()
+
+        """
+        Save some statistics for eval
+        """
+        if self.eval_statistics is None:
+            """
+            Eval should set this to None.
+            This way, these statistics are only computed for one batch.
+            """
+            self.eval_statistics = OrderedDict()
+
+        self.eval_statistics["CURL Loss"] = loss
 
     def train_encdec(self, batch):
         obs = batch["observations"]
@@ -155,7 +225,8 @@ class SoftActorCritic(Trainer):
         q1_pred = self.qf1(obs, actions)
         q2_pred = self.qf2(obs, actions)
 
-        # Make sure policy accounts for squashing functions like tanh correctly!
+        # make sure policy accounts for squashing functions like tanh correctly!
+        # detach encoder, so we don't update it with the actor loss
         next_policy_outputs = self.policy(
             next_obs.detach(), use_feature=True, return_log_prob=True
         )
@@ -217,12 +288,7 @@ class SoftActorCritic(Trainer):
             self.alpha_optimizer.step()
             self.alpha = self.log_alpha.detach().exp()
 
-        """
-        Update networks
-        """
-
-        self._update_target_network()
-
+        
         """
         Save some statistics for eval
         """
@@ -278,8 +344,23 @@ class SoftActorCritic(Trainer):
 
         if self.total_train_step % self.ac_update_freq == 0:
             self.train_ac(batch)
-        if self.encdec_update_freq > 0 and self.total_train_step % self.encdec_update_freq == 0:
+        if (
+            self.encdec_update_freq > 0
+            and self.total_train_step % self.encdec_update_freq == 0
+        ):
             self.train_encdec(batch)
+
+        """
+        Update target networks
+        """
+        if self.total_train_step % self.target_update_freq == 0:
+            self._update_target_network()
+
+        if (
+            self.cpc_update_freq > 0
+            and self.total_train_step % self.cpc_update_freq == 0
+        ):
+            self.train_cpc(batch)
 
         self.total_train_step += 1
 
@@ -299,7 +380,9 @@ class SoftActorCritic(Trainer):
     def _update_target_network(self):
         ptu.soft_update_from_to(self.qf1, self.target_qf1, self.soft_target_tau)
         ptu.soft_update_from_to(self.qf2, self.target_qf2, self.soft_target_tau)
-        ptu.soft_update_from_to(self.encoder, self.target_encoder, self.enc_soft_target_tau)
+        ptu.soft_update_from_to(
+            self.encoder, self.target_encoder, self.enc_soft_target_tau
+        )
 
     def get_snapshot(self):
         return dict(

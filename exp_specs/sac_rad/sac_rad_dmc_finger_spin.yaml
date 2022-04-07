@@ -31,7 +31,7 @@ constants:
     wrap_absorbing: false
 
     save_best: true
-    freq_saving: 10
+    freq_saving: 1
     save_replay_buffer: false
 
   encoder_params:
@@ -41,7 +41,7 @@ constants:
     num_layers: 4
     num_filters: 32
 
-  rad_augmentation_params:
+  augmentation_params:
     data_augs: 'translate'
     image_size: 108
     pre_transform_image_size: 100

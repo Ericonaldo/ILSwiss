@@ -22,7 +22,9 @@ def rollout(
         if preprocess_func:
             observations = preprocess_func(observations)
         if use_horizon:
-            horizon = np.arange(max_path_length) >= (max_path_length - 1 - _)  # horizon to the end
+            horizon = np.arange(max_path_length) >= (
+                max_path_length - 1 - _
+            )  # horizon to the end
             if isinstance(observations[0], dict):
                 observations = np.array(
                     [

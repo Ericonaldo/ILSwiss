@@ -57,7 +57,9 @@ def experiment(variant):
         env_specs["env_num"] = env_specs["training_env_num"]
 
     print("Creating {} training environments ...".format(env_specs["env_num"]))
-    training_env = get_envs(env_specs, env_wrapper, wrapper_kwargs, norm_obs=True, **kwargs)
+    training_env = get_envs(
+        env_specs, env_wrapper, wrapper_kwargs, norm_obs=True, **kwargs
+    )
     training_env.seed(env_specs["training_env_seed"])
 
     if "eval_env_num" in env_specs:
@@ -145,7 +147,11 @@ if __name__ == "__main__":
             log_dir = load_path
 
     setup_logger(
-        exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs, seed=seed, log_dir=log_dir
+        exp_prefix=exp_prefix,
+        exp_id=exp_id,
+        variant=exp_specs,
+        seed=seed,
+        log_dir=log_dir,
     )
 
     experiment(exp_specs)

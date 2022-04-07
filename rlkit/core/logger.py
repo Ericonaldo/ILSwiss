@@ -15,8 +15,10 @@ import csv
 import joblib
 import json
 import errno
+
 try:
     import wandb
+
     _wandb_installed = True
 except ImportError:
     _wandb_installed = False
@@ -144,7 +146,9 @@ def set_snapshot_dir(dir_name, variant, log_tboard=True, log_wandb=True):
     _log_tboard = log_tboard
     if _log_wandb and not _wandb_installed:
         print("\nWandb not installed. Not logging to wandb.")
-        print("Please install wandb with 'pip install wandb', or turn off wandb logging\n")
+        print(
+            "Please install wandb with 'pip install wandb', or turn off wandb logging\n"
+        )
         _log_wandb = False
     else:
         _log_wandb = log_wandb

@@ -31,6 +31,7 @@ class EnvReplayBuffer(SimpleReplayBuffer):
             observation, action, reward, terminal, next_observation, **kwargs
         )
 
+
 def get_dim(space):
     if isinstance(space, Box):
         if len(space.low.shape) > 1:

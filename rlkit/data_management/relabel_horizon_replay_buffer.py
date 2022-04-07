@@ -163,7 +163,7 @@ class HindsightHorizonReplayBuffer(HindsightReplayBuffer):
             traj_len = (ends[i] - starts[i]) % self._size
             step = (self._np_randint(0, traj_len, 1)[0] + starts[i]) % self._size
             indices.append(step)
-            
+
             if relabel:
                 try:
                     step_her = {
@@ -176,7 +176,7 @@ class HindsightHorizonReplayBuffer(HindsightReplayBuffer):
                     exit(0)
 
                 indices_relabel.append(step_her)
-        
+
         batch_to_return = self._get_batch_using_indices(indices, keys=keys)
 
         # relabel

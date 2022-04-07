@@ -72,7 +72,7 @@ def experiment(variant):
         variant["max_path_length"],
         no_terminal=variant["no_terminal"],
         render=variant["render"],
-        render_kwargs=variant["render_kwargs"]
+        render_kwargs=variant["render_kwargs"],
     )
     test_paths = eval_sampler.obtain_samples()
     average_returns = eval_util.get_average_returns(test_paths)

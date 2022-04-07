@@ -20,7 +20,7 @@ from rlkit.torch.common.networks import FlattenMlp
 from rlkit.torch.common.policies import ReparamTanhMultivariateGaussianEncoderPolicy
 from rlkit.torch.algorithms.sac.sac_ae import SoftActorCritic
 from rlkit.torch.algorithms.torch_rl_algorithm import TorchRLAlgorithm
-from rlkit.data_management.aug_replay_buffer import AugmentImageEnvReplayBuffer
+from rlkit.data_management.aug_replay_buffer import AugmentCPCImageEnvReplayBuffer
 import rlkit.data_management.data_augmentation as rad
 
 os.environ["LD_LIBRARY_PATH"] = "~/.mujoco/mjpro210/bin"
@@ -33,16 +33,22 @@ def experiment(variant):
     eval_preprocess_func = None
 
     if (
-        "rad_augmentation_params" in variant
+        "augmentation_params" in variant
     ):  # Use rad augmentation, record important params
-        data_augs = variant["rad_augmentation_params"]["data_augs"]
-        image_size = variant["rad_augmentation_params"]["image_size"]
-        pre_transform_image_size = (
-            variant["rad_augmentation_params"]["pre_transform_image_size"]
-            if "crop" in data_augs
-            else variant["rad_augmentation_params"]["image_size"]
-        )
-        pre_image_size = variant["rad_augmentation_params"][
+        cpc = False
+        if "cpc" in variant["augmentation_params"]:
+            cpc = True
+        data_augs = ""
+        if "data_augs" in variant["augmentation_params"]:
+            data_augs = variant["augmentation_params"]["data_augs"]
+        image_size = variant["augmentation_params"]["image_size"]
+        # pre_transform_image_size = (
+        #     variant["augmentation_params"]["pre_transform_image_size"]
+        #     if "crop" in data_augs
+        #     else variant["augmentation_params"]["image_size"]
+        # ) # Currently with bugs
+        pre_transform_image_size = variant["augmentation_params"]["image_size"]
+        pre_image_size = variant["augmentation_params"][
             "pre_transform_image_size"
         ]  # record the pre transform image size for translation
         env_specs["env_kwargs"]["width"] = env_specs["env_kwargs"][
@@ -51,15 +57,13 @@ def experiment(variant):
 
         # preprocess obs func for eval
         if "crop" in data_augs:
-            eval_preprocess_func = (
-                lambda x: rad.center_crop_image(x, image_size)
-            )
+            eval_preprocess_func = lambda x: rad.center_crop_image(x, image_size)
         if "translate" in data_augs:
             # first crop the center with pre_image_size
             crop_func = lambda x: rad.center_crop_image(x, pre_transform_image_size)
             # then translate cropped to center
-            eval_preprocess_func = (
-                lambda x: rad.center_translate(crop_func(x), image_size)
+            eval_preprocess_func = lambda x: rad.center_translate(
+                crop_func(x), image_size
             )
             # Potential bug: env's obs shape is not the same to the encoder input shape during sampling, not a problem for correct parameters
 
@@ -80,15 +84,16 @@ def experiment(variant):
 
     env = env_wrapper(env, **wrapper_kwargs)
     if (
-        "rad_augmentation_params" in variant
+        "augmentation_params" in variant
     ):  # If use rad augmentation, create augmentation env buffer
-        replay_buffer = AugmentImageEnvReplayBuffer(
+        replay_buffer = AugmentCPCImageEnvReplayBuffer(
             max_replay_buffer_size=variant["rl_alg_params"]["replay_buffer_size"],
             env=env,
             random_seed=np.random.randint(10000),
             pre_image_size=pre_image_size,
             image_size=image_size,
             data_augs=data_augs,
+            cpc=cpc,
         )
 
     obs_space = env.observation_space
@@ -107,7 +112,7 @@ def experiment(variant):
     feature_dim = variant["encoder_params"]["encoder_feature_dim"]
 
     if (
-        "rad_augmentation_params" in variant
+        "augmentation_params" in variant
     ):  # If use rad augmentation, take the after transform size as the shape
         obs_shape = (obs_shape[0], image_size, image_size)
 
@@ -208,7 +213,11 @@ if __name__ == "__main__":
             log_dir = load_path
 
     setup_logger(
-        exp_prefix=exp_prefix, exp_id=exp_id, variant=exp_specs, seed=seed, log_dir=log_dir
+        exp_prefix=exp_prefix,
+        exp_id=exp_id,
+        variant=exp_specs,
+        seed=seed,
+        log_dir=log_dir,
     )
 
     experiment(exp_specs)

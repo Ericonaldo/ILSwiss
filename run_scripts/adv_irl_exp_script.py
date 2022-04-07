@@ -153,7 +153,7 @@ def experiment(variant):
         input_size=obs_dim + action_dim,
         output_size=1,
     )
-    
+
     policy = ReparamTanhMultivariateGaussianPolicy(
         hidden_sizes=num_hidden * [net_size],
         obs_dim=obs_dim,

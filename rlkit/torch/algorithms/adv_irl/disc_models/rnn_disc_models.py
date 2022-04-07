@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class RNNDisc(nn.Module):
     def __init__(
         self,
