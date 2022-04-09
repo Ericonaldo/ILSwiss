@@ -288,7 +288,6 @@ class SoftActorCritic(Trainer):
             self.alpha_optimizer.step()
             self.alpha = self.log_alpha.detach().exp()
 
-        
         """
         Save some statistics for eval
         """

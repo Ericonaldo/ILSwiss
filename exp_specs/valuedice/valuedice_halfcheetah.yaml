@@ -1,0 +1,65 @@
+meta_data:
+  script_path: run_scripts/valuedice_exp_script.py
+  exp_name: valuedice_halfcheetah
+  description: Train an ValueDice model
+  num_workers: 2 # 64
+  using_gpus: true
+# -----------------------------------------------------------------------------
+variables:
+  valuedice_params:
+    grad_pen_weight: [10.0] # [0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]
+    policy_lr: [0.00001]
+    nu_lr: [0.001]
+
+  seed: [0]
+
+# -----------------------------------------------------------------------------
+constants:
+  expert_name: 'halfcheetah_sac'
+  expert_idx: 0
+  traj_num: 4
+  scale_env_with_demo_stats: true
+  minmax_env_with_demo_stats: false
+
+  net_size: 256
+  num_hidden_layers: 2
+
+  valuedice_params:
+    num_epochs: 202
+    num_steps_per_epoch: 10000
+    num_steps_between_train_calls: 1000
+    max_path_length: 1000
+    min_steps_before_training: 5000
+
+    eval_deterministic: true
+    num_steps_per_eval: 10000
+
+    replay_buffer_size: 20000
+    no_terminal: true
+    eval_no_terminal: false
+
+    num_update_loops_per_train_call: 1000
+
+    policy_lr: 0.0003
+    nu_lr: 0.0003
+    replay_reg: 0.05
+
+    discount: 0.99
+    beta_1: 0.25
+    policy_mean_reg_weight: 0.001
+    policy_std_reg_weight: 0.001
+
+    use_grad_pen: true
+    grad_pen_weight: 10.0
+    expert_batch_size: 256
+    replay_batch_size: 256
+
+    save_best: true
+    save_epoch: false
+    freq_saving: 20
+    save_replay_buffer: false
+
+  env_specs:
+    env_name: 'halfcheetah'
+    env_kwargs: {}
+    env_num: 10 # This parameter define how many vec envs are created
