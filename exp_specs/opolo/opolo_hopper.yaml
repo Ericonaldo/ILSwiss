@@ -1,0 +1,73 @@
+meta_data:
+  script_path: run_scripts/opolo_exp_script.py
+  exp_name: opolo_hopper
+  description: Train an OPOLO model
+  num_workers: 2 # 64
+  using_gpus: true
+# -----------------------------------------------------------------------------
+variables:
+  opolo_params:
+    grad_pen_weight: [10.0] # [0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]
+
+  seed: [0]
+
+# -----------------------------------------------------------------------------
+constants:
+  expert_name: 'hopper_sac'
+  expert_idx: 0
+  traj_num: 4
+  scale_env_with_demo_stats: true
+  minmax_env_with_demo_stats: false
+
+  disc_num_blocks: 2
+  disc_hid_dim: 128
+  disc_hid_act: tanh
+  disc_use_bn: false
+  disc_clamp_magnitude: 10.0
+
+  net_size: 256
+  num_hidden_layers: 2
+
+  opolo_params:
+    mode: 'gail2'
+
+    num_epochs: 162
+    num_steps_per_epoch: 10000
+    num_steps_between_train_calls: 1000
+    max_path_length: 1000
+    min_steps_before_training: 5000
+
+    eval_deterministic: true
+    num_steps_per_eval: 10000
+
+    replay_buffer_size: 20000
+    no_terminal: true
+    eval_no_terminal: false
+
+    num_update_loops_per_train_call: 1000
+    num_disc_updates_per_loop_iter: 1
+    num_policy_updates_per_loop_iter: 1
+
+    policy_lr: 0.0003
+    nu_lr: 0.0003
+    disc_lr: 0.0003
+
+    discount: 0.99
+    beta_1: 0.25
+    policy_mean_reg_weight: 0.001
+    policy_std_reg_weight: 0.001
+
+    use_grad_pen: true
+    grad_pen_weight: 10.0
+    policy_optim_batch_size: 256
+    disc_optim_batch_size: 256
+
+    save_best: true
+    save_epoch: false
+    freq_saving: 20
+    save_replay_buffer: false
+
+  env_specs:
+    env_name: 'hopper'
+    env_kwargs: {}
+    env_num: 10 # This parameter define how many vec envs are created
