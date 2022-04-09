@@ -13,7 +13,9 @@ You can easily build experiment codes under this framework in your research. We 
 
 ## Implementing RL algorithms (for potential researches):
 
-- Contrastive Unsupervised Representation Learning (CURL-SAC, https://github.com/MishaLaskin/curl/)
+- ValueDICE
+- OPOLO
+
 
 ## Implemented RL algorithms:
 
@@ -27,6 +29,7 @@ You can easily build experiment codes under this framework in your research. We 
 - GCSL (Goal-Condtioned RL)
 - Model-Based Policy Optimization (MBPO, https://github.com/jannerm/mbpo)
 - Reinforcement Learning with Augmented Data (RAD-SAC, https://github.com/MishaLaskin/rad)
+- Contrastive Unsupervised Representation Learning (CURL-SAC, https://github.com/MishaLaskin/curl/)
 
 ## Implemented IL algorithms:
 

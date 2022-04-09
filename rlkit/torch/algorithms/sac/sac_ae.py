@@ -156,7 +156,7 @@ class SoftActorCritic(Trainer):
 
         loss.backward()
 
-        self.enc_optimizer.step()
+        self.enc_optimizer.step() # the same in https://github.com/MishaLaskin/curl/blob/master/curl_sac.py#L431, not sure if it is a bug
         self.cpc_optimizer.step()
 
         """
@@ -391,6 +391,8 @@ class SoftActorCritic(Trainer):
             policy=self.policy,
             target_qf1=self.target_qf1,
             target_qf2=self.target_qf2,
+            encoder=self.encoder,
+            target_encoder=self.target_encoder,
             log_alpha=self.log_alpha,
             policy_optimizer=self.policy_optimizer,
             qf_optimizer=self.qf_optimizer,
@@ -404,6 +406,8 @@ class SoftActorCritic(Trainer):
         self.policy = snapshot["policy"]
         self.target_qf1 = snapshot["target_qf1"]
         self.target_qf2 = snapshot["target_qf2"]
+        self.encoder = snapshot["encoder"]
+        self.target_encoder = snapshot["target_encoder"]
         self.log_alpha = snapshot["log_alpha"]
         self.policy_optimizer = snapshot["policy_optimizer"]
         self.qf_optimizer = snapshot["qf_optimizer"]

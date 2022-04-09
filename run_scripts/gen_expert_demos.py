@@ -17,11 +17,13 @@ from rlkit.core import logger
 from rlkit.launchers.launcher_util import setup_logger, set_seed
 
 from rlkit.envs import get_env
-from rlkit.scripted_experts import get_scripted_policy
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.data_management.path_builder import PathBuilder
 from rlkit.torch.common.policies import MakeDeterministic
 from rlkit.envs.wrappers import FrameStackEnv, ProxyEnv
+import rlkit.data_management.data_augmentation as rad
+
+import torch
 
 # from gym.wrappers.monitor import Monitor
 
@@ -32,6 +34,7 @@ def fill_buffer(
     expert_policy,
     num_rollouts,
     max_path_length,
+    eval_preprocess_func=None,
     no_terminal=False,
     policy_is_scripted=False,
     render=False,
@@ -64,6 +67,8 @@ def fill_buffer(
         while (not terminal) and step_num < max_path_length:
             if render:
                 env.render(**render_kwargs)
+            if eval_preprocess_func:
+                observation = eval_preprocess_func(observation)
 
             # get the action
             if policy_is_scripted:
@@ -159,6 +164,40 @@ def experiment(specs):
         os.environ["LD_LIBRARY_PATH"] = "～/.mujoco/mjpro210/bin"
         os.environ["MUJOCO_GL"] = "egl"
 
+    if (
+        "augmentation_params" in specs
+    ):  # Use rad augmentation, record important params
+        cpc = False
+        if "cpc" in specs["augmentation_params"]:
+            cpc = True
+        data_augs = ""
+        if "data_augs" in specs["augmentation_params"]:
+            data_augs = specs["augmentation_params"]["data_augs"]
+        image_size = specs["augmentation_params"]["image_size"]
+        # pre_transform_image_size = (
+        #     specs["augmentation_params"]["pre_transform_image_size"]
+        #     if "crop" in data_augs
+        #     else specs["augmentation_params"]["image_size"]
+        # ) # Currently with bugs
+        pre_transform_image_size = specs["augmentation_params"]["image_size"]
+        pre_image_size = specs["augmentation_params"][
+            "pre_transform_image_size"
+        ]  # record the pre transform image size for translation
+        env_specs["env_kwargs"]["width"] = env_specs["env_kwargs"][
+            "height"
+        ] = pre_transform_image_size  # The env create as the shape before transformed
+
+        # preprocess obs func for eval
+        if "crop" in data_augs:
+            eval_preprocess_func = lambda x: rad.center_crop_image(x, image_size)
+        if "translate" in data_augs:
+            # first crop the center with pre_image_size
+            crop_func = lambda x: rad.center_crop_image(x, pre_transform_image_size)
+            # then translate cropped to center
+            eval_preprocess_func = lambda x: rad.center_translate(
+                crop_func(x), image_size
+            )
+
     # make all seeds the same.
     env_specs["env_seed"] = specs["seed"]
 
@@ -167,9 +206,15 @@ def experiment(specs):
 
     env_wrapper = ProxyEnv  # Identical wrapper
     wrapper_kwargs = {}
+    encoder = None
     if ("frame_stack" in env_specs) and (env_specs["frame_stack"] is not None):
         env_wrapper = FrameStackEnv
         wrapper_kwargs = {"k": env_specs["frame_stack"]}
+        # try:
+        #     encoder = joblib.load(specs["expert_path"])["encoder"]
+        # except:
+        #     print("No encoder loaded!")
+        #     exit(0)
 
     env = env_wrapper(env, **wrapper_kwargs)
 
@@ -209,6 +254,7 @@ def experiment(specs):
         policy,
         num_rollouts,
         max_path_length,
+        eval_preprocess_func=eval_preprocess_func,
         no_terminal=specs["no_terminal"],
         policy_is_scripted=policy_is_scripted,
         render=render,
@@ -226,6 +272,7 @@ def experiment(specs):
             policy,
             num_rollouts,
             max_path_length,
+            eval_preprocess_func=eval_preprocess_func,
             no_terminal=specs["no_terminal"],
             policy_is_scripted=policy_is_scripted,
             render=render,
