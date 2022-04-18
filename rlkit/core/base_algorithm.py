@@ -26,7 +26,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         training_env=None,
         eval_env=None,
         eval_policy=None,
-        eval_sampler=None,  ##
+        eval_sampler=None,
         num_epochs=100,
         num_steps_per_epoch=10000,
         num_steps_between_train_calls=20,
@@ -265,20 +265,16 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
                     np.array(
                         [
                             len(self._current_path_builder[i])
-                            for i in range(len(self.ready_env_ids))
+                            for i in self.ready_env_ids
                         ]
                     )
                     >= self.max_path_length
                 ):
-                    env_ind_local = np.where(
-                        np.array(
-                            [
-                                len(self._current_path_builder[i])
-                                for i in range(len(self.ready_env_ids))
-                            ]
-                        )
-                        >= self.max_path_length
-                    )[0]
+                    env_ind_local = [
+                        i
+                        for i in self._ready_env_ids
+                        if len(self._current_path_builder[i]) >= self.max_path_length
+                    ]
                     self._handle_vec_rollout_ending(env_ind_local)
                     reset_observations = self._start_new_rollout(env_ind_local)
                     next_obs[env_ind_local] = reset_observations
@@ -377,7 +373,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         :return:
         """
         self.exploration_policy.set_num_steps_total(self._n_env_steps_total)
-        if not self._can_train:
+        if not self._can_train():
             return [self.action_space.sample() for _ in range(len(observation))]
         return self.exploration_policy.get_actions(
             observation,
