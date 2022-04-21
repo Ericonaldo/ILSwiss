@@ -326,6 +326,19 @@ class BaseVectorEnv(Env):
                 obs = np.clip(obs, -clip_max, clip_max)
         return obs
 
+    def unnormalize_obs(self, obs: np.ndarray) -> np.ndarray:
+        """Unnormalize observations by statistics in obs_rms."""
+        if self.obs_rms and self.norm_obs:
+            obs = obs.copy()
+            if type(obs[0]) == dict:
+                for _ in obs:
+                    _["observation"] = _["observation"] * np.sqrt(self.obs_rms.var + self.__eps) + self.obs_rms.mean
+                    _["achieved_goal"] = _["achieved_goal"] * np.sqrt(self.goal_rms.var + self.__eps) + self.goal_rms.mean
+                    _["desired_goal"] = _["achieved_goal"] * np.sqrt(self.goal_rms.var + self.__eps) + self.goal_rms.mean
+            else:
+                obs = obs * np.sqrt(self.obs_rms.var + self.__eps) + self.obs_rms.mean
+        return obs
+
 
 class DummyVectorEnv(BaseVectorEnv):
     """Dummy vectorized environment wrapper, implemented in for-loop.
