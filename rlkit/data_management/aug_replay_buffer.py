@@ -101,20 +101,20 @@ class AugmentCPCImageEnvReplayBuffer(EnvReplayBuffer):
                             **rndm_idxs
                         )
 
-                    # augmentations go here
-                    else:
-                        if "observations" in keys:
-                            batch_data["observations"] = func(
-                                batch_data["observations"]
+                # augmentations go here
+                else:
+                    if "observations" in keys:
+                        batch_data["observations"] = func(
+                            batch_data["observations"]
+                        )
+                        if self.cpc:
+                            batch_data["observations_pos"] = func(
+                                batch_data["observations"].copy()
                             )
-                            if self.cpc:
-                                batch_data["observations_pos"] = func(
-                                    batch_data["observations"].copy()
-                                )
-                        if "next_observations" in keys:
-                            batch_data["next_observations"] = func(
-                                batch_data["next_observations"]
-                            )
+                    if "next_observations" in keys:
+                        batch_data["next_observations"] = func(
+                            batch_data["next_observations"]
+                        )
         if self.cpc:
             batch_data["observations_anchor"] = batch_data["observations"]
 

@@ -101,8 +101,13 @@ class TD3(Trainer):
         """
         Critic operations.
         """
-        policy_outputs = self.target_policy(target_input, deterministic=True)
+        policy_outputs = self.target_policy(target_input, deterministic=True) # In some envs without noise will get better results
         noisy_next_actions = policy_outputs[0]
+        noise = self.target_policy.sigma * torch.normal(
+            torch.zeros_like(noisy_next_actions),
+        )
+        noisy_next_actions += noise
+        noisy_next_actions = torch.clamp(noise, self.target_policy.min_act, self.target_policy.max_act)
 
         target_q1_values = self.target_qf1(target_input, noisy_next_actions)
         target_q2_values = self.target_qf2(target_input, noisy_next_actions)
