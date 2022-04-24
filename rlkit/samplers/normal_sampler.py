@@ -14,7 +14,9 @@ def rollout(
 ):
     path_builder = PathBuilder()
     observation = env.reset()
-
+    
+    images = []
+    image = None
     for _ in range(max_path_length):
         if preprocess_func:
             observation = preprocess_func(observation)
@@ -32,7 +34,11 @@ def rollout(
 
         action, agent_info = policy.get_action(observation)
         if render:
-            env.render(**render_kwargs)
+            if render_mode == "rgb_array":
+                image = env.render(mode=render_mode, **render_kwargs)
+                images.append(image)
+            else:
+                env.render(**render_kwargs)
 
         next_ob, reward, terminal, env_info = env.step(action)
         if no_terminal:
@@ -47,6 +53,7 @@ def rollout(
             absorbings=np.array([0.0, 0.0]),
             agent_infos=agent_info,
             env_infos=env_info,
+            image=image,
         )
 
         observation = next_ob
