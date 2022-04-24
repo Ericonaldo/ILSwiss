@@ -73,6 +73,7 @@ def experiment(variant):
         no_terminal=variant["no_terminal"],
         render=variant["render"],
         render_kwargs=variant["render_kwargs"],
+        render_mode=variant["render_mode"],
     )
     test_paths = eval_sampler.obtain_samples()
     average_returns = eval_util.get_average_returns(test_paths)

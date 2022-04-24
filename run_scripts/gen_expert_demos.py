@@ -160,6 +160,7 @@ def experiment(specs):
         policy.to(ptu.device)
 
     env_specs = specs["env_specs"]
+    eval_preprocess_func = None
     if env_specs["env_name"] == "dmc":
         os.environ["LD_LIBRARY_PATH"] = "～/.mujoco/mjpro210/bin"
         os.environ["MUJOCO_GL"] = "egl"

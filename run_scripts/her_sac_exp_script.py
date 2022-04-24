@@ -49,7 +49,6 @@ def experiment(variant):
             {
                 "obs_rms": training_env.obs_rms,
                 "goal_rms": training_env.goal_rms,
-                "norm_obs": True,
                 "update_obs_rms": False,
             }
         )

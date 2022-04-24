@@ -9,6 +9,7 @@ def rollout(
     no_terminal=False,
     render=False,
     render_kwargs={},
+    render_mode="rgb_array",
     preprocess_func=None,
     use_horizon=False,
 ):
@@ -72,6 +73,7 @@ class PathSampler:
         no_terminal=False,
         render=False,
         render_kwargs={},
+        render_mode="rgb_array",
         preprocess_func=None,
         horizon=False,
     ):
@@ -89,6 +91,7 @@ class PathSampler:
         self.render_kwargs = render_kwargs
         self.preprocess_func = preprocess_func
         self.horizon = horizon
+        self.render_mode = render_mode
 
     def obtain_samples(self, num_steps=None):
         paths = []
@@ -105,6 +108,7 @@ class PathSampler:
                 render_kwargs=self.render_kwargs,
                 preprocess_func=self.preprocess_func,
                 use_horizon=self.horizon,
+                render_mode=self.render_mode,
             )
             paths.append(new_path)
             total_steps += len(new_path["rewards"])
