@@ -47,11 +47,43 @@ RUN curl -O https://bootstrap.pypa.io/get-pip.py && \
 
 RUN /usr/bin/python -m pip install --upgrade pip
 
-# Install pytorch
+RUN adduser --disabled-password --gecos '' docker && \
+    adduser docker sudo && \
+    echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+RUN mkdir -p /.cache/pip
+RUN mkdir -p /.local/share
+RUN chown -R docker:docker /.cache/pip
+RUN chown -R docker:docker /.local
+
+USER docker 
+
+WORKDIR /home/docker/
+
+RUN chmod a+rwx /home/docker/ && \
+    wget https://repo.anaconda.com/miniconda/Miniconda3-py39_4.9.2-Linux-x86_64.sh && \
+    bash Miniconda3-py39_4.9.2-Linux-x86_64.sh -b && rm Miniconda3-py39_4.9.2-Linux-x86_64.sh
+
+ENV PATH /home/docker/miniconda3/bin:$PATH
+RUN conda config --set allow_conda_downgrades true && conda config --env --set always_yes true && conda install conda=4.9.2 && conda install -c anaconda cudatoolkit=11.0
+
+# Install pytorch for A100
 RUN pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 torchaudio==0.9.0 -f https://download.pytorch.org/whl/torch_stable.html
 
-RUN pip install -r requirements.txt
+RUN mkdir /home/docker/.mujoco
+COPY .mujoco /home/docker/.mujoco/
 
+COPY requirements.txt /tmp
+WORKDIR /tmp
+RUN pip install -r ./requirements.txt
 
+## git clone before doing this. No need when can do with pip
+# RUN mkdir /tmp/dmc2gym
+# COPY dmc2gym /tmp/dmc2gym
+# WORKDIR /tmp/dmc2gym
+# RUN pip install -e .
 
+USER docker
+WORKDIR /home/docker/app
 
+ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/home/docker/.mujoco/mujoco210/bin"

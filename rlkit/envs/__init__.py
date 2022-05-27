@@ -7,6 +7,11 @@ try:
 except Exception:
     pass
 
+try: 
+    import envpool
+except Exception:
+    pass  
+
 from rlkit.envs.envs_dict import envs_dict
 from rlkit.envs.tasks_dict import tasks_dict
 from rlkit.envs.wrappers import ProxyEnv
@@ -79,51 +84,59 @@ def get_envs(env_specs, env_wrapper=None, wrapper_kwargs={}, **kwargs):
         env_name: 'halfcheetah'
         env_kwargs: {} # kwargs to pass to the env constructor call
     """
-    domain = env_specs["env_name"]
-
-    if env_wrapper is None:
-        env_wrapper = ProxyEnv
-
-    if domain == "dmc":
-        env_class = dmc2gym.make
-    else:
-        env_class = load(envs_dict[domain])
-
-    if ("env_num" not in env_specs.keys()) or (env_specs["env_num"] <= 1):
-        envs = env_wrapper(env_class(**env_specs["env_kwargs"]), **wrapper_kwargs)
-
-        if domain in env_overwrite:
-            print(
-                "[ environments/utils ] WARNING: Using overwritten {} environment".format(
-                    domain
+    if "use_envpool" in env_specs and env_specs["use_envpool"]:
+        envs = envpool.make(env_specs["envpool_name"], env_type=env_specs["env_type"], num_envs=env_specs["env_num"], seed=env_specs["training_env_seed"])
+        print(
+                    "[ environments/utils ] WARNING: Using envpool {} environment".format(
+                        env_specs["envpool_name"]
+                    )
                 )
-            )
-            envs = env_wrapper(
-                env_overwrite[domain](**env_specs["env_kwargs"]), **wrapper_kwargs
-            )
-
-        print("\n WARNING: Single environment detected, wrap to DummyVectorEnv.")
-        envs = DummyVectorEnv([lambda: envs], **kwargs)
-
     else:
-        envs = SubprocVectorEnv(
-            [
-                lambda: env_wrapper(
-                    env_class(**env_specs["env_kwargs"]), **wrapper_kwargs
-                )
-                for _ in range(env_specs["env_num"])
-            ],
-            **kwargs
-        )
+        domain = env_specs["env_name"]
 
-        if domain in env_overwrite:
+        if env_wrapper is None:
+            env_wrapper = ProxyEnv
+
+        if domain == "dmc":
+            env_class = dmc2gym.make
+        else:
+            env_class = load(envs_dict[domain])
+
+        if ("env_num" not in env_specs.keys()) or (env_specs["env_num"] <= 1):
+            envs = env_wrapper(env_class(**env_specs["env_kwargs"]), **wrapper_kwargs)
+
+            if domain in env_overwrite:
+                print(
+                    "[ environments/utils ] WARNING: Using overwritten {} environment".format(
+                        domain
+                    )
+                )
+                envs = env_wrapper(
+                    env_overwrite[domain](**env_specs["env_kwargs"]), **wrapper_kwargs
+                )
+
+            print("\n WARNING: Single environment detected, wrap to DummyVectorEnv.")
+            envs = DummyVectorEnv([lambda: envs], **kwargs)
+
+        else:
             envs = SubprocVectorEnv(
                 [
-                    lambda: env_wrapper(env_overwrite[domain](), **wrapper_kwargs)
+                    lambda: env_wrapper(
+                        env_class(**env_specs["env_kwargs"]), **wrapper_kwargs
+                    )
                     for _ in range(env_specs["env_num"])
                 ],
                 **kwargs
             )
+
+            if domain in env_overwrite:
+                envs = SubprocVectorEnv(
+                    [
+                        lambda: env_wrapper(env_overwrite[domain](), **wrapper_kwargs)
+                        for _ in range(env_specs["env_num"])
+                    ],
+                    **kwargs
+                )
 
     return envs
 

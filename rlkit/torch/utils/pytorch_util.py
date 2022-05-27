@@ -4,6 +4,7 @@ Replaced using new version of rlkit
 """
 import torch
 import numpy as np
+from numba import njit
 import os
 
 
@@ -141,7 +142,7 @@ def tf_like_gather(x: torch.Tensor, i: torch.Tensor) -> torch.Tensor:
     # perform gather like tensorflow
     return torch.cat([x[j][None] for j in i])
 
-
+@njit
 def tf_like_gather_np(x: np.ndarray, i: np.ndarray) -> np.ndarray:
     return np.concatenate([x[j][None] for j in i])
 
