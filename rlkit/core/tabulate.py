@@ -7,7 +7,6 @@
 from collections import namedtuple
 from platform import python_version_tuple
 import re
-from numba import njit
 
 
 if python_version_tuple()[0] < "3":
@@ -99,14 +98,14 @@ def _pipe_segment_with_colons(align, colwidth):
     else:
         return "-" * w
 
-@njit
+
 def _pipe_line_with_colons(colwidths, colaligns):
     """Return a horizontal line with optional colons to indicate column's
     alignment (as in `pipe` output format)."""
     segments = [_pipe_segment_with_colons(a, w) for a, w in zip(colaligns, colwidths)]
     return "|" + "|".join(segments) + "|"
 
-@njit
+
 def _mediawiki_row_with_attrs(separator, cell_values, colwidths, colaligns):
     alignment = {
         "left": "",
@@ -122,7 +121,7 @@ def _mediawiki_row_with_attrs(separator, cell_values, colwidths, colaligns):
     colsep = separator * 2
     return (separator + colsep.join(values_with_attrs)).rstrip()
 
-@njit
+
 def _latex_line_begin_tabular(colwidths, colaligns):
     alignment = {"left": "l", "right": "r", "center": "c", "decimal": "r"}
     tabular_columns_fmt = "".join([alignment.get(a, "l") for a in colaligns])
@@ -407,7 +406,7 @@ def _visible_width(s):
     else:
         return len(_text_type(s))
 
-@njit
+
 def _align_column(strings, alignment, minwidth=0, has_invisible=True):
     """[string] -> [padded_string]
 
@@ -451,7 +450,7 @@ def _more_generic(type1, type2):
     moregeneric = max(types.get(type1, 4), types.get(type2, 4))
     return invtypes[moregeneric]
 
-@njit
+
 def _column_type(strings, has_invisible=True):
     """The least generic type all column values are convertible to.
 
@@ -511,7 +510,7 @@ def _align_header(header, alignment, width):
     else:
         return _padleft(width, header)
 
-@njit
+
 def _normalize_tabular_data(tabular_data, headers):
     """Transform a supported data type to a list of lists, and a list of headers.
 
@@ -591,7 +590,7 @@ def _normalize_tabular_data(tabular_data, headers):
 
     return rows, headers
 
-@njit
+
 def tabulate(
     tabular_data,
     headers=[],
@@ -871,7 +870,7 @@ def _build_line(colwidths, colaligns, linefmt):
         cells = [fill * w for w in colwidths]
         return _build_simple_row(cells, (begin, sep, end))
 
-@njit
+
 def _pad_row(cells, padding):
     if cells:
         pad = " " * padding
@@ -880,7 +879,7 @@ def _pad_row(cells, padding):
     else:
         return cells
 
-@njit
+
 def _format_table(fmt, headers, rows, colwidths, colaligns):
     """Produce a plain-text representation of the table."""
     lines = []

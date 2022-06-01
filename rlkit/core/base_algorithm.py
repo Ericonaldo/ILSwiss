@@ -263,10 +263,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
                     next_obs[env_ind_local] = reset_observations
                 elif np.any(
                     np.array(
-                        [
-                            len(self._current_path_builder[i])
-                            for i in self.ready_env_ids
-                        ]
+                        [len(self._current_path_builder[i]) for i in self.ready_env_ids]
                     )
                     >= self.max_path_length
                 ):

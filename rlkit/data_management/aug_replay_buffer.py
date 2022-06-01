@@ -104,9 +104,7 @@ class AugmentCPCImageEnvReplayBuffer(EnvReplayBuffer):
                 # augmentations go here
                 else:
                     if "observations" in keys:
-                        batch_data["observations"] = func(
-                            batch_data["observations"]
-                        )
+                        batch_data["observations"] = func(batch_data["observations"])
                         if self.cpc:
                             batch_data["observations_pos"] = func(
                                 batch_data["observations"].copy()

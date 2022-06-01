@@ -549,9 +549,9 @@ class MlpGaussianAndEpsilonPolicy(Mlp, ExplorationPolicy):
                 if batch_size > 0:
                     action = [self._action_space.sample() for _ in range(batch_size)]
             else:
-                self.sigma = self._max_sigma - (self._max_sigma - self._min_sigma) * min(
-                    1.0, self.t * 1.0 / self._decay_period
-                )
+                self.sigma = self._max_sigma - (
+                    self._max_sigma - self._min_sigma
+                ) * min(1.0, self.t * 1.0 / self._decay_period)
                 action = np.clip(
                     action.detach().cpu().numpy()
                     + np.random.normal(size=np.shape(action)) * self.sigma,

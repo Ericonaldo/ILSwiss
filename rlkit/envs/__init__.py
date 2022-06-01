@@ -7,15 +7,10 @@ try:
 except Exception:
     pass
 
-try: 
-    import envpool
-except Exception:
-    pass  
-
 from rlkit.envs.envs_dict import envs_dict
-from rlkit.envs.tasks_dict import tasks_dict
 from rlkit.envs.wrappers import ProxyEnv
 from rlkit.envs.vecenvs import BaseVectorEnv, DummyVectorEnv, SubprocVectorEnv
+from rlkit.envs.envpool import EnvpoolEnv
 
 __all__ = [
     "BaseVectorEnv",
@@ -23,16 +18,12 @@ __all__ = [
     "SubprocVectorEnv",
 ]
 
-import sys
-
 # Overwrite envs
-from rlkit.envs.mujoco.hopper import HopperEnv
-from rlkit.envs.mujoco.walker2d import Walker2dEnv
-
+# from rlkit.envs.mujoco.hopper import HopperEnv
+# from rlkit.envs.mujoco.walker2d import Walker2dEnv
 # from rlkit.envs.mujoco.halfcheetah import HalfCheetahEnv
-from rlkit.envs.mujoco.ant import AntEnv
-from rlkit.envs.mujoco.humanoid import HumanoidEnv
-
+# from rlkit.envs.mujoco.ant import AntEnv
+# from rlkit.envs.mujoco.humanoid import HumanoidEnv
 # from rlkit.envs.mujoco.swimmer import SwimmerEnv
 
 env_overwrite = {}
@@ -85,12 +76,12 @@ def get_envs(env_specs, env_wrapper=None, wrapper_kwargs={}, **kwargs):
         env_kwargs: {} # kwargs to pass to the env constructor call
     """
     if "use_envpool" in env_specs and env_specs["use_envpool"]:
-        envs = envpool.make(env_specs["envpool_name"], env_type=env_specs["env_type"], num_envs=env_specs["env_num"], seed=env_specs["training_env_seed"])
+        envs = EnvpoolEnv(env_specs)
         print(
-                    "[ environments/utils ] WARNING: Using envpool {} environment".format(
-                        env_specs["envpool_name"]
-                    )
-                )
+            "[ environments/utils ] WARNING: Using envpool {} environment".format(
+                env_specs["envpool_name"]
+            )
+        )
     else:
         domain = env_specs["env_name"]
 

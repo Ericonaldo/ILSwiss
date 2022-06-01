@@ -165,9 +165,7 @@ def experiment(specs):
         os.environ["LD_LIBRARY_PATH"] = "～/.mujoco/mjpro210/bin"
         os.environ["MUJOCO_GL"] = "egl"
 
-    if (
-        "augmentation_params" in specs
-    ):  # Use rad augmentation, record important params
+    if "augmentation_params" in specs:  # Use rad augmentation, record important params
         cpc = False
         if "cpc" in specs["augmentation_params"]:
             cpc = True

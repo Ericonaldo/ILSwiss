@@ -156,7 +156,7 @@ class SoftActorCritic(Trainer):
 
         loss.backward()
 
-        self.enc_optimizer.step() # the same in https://github.com/MishaLaskin/curl/blob/master/curl_sac.py#L431, not sure if it is a bug
+        self.enc_optimizer.step()  # the same in https://github.com/MishaLaskin/curl/blob/master/curl_sac.py#L431, not sure if it is a bug
         self.cpc_optimizer.step()
 
         """
@@ -288,7 +288,6 @@ class SoftActorCritic(Trainer):
             self.alpha_optimizer.step()
             self.alpha = self.log_alpha.detach().exp()
 
-        
         """
         Save some statistics for eval
         """

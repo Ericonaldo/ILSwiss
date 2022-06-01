@@ -8,11 +8,10 @@ import os
 import json
 
 import numpy as np
-from numba import njit
 
 from rlkit.core.vistools import plot_returns_on_same_plot, save_plot
 
-@njit
+
 def get_generic_path_information(paths, stat_prefix=""):
     """
     Get an OrderedDict with a bunch of statistic names and values.
@@ -31,7 +30,6 @@ def get_generic_path_information(paths, stat_prefix=""):
             "Returns", returns, stat_prefix=stat_prefix, always_show_all_stats=True
         )
     )
-    # print(paths[0]["env_infos"])
     if "is_success" in paths[0]["env_infos"][0].keys():
         acc_sum = [
             (np.sum([x["is_success"] for x in path["env_infos"]]) > 0).astype(float)
@@ -81,7 +79,7 @@ def get_generic_path_information(paths, stat_prefix=""):
 
     return statistics
 
-@njit
+
 def get_average_returns(paths, std=False):
     returns = [sum(path["rewards"]) for path in paths]
     if std:
@@ -89,7 +87,7 @@ def get_average_returns(paths, std=False):
 
     return np.mean(returns)
 
-@njit
+
 def create_stats_ordered_dict(
     name,
     data,
@@ -144,7 +142,6 @@ def create_stats_ordered_dict(
     return stats
 
 
-@njit
 def plot_experiment_returns(
     exp_path,
     title,

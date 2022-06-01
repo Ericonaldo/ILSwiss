@@ -15,7 +15,7 @@ def rollout(
 ):
     path_builder = PathBuilder()
     observation = env.reset()
-    
+
     images = []
     image = None
     for _ in range(max_path_length):

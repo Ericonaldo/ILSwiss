@@ -332,9 +332,18 @@ class BaseVectorEnv(Env):
             obs = obs.copy()
             if type(obs[0]) == dict:
                 for _ in obs:
-                    _["observation"] = _["observation"] * np.sqrt(self.obs_rms.var + self.__eps) + self.obs_rms.mean
-                    _["achieved_goal"] = _["achieved_goal"] * np.sqrt(self.goal_rms.var + self.__eps) + self.goal_rms.mean
-                    _["desired_goal"] = _["achieved_goal"] * np.sqrt(self.goal_rms.var + self.__eps) + self.goal_rms.mean
+                    _["observation"] = (
+                        _["observation"] * np.sqrt(self.obs_rms.var + self.__eps)
+                        + self.obs_rms.mean
+                    )
+                    _["achieved_goal"] = (
+                        _["achieved_goal"] * np.sqrt(self.goal_rms.var + self.__eps)
+                        + self.goal_rms.mean
+                    )
+                    _["desired_goal"] = (
+                        _["achieved_goal"] * np.sqrt(self.goal_rms.var + self.__eps)
+                        + self.goal_rms.mean
+                    )
             else:
                 obs = obs * np.sqrt(self.obs_rms.var + self.__eps) + self.obs_rms.mean
         return obs
