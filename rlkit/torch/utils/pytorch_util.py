@@ -83,7 +83,7 @@ def FloatTensor(*args, torch_device=None, **kwargs):
 
 def from_numpy(np_array, requires_grad=False):
     # tensor_array = torch.from_numpy(np_array).float().to(device)
-    tensor_array = torch.from_numpy(np_array.astype(np.float64)).to(device) # float() creates a new tensor, making it much more slow
+    tensor_array = torch.from_numpy(np_array.astype(np.float32)).to(device) # float() creates a new tensor, making it much more slow
     tensor_array.requires_grad_(requires_grad=requires_grad)
     return tensor_array
 
