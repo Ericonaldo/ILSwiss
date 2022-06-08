@@ -7,7 +7,7 @@ meta_data:
   # num_gpu_workers: 1
 # -----------------------------------------------------------------------------
 variables:
-  seed: [0]
+  seed: [0,1,2]
 
 # -----------------------------------------------------------------------------
 constants:
@@ -15,8 +15,8 @@ constants:
   num_hidden_layers: 2
 
   rl_alg_params:
-    num_epochs: 102
-    num_steps_per_epoch: 10000
+    num_epochs: 720
+    num_steps_per_epoch: 1000
     num_steps_between_train_calls: 1
     num_train_steps_per_train_call: 1
     num_steps_per_eval: 5000

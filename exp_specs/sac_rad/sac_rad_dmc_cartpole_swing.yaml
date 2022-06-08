@@ -1,6 +1,6 @@
 meta_data:
   script_path: run_scripts/sac_alpha_visual_exp_script.py
-  exp_name: test_sac_rad_dmc_reach_easy
+  exp_name: test_sac_rad_dmc_cartpole_swing
   description: Train an agent using Soft-Actor-Critic
   num_workers: 2
   using_gpus: true
@@ -15,7 +15,7 @@ constants:
   num_hidden_layers: 2
 
   rl_alg_params:
-    num_epochs: 7s20
+    num_epochs: 720
     num_steps_per_epoch: 1000
     num_steps_between_train_calls: 1
     num_train_steps_per_train_call: 1
@@ -65,11 +65,11 @@ constants:
     env_name: 'dmc'
     frame_stack: 3
     env_kwargs: 
-      domain_name: "reacher"
-      task_name: "easy"
+      domain_name: "cartpole"
+      task_name: "swingup"
       visualize_reward: false
       from_pixels: true
       height: 100
       width: 100
-      frame_skip: 4
+      frame_skip: 8
     env_num: 1
