@@ -20,3 +20,7 @@ class TorchBaseAlgorithm(BaseAlgorithm, metaclass=abc.ABCMeta):
     def to(self, device):
         for net in self.networks:
             net.to(device)
+
+    @torch.no_grad()
+    def evaluate(self, epoch, *args, **kwargs):
+        super().evaluate(epoch)

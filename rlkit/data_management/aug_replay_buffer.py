@@ -62,13 +62,13 @@ class AugmentCPCImageEnvReplayBuffer(EnvReplayBuffer):
                 # apply crop and cutout first
                 if "crop" in aug or "cutout" in aug:
                     if "observations" in keys:
-                        batch_data["observations"] = func(
-                            batch_data["observations"], self.image_size
-                        )
                         if self.cpc:
                             batch_data["observations_pos"] = func(
                                 batch_data["observations"].copy(), self.image_size
                             )
+                        batch_data["observations"] = func(
+                            batch_data["observations"], self.image_size
+                        )
                     if "next_observations" in keys:
                         batch_data["next_observations"] = func(
                             batch_data["next_observations"], self.image_size
@@ -77,12 +77,6 @@ class AugmentCPCImageEnvReplayBuffer(EnvReplayBuffer):
                 elif "translate" in aug:
                     rndm_idxs = {}
                     if "observations" in keys:
-                        og_obses = rad.center_crop_images(
-                            batch_data["observations"], self.pre_image_size
-                        )
-                        batch_data["observations"], rndm_idxs = func(
-                            og_obses, self.image_size, return_random_idxs=True
-                        )
                         if self.cpc:
                             og_obses_cpc = rad.center_crop_images(
                                 batch_data["observations"], self.pre_image_size
@@ -90,6 +84,12 @@ class AugmentCPCImageEnvReplayBuffer(EnvReplayBuffer):
                             batch_data["observations_pos"], _ = func(
                                 og_obses_cpc, self.image_size, return_random_idxs=True
                             )
+                        og_obses = rad.center_crop_images(
+                            batch_data["observations"], self.pre_image_size
+                        )
+                        batch_data["observations"], rndm_idxs = func(
+                            og_obses, self.image_size, return_random_idxs=True
+                        )
                     if "next_observations" in keys:
                         og_next_obses = rad.center_crop_images(
                             batch_data["next_observations"], self.pre_image_size
@@ -104,11 +104,12 @@ class AugmentCPCImageEnvReplayBuffer(EnvReplayBuffer):
                 # augmentations go here
                 else:
                     if "observations" in keys:
-                        batch_data["observations"] = func(batch_data["observations"])
                         if self.cpc:
                             batch_data["observations_pos"] = func(
                                 batch_data["observations"].copy()
                             )
+                        batch_data["observations"] = func(batch_data["observations"])
+                        
                     if "next_observations" in keys:
                         batch_data["next_observations"] = func(
                             batch_data["next_observations"]

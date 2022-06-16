@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.0-base-ubuntu20.04
+FROM nvidia/cudagl:11.0-base-ubuntu20.04
 
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -37,7 +37,8 @@ RUN apt-get update && apt-get install -y --allow-downgrades \
     libglew-dev \
     libgl1-mesa-glx \
     xorg \
-    openbox
+    openbox \
+    tmux
 
 RUN ln -s /usr/bin/python${PYTHON_VERSION} /usr/bin/python
 
