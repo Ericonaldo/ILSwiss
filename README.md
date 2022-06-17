@@ -1,4 +1,6 @@
 # ILSwiss
+[News!] We are now support [envpool](https://github.com/sail-sg/envpool) for accelerating training, see example yaml file in `https://github.com/Ericonaldo/ILSwiss/blob/main/exp_specs/sac/sac_hopper_envpool.yaml`.
+
 [News!] We have implemented CURL and RAD in torch for potential imgae-based researches, see yaml file in `exp_specs`.
 
 [News!] We now support experiments logging using [wandb](https://wandb.ai).
