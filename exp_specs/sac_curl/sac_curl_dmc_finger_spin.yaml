@@ -44,7 +44,7 @@ constants:
   augmentation_params:
     cpc: true
     data_augs: 'crop'
-    image_size: 108
+    image_size: 84
     pre_transform_image_size: 100
 
   sac_params:

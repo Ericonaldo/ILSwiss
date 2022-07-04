@@ -61,7 +61,7 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
         self.training_env = training_env
         self.exploration_policy = exploration_policy
 
-        self.num_epochs = num_epochs
+        self.num_epochs = num_epochs + 1 # make the last epoch `num_epochs`
         self.num_env_steps_per_epoch = num_steps_per_epoch
         self.num_steps_between_train_calls = num_steps_between_train_calls
         self.num_steps_per_eval = num_steps_per_eval
@@ -301,12 +301,15 @@ class BaseAlgorithm(metaclass=abc.ABCMeta):
     def _try_to_eval(self, epoch):
         if self._can_evaluate():
             # save if it's time to save
-            if (int(epoch) % self.freq_saving == 0) or (epoch + 1 >= self.num_epochs):
-                # if epoch + 1 >= self.num_epochs:
-                # epoch = 'final'
-                logger.save_extra_data(self.get_extra_data_to_save(epoch))
-                params = self.get_epoch_snapshot(epoch)
-                logger.save_itr_params(epoch, params)
+            if (self.freq_saving <= 0) and (epoch < self.num_epochs-1):
+                pass
+            else:
+                if (int(epoch) % self.freq_saving == 0) or (epoch + 1 >= self.num_epochs):
+                    # if epoch + 1 >= self.num_epochs:
+                    # epoch = 'final'
+                    logger.save_extra_data(self.get_extra_data_to_save(epoch))
+                    params = self.get_epoch_snapshot(epoch)
+                    logger.save_itr_params(epoch, params)
 
             self.evaluate(epoch)
 
